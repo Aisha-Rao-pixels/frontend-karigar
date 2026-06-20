@@ -197,7 +197,7 @@ def send_profile_email(worker: dict, referred_by: dict | None = None) -> bool:
         attachment.add_header("Content-Disposition", "attachment", filename=f"Karigar_{safe or 'Profile'}.pdf")
         msg.attach(attachment)
 
-               context = ssl.create_default_context()
+        context = ssl.create_default_context()
         with smtplib.SMTP_SSL(
             "smtp.gmail.com",
             465,
