@@ -116,6 +116,8 @@ export default function LoginScreen() {
             placeholderTextColor={COLORS.muted}
             keyboardType="phone-pad"
             maxLength={10}
+            textContentType="telephoneNumber"
+            autoComplete="tel"
             style={styles.phoneInput}
           />
         </View>
@@ -125,13 +127,15 @@ export default function LoginScreen() {
           {t("password")}
         </AppText>
         <View style={styles.pwdRow}>
-          <TextInput
+           <TextInput
             testID="password-input"
             value={password}
             onChangeText={setPassword}
             placeholder={isRegister ? t("passwordCreatePh") : t("passwordPh")}
             placeholderTextColor={COLORS.muted}
             secureTextEntry={!showPwd}
+            textContentType={isRegister ? "newPassword" : "password"}
+            autoComplete={isRegister ? "new-password" : "current-password"}
             style={styles.pwdInput}
           />
           <Pressable onPress={() => setShowPwd((s) => !s)} hitSlop={10} style={styles.eyeBtn} testID="toggle-password">
