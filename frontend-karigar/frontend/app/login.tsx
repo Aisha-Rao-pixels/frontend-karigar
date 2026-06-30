@@ -37,8 +37,8 @@ export default function LoginScreen() {
     }
   };
 
-  const handleSubmit = async () => {
-    if (phone.trim().length < 10) {
+ const handleSubmit = async () => {
+    if (phone.trim().length !== 10 || !/^[6-9]\d{9}$/.test(phone.trim())) {
       show(t("enterMobile"), "error");
       return;
     }
