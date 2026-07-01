@@ -1,4 +1,3 @@
-import { useToast } from "@/src/components/Toast";
 import React, { useCallback, useState } from "react";
 import { View, StyleSheet, FlatList, Pressable } from "react-native";
 import { useRouter } from "expo-router";
@@ -9,6 +8,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { COLORS, SPACING, RADIUS, shadow } from "@/src/theme";
 import { AppText, Avatar, EmptyState, Loader } from "@/src/components/ui";
 import { apiFetch } from "@/src/api/client";
+import { useToast } from "@/src/components/Toast";
 import { Worker, timeAgo } from "@/src/utils/profile";
 
 export default function VerificationCenter() {
@@ -16,6 +16,7 @@ export default function VerificationCenter() {
   const { t } = useTranslation();
   const { show } = useToast();
   const insets = useSafeAreaInsets();
+  const { show } = useToast();
   const [items, setItems] = useState<Worker[]>([]);
   const [loading, setLoading] = useState(true);
 
