@@ -16,7 +16,6 @@ export default function VerificationCenter() {
   const { t } = useTranslation();
   const { show } = useToast();
   const insets = useSafeAreaInsets();
-  const { show } = useToast();
   const [items, setItems] = useState<Worker[]>([]);
   const [loading, setLoading] = useState(true);
 
