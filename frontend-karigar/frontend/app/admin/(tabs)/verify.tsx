@@ -1,3 +1,4 @@
+import { useToast } from "@/src/components/Toast";
 import React, { useCallback, useState } from "react";
 import { View, StyleSheet, FlatList, Pressable } from "react-native";
 import { useRouter } from "expo-router";
@@ -13,6 +14,7 @@ import { Worker, timeAgo } from "@/src/utils/profile";
 export default function VerificationCenter() {
   const router = useRouter();
   const { t } = useTranslation();
+  const { show } = useToast();
   const insets = useSafeAreaInsets();
   const [items, setItems] = useState<Worker[]>([]);
   const [loading, setLoading] = useState(true);
@@ -21,7 +23,9 @@ export default function VerificationCenter() {
     try {
       const res = await apiFetch<Worker[]>("/admin/verification/queue");
       setItems(res);
-    } catch {
+    } catch (e: any) {
+      console.error("Verification queue load failed:", e?.message || e);
+      show(e?.message || t("genericError"), "error");
     } finally {
       setLoading(false);
     }
