@@ -103,6 +103,8 @@ export default function AdminLogin() {
             placeholderTextColor={COLORS.muted}
             keyboardType="phone-pad"
             maxLength={10}
+            textContentType="telephoneNumber"
+            autoComplete="tel"
             style={styles.phoneInput}
           />
         </View>
