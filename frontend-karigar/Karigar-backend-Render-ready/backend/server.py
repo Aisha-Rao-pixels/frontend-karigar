@@ -971,9 +971,16 @@ async def admin_register_worker(payload: AdminRegisterWorkerPayload, user: dict 
 
 @api_router.get("/admin/verification/queue")
 async def verification_queue(user: dict = Depends(require_roles(*VERIFY_ROLES))):
-    cursor = db.workers.find({"verification_status": "pending"}).sort("created_at", 1)
+    cursor = db.workers.find(
+        {"verification_status": "pending"},
+        {
+            "portfolio_images": 0,
+            "aadhar_images": 0,
+            "employment_proof_images": 0,
+        }
+    ).sort("created_at", 1)
     raw = [clean(w) for w in await cursor.to_list(200)]
-    return [await gridfs_images.hydrate_worker(image_bucket, w) for w in raw]
+    return raw
 
 
 async def _notify_worker(worker, ntype, title_en, title_hi, title_te, body_en, body_hi, body_te):
