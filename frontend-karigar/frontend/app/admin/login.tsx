@@ -65,40 +65,128 @@ export default function AdminLogin() {
     }
   };
 
-  // This hidden HTML form helps Chrome's password manager detect
-  // the login fields and offer to save/autofill credentials.
-  const WebPasswordForm = () => {
-    if (Platform.OS !== "web") return null;
+  // ─── Web: real HTML inputs so Chrome autofill works ───────────────────────
+  if (Platform.OS === "web") {
     return (
-      <form
-        onSubmit={(e) => { e.preventDefault(); submit(); }}
-        style={{ position: "absolute", opacity: 0, pointerEvents: "none", width: 1, height: 1, overflow: "hidden" }}
-        autoComplete="on"
-      >
-        <input
-          type="tel"
-          name="username"
-          autoComplete="username"
-          value={phone}
-          onChange={(e) => setPhone(e.target.value.replace(/[^0-9]/g, ""))}
-        />
-        <input
-          type={showPwd ? "text" : "password"}
-          name="password"
-          autoComplete={isRegister ? "new-password" : "current-password"}
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
-        <button type="submit">Login</button>
-      </form>
-    );
-  };
+      <div style={{ flex: 1, backgroundColor: COLORS.surface, display: "flex", flexDirection: "column", minHeight: "100vh" }}>
+        {/* Hero section */}
+        <div style={{
+          backgroundColor: COLORS.surfaceInverse,
+          padding: `${SPACING.xl}px`,
+          paddingTop: `${SPACING["3xl"]}px`,
+          borderBottomLeftRadius: RADIUS.lg,
+          borderBottomRightRadius: RADIUS.lg,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "flex-start",
+          position: "relative",
+        }}>
+          <button
+            onClick={() => router.replace("/login")}
+            style={{ background: "none", border: "none", cursor: "pointer", position: "absolute", left: SPACING.md, top: SPACING.xl, width: 40, height: 40, display: "flex", alignItems: "center", justifyContent: "center" }}
+          >
+            <Ionicons name="chevron-back" size={24} color="#fff" />
+          </button>
+          <div style={{ width: 60, height: 60, borderRadius: RADIUS.lg, backgroundColor: COLORS.brandPrimary, display: "flex", alignItems: "center", justifyContent: "center", marginTop: SPACING.lg }}>
+            <Ionicons name="shield-checkmark" size={30} color={COLORS.onBrandPrimary} />
+          </div>
+          <p style={{ color: "#fff", fontSize: 24, fontWeight: "bold", margin: `${SPACING.md}px 0 0 0` }}>{t("staffPortal")}</p>
+          <p style={{ color: "rgba(255,255,255,0.75)", fontSize: 14, margin: "4px 0 0 0" }}>
+            {isRegister ? t("setupFirstAdmin") : t("adminAccessOnly")}
+          </p>
+        </div>
 
+        {/* Form section */}
+        <form
+          onSubmit={(e) => { e.preventDefault(); submit(); }}
+          autoComplete="on"
+          style={{ flex: 1, padding: `${SPACING["2xl"]}px ${SPACING.xl}px`, display: "flex", flexDirection: "column" }}
+        >
+          {isRegister && (
+            <div style={{
+              display: "flex", flexDirection: "row", alignItems: "center", gap: SPACING.sm,
+              marginBottom: SPACING.xl, padding: SPACING.md, borderRadius: RADIUS.md,
+              backgroundColor: COLORS.brandPrimary + "12", border: `1px solid ${COLORS.brandPrimary}33`,
+            }}>
+              <Ionicons name="key" size={18} color={COLORS.brandPrimary} />
+              <p style={{ flex: 1, fontSize: 13, color: COLORS.onSurfaceTertiary, margin: 0 }}>{t("firstAdminHint")}</p>
+            </div>
+          )}
+
+          {/* Mobile Number */}
+          <label style={{ fontWeight: "600", fontSize: 14, marginBottom: SPACING.sm, color: COLORS.onSurface }}>
+            {t("mobileNumber")}
+          </label>
+          <div style={{ display: "flex", flexDirection: "row", gap: SPACING.sm, marginBottom: SPACING.lg }}>
+            <div style={{ height: 52, paddingLeft: SPACING.lg, paddingRight: SPACING.lg, borderRadius: RADIUS.md, backgroundColor: COLORS.surfaceTertiary, display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <span style={{ fontWeight: "600", color: COLORS.onSurface }}>+91</span>
+            </div>
+            <input
+              type="tel"
+              name="username"
+              autoComplete="username"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value.replace(/[^0-9]/g, "").slice(0, 10))}
+              placeholder={t("enterMobile")}
+              maxLength={10}
+              style={{
+                flex: 1, height: 52, borderWidth: 1, border: `1px solid ${COLORS.border}`,
+                borderRadius: RADIUS.md, paddingLeft: SPACING.md, paddingRight: SPACING.md,
+                fontSize: FONT.lg, color: COLORS.onSurface, backgroundColor: COLORS.surfaceSecondary,
+                outline: "none", boxSizing: "border-box",
+              }}
+            />
+          </div>
+
+          {/* Password */}
+          <label style={{ fontWeight: "600", fontSize: 14, marginBottom: SPACING.sm, color: COLORS.onSurface }}>
+            {t("password")}
+          </label>
+          <div style={{ position: "relative", display: "flex", flexDirection: "row", alignItems: "center", marginBottom: SPACING.xl }}>
+            <input
+              type={showPwd ? "text" : "password"}
+              name="password"
+              autoComplete={isRegister ? "new-password" : "current-password"}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder={isRegister ? t("passwordCreatePh") : t("passwordPh")}
+              style={{
+                flex: 1, height: 52, border: `1px solid ${COLORS.border}`,
+                borderRadius: RADIUS.md, paddingLeft: SPACING.md, paddingRight: 44,
+                fontSize: FONT.lg, color: COLORS.onSurface, backgroundColor: COLORS.surfaceSecondary,
+                outline: "none", boxSizing: "border-box", width: "100%",
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPwd((s) => !s)}
+              style={{ position: "absolute", right: SPACING.md, background: "none", border: "none", cursor: "pointer", height: 52, display: "flex", alignItems: "center" }}
+            >
+              <Ionicons name={showPwd ? "eye-off" : "eye"} size={20} color={COLORS.muted} />
+            </button>
+          </div>
+
+          {/* Submit Button */}
+          <button
+            type="submit"
+            disabled={loading || adminExists === null}
+            style={{
+              height: 52, backgroundColor: loading ? COLORS.muted : COLORS.brandPrimary,
+              color: COLORS.onBrandPrimary, border: "none", borderRadius: RADIUS.md,
+              fontSize: 16, fontWeight: "600", cursor: loading ? "not-allowed" : "pointer",
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+            }}
+          >
+            {loading ? t("loading") : (isRegister ? t("createAdminAccount") : t("loginCta"))}
+          </button>
+        </form>
+      </div>
+    );
+  }
+
+  // ─── Mobile: keep existing TextInput UI ───────────────────────────────────
   return (
     <View style={styles.container}>
-      {/* Hidden web form for Chrome password manager */}
-      <WebPasswordForm />
-
       <View style={[styles.hero, { paddingTop: insets.top + SPACING.xl }]}>
         <Pressable onPress={() => router.replace("/login")} style={styles.back} hitSlop={10} testID="admin-back-to-artisan">
           <Ionicons name="chevron-back" size={24} color="#fff" />
