@@ -914,8 +914,13 @@ async def admin_worker_detail(worker_id: str, user: dict = Depends(require_roles
     worker = await db.workers.find_one({"id": worker_id})
     if not worker:
         raise HTTPException(status_code=404, detail="Worker not found")
-    result = await gridfs_images.hydrate_worker(image_bucket, clean(worker))
-    # Attach the referrer (name + phone) if this worker registered via a referral code.
+    result = clean(worker)
+    # Hydrate only one image field at a time to avoid memory spike
+    for field in ["portfolio_images", "aadhar_images", "employment_proof_images"]:
+        if result.get(field):
+            result[field] = await gridfs_images.hydrate_images(
+                image_bucket, result[field][:3]  # max 3 images per field
+            )
     code = worker.get("referred_by_code")
     if code:
         referrer = await db.workers.find_one({"referral_code": code})
