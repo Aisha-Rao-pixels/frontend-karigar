@@ -65,8 +65,40 @@ export default function AdminLogin() {
     }
   };
 
+  // This hidden HTML form helps Chrome's password manager detect
+  // the login fields and offer to save/autofill credentials.
+  const WebPasswordForm = () => {
+    if (Platform.OS !== "web") return null;
+    return (
+      <form
+        onSubmit={(e) => { e.preventDefault(); submit(); }}
+        style={{ position: "absolute", opacity: 0, pointerEvents: "none", width: 1, height: 1, overflow: "hidden" }}
+        autoComplete="on"
+      >
+        <input
+          type="tel"
+          name="username"
+          autoComplete="username"
+          value={phone}
+          onChange={(e) => setPhone(e.target.value.replace(/[^0-9]/g, ""))}
+        />
+        <input
+          type={showPwd ? "text" : "password"}
+          name="password"
+          autoComplete={isRegister ? "new-password" : "current-password"}
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
+        <button type="submit">Login</button>
+      </form>
+    );
+  };
+
   return (
     <View style={styles.container}>
+      {/* Hidden web form for Chrome password manager */}
+      <WebPasswordForm />
+
       <View style={[styles.hero, { paddingTop: insets.top + SPACING.xl }]}>
         <Pressable onPress={() => router.replace("/login")} style={styles.back} hitSlop={10} testID="admin-back-to-artisan">
           <Ionicons name="chevron-back" size={24} color="#fff" />
