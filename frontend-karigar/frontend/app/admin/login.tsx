@@ -119,6 +119,8 @@ export default function AdminLogin() {
             placeholder={isRegister ? t("passwordCreatePh") : t("passwordPh")}
             placeholderTextColor={COLORS.muted}
             secureTextEntry={!showPwd}
+            textContentType={isRegister ? "newPassword" : "password"}
+            autoComplete={isRegister ? "new-password" : "current-password"}
             style={styles.pwdInput}
           />
           <Pressable onPress={() => setShowPwd((s) => !s)} hitSlop={10} style={styles.eyeBtn} testID="admin-toggle-password">
