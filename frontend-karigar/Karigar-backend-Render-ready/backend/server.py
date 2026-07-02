@@ -1165,9 +1165,6 @@ async def seed_data():
 async def root():
     return {"message": "Karigar API"}
 
-
-app.include_router(api_router)
-
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
@@ -1176,6 +1173,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(api_router)
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
