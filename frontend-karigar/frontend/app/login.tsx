@@ -6,6 +6,7 @@ import {
   Pressable,
   KeyboardAvoidingView,
   Platform,
+  Alert,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
@@ -47,10 +48,20 @@ export default function LoginScreen() {
   const handlePhoneChange = (text: string) => {
     const digitsOnly = text.replace(/[^0-9]/g, "");
     setPhone(digitsOnly);
-
-    // Check the first digit as soon as it's typed
     if (digitsOnly.length === 1 && !/^[6-9]$/.test(digitsOnly)) {
       show("Mobile number must start with 6, 7, 8, or 9", "error");
+    }
+  };
+
+  const handleForgotPassword = () => {
+    if (Platform.OS === "web") {
+      window.alert("Forgot Password feature is coming soon! Please contact our support team for help.");
+    } else {
+      Alert.alert(
+        "Coming Soon",
+        "Forgot Password feature is coming soon! Please contact our support team for help.",
+        [{ text: "OK" }]
+      );
     }
   };
 
@@ -127,7 +138,7 @@ export default function LoginScreen() {
           {t("password")}
         </AppText>
         <View style={styles.pwdRow}>
-           <TextInput
+          <TextInput
             testID="password-input"
             value={password}
             onChangeText={setPassword}
@@ -146,6 +157,19 @@ export default function LoginScreen() {
           <AppText size="sm" color={COLORS.muted} style={{ marginTop: 6 }}>
             {t("passwordMin6")}
           </AppText>
+        )}
+
+        {/* Forgot Password — only show on login mode, not register */}
+        {!isRegister && (
+          <Pressable
+            onPress={handleForgotPassword}
+            style={styles.forgotBtn}
+            testID="forgot-password-btn"
+          >
+            <AppText size="sm" color={COLORS.brandPrimary} weight="semibold">
+              Forgot Password?
+            </AppText>
+          </Pressable>
         )}
 
         <View style={{ height: SPACING.xl }} />
@@ -226,6 +250,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surfaceSecondary,
   },
   eyeBtn: { position: "absolute", right: SPACING.md, height: 52, justifyContent: "center" },
+  forgotBtn: { alignSelf: "flex-end", marginTop: SPACING.sm, padding: SPACING.sm },
   switchBtn: { flexDirection: "row", justifyContent: "center", alignItems: "center", marginTop: SPACING.xl, padding: SPACING.sm },
   adminLink: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, marginTop: SPACING["2xl"], padding: SPACING.md },
 });
