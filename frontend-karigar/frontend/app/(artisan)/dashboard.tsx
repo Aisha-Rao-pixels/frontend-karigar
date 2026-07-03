@@ -93,7 +93,7 @@ export default function ArtisanDashboard() {
       <ScrollView
         contentContainerStyle={{ paddingTop: insets.top + SPACING.md, paddingBottom: SPACING["2xl"] }}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={false} onRefresh={load} tintColor={COLORS.brandPrimary} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.brandPrimary} />}
       >
         {/* Header */}
         <View style={styles.headerRow}>
