@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { View, StyleSheet, TextInput, Pressable, KeyboardAvoidingView, Platform } from "react-native";
+import { View, StyleSheet, TextInput, Pressable, KeyboardAvoidingView, Platform, Alert } from "react-native";
 import { useRouter } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { Ionicons } from "@expo/vector-icons";
@@ -34,6 +34,18 @@ export default function AdminLogin() {
   }, []);
 
   const isRegister = mode === "register";
+
+  const handleForgotPassword = () => {
+    if (Platform.OS === "web") {
+      window.alert("Forgot Password feature is coming soon! Please contact our support team for help.");
+    } else {
+      Alert.alert(
+        "Coming Soon",
+        "Forgot Password feature is coming soon! Please contact our support team for help.",
+        [{ text: "OK" }]
+      );
+    }
+  };
 
   const submit = async () => {
     if (phone.trim().length < 10) {
@@ -142,7 +154,7 @@ export default function AdminLogin() {
           <label style={{ fontWeight: "600", fontSize: 14, marginBottom: SPACING.sm, color: COLORS.onSurface }}>
             {t("password")}
           </label>
-          <div style={{ position: "relative", display: "flex", flexDirection: "row", alignItems: "center", marginBottom: SPACING.xl }}>
+          <div style={{ position: "relative", display: "flex", flexDirection: "row", alignItems: "center" }}>
             <input
               type={showPwd ? "text" : "password"}
               name="password"
@@ -165,6 +177,19 @@ export default function AdminLogin() {
               <Ionicons name={showPwd ? "eye-off" : "eye"} size={20} color={COLORS.muted} />
             </button>
           </div>
+
+          {/* Forgot Password — only on login mode */}
+          {!isRegister && (
+            <button
+              type="button"
+              onClick={handleForgotPassword}
+              style={{ alignSelf: "flex-end", background: "none", border: "none", cursor: "pointer", marginTop: SPACING.sm, padding: SPACING.sm, color: COLORS.brandPrimary, fontSize: 13, fontWeight: "600" }}
+            >
+              Forgot Password?
+            </button>
+          )}
+
+          <div style={{ height: SPACING.xl }} />
 
           {/* Submit Button */}
           <button
@@ -248,6 +273,19 @@ export default function AdminLogin() {
           </Pressable>
         </View>
 
+        {/* Forgot Password — only on login mode */}
+        {!isRegister && (
+          <Pressable
+            onPress={handleForgotPassword}
+            style={styles.forgotBtn}
+            testID="admin-forgot-password-btn"
+          >
+            <AppText size="sm" color={COLORS.brandPrimary} weight="semibold">
+              Forgot Password?
+            </AppText>
+          </Pressable>
+        )}
+
         <View style={{ height: SPACING.xl }} />
         <Button
           title={isRegister ? t("createAdminAccount") : t("loginCta")}
@@ -284,4 +322,5 @@ const styles = StyleSheet.create({
   pwdRow: { flexDirection: "row", alignItems: "center" },
   pwdInput: { flex: 1, height: 52, borderWidth: 1, borderColor: COLORS.border, borderRadius: RADIUS.md, paddingHorizontal: SPACING.md, paddingRight: 44, fontSize: FONT.lg, color: COLORS.onSurface, backgroundColor: COLORS.surfaceSecondary },
   eyeBtn: { position: "absolute", right: SPACING.md, height: 52, justifyContent: "center" },
+  forgotBtn: { alignSelf: "flex-end", marginTop: SPACING.sm, padding: SPACING.sm },
 });
