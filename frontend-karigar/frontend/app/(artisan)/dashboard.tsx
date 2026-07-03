@@ -30,7 +30,7 @@ export default function ArtisanDashboard() {
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
-
+  const [refreshing, setRefreshing] = useState(false);
   const load = useCallback(async () => {
     try {
       const [w, n] = await Promise.all([apiFetch<Worker>("/workers/me"), apiFetch<any[]>("/notifications")]);
