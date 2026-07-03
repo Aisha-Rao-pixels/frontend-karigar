@@ -38,15 +38,20 @@ export default function ArtisanDashboard() {
       setNotifs(n);
     } catch {
     } finally {
-      setLoading(false);
-    }
-  }, []);
+        setLoading(false);
+        setRefreshing(false);
+        }
+      }, []);
 
-  useFocusEffect(
-    useCallback(() => {
+    const onRefresh = useCallback(() => {
+      setRefreshing(true);
       load();
-    }, [load])
-  );
+    }, [load]);
+    useFocusEffect(
+      useCallback(() => {
+        load();
+      },  [load])
+    );
 
   const commitAvailability = async (status: string, availableFrom: string | null) => {
     if (!worker) return;
