@@ -1015,8 +1015,8 @@ async def export_workers_pdf(
     max_exp: Optional[int] = None,
 ):
     query = _apply_filters(search, skill, availability, verification, city, area, min_exp, max_exp)
-    workers = await db.workers.find(query).sort("created_at", -1).to_list(5000)
-    # Hydrate images one worker at a time, max 3 per field to save memory
+   workers = await db.workers.find(query).sort("created_at", -1).to_list(5000)
+    # Hydrate images one worker at a time, max 1 per field to save memory
     hydrated = []
     for w in workers:
         try:
@@ -1024,7 +1024,7 @@ async def export_workers_pdf(
             for field in ["portfolio_images", "aadhar_images", "employment_proof_images"]:
                 if wc.get(field):
                     wc[field] = await gridfs_images.hydrate_images(
-                        image_bucket, wc[field][:3]
+                        image_bucket, wc[field][:1]
                     )
             # Attach referral info if available
             code = wc.get("referred_by_code")
