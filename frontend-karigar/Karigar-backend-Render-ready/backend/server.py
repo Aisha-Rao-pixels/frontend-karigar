@@ -23,7 +23,6 @@ from passlib.context import CryptContext
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
-# msg91_client kept in codebase but dormant (OTP flow retired in favour of password auth)
 import msg91_client
 import email_service
 import export_service
@@ -33,7 +32,6 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 def _pre_hash(password: str) -> str:
-    """SHA-256 pre-hash to sidestep bcrypt's 72-byte truncation limit."""
     return hashlib.sha256(password.encode()).hexdigest()
 
 
@@ -47,9 +45,6 @@ def verify_password(plain: str, hashed: str) -> bool:
     except Exception:
         return False
 
-# ---------------------------------------------------------------------------
-# Config
-# ---------------------------------------------------------------------------
 mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ['DB_NAME']]
@@ -83,9 +78,6 @@ def gen_referral_code() -> str:
     return "KAR-" + "".join(random.choices(string.ascii_uppercase + string.digits, k=5))
 
 
-# ---------------------------------------------------------------------------
-# Enums / Models
-# ---------------------------------------------------------------------------
 ARTISAN_ROLES = {"karigar"}
 ADMIN_ROLES = {"admin"}
 VERIFY_ROLES = {"admin"}
@@ -147,9 +139,6 @@ class AdminRegisterWorkerPayload(WorkerProfilePayload):
     mobile: str
 
 
-# ---------------------------------------------------------------------------
-# Auth helpers
-# ---------------------------------------------------------------------------
 def create_access_token(user_id: str, role: str) -> str:
     expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     payload = {"sub": user_id, "role": role, "exp": expire}
@@ -195,9 +184,6 @@ async def worker_for_user(user: dict) -> Optional[dict]:
     return clean(w) if w else None
 
 
-# ---------------------------------------------------------------------------
-# Auth routes (phone + password)
-# ---------------------------------------------------------------------------
 def _validate_phone(phone: str) -> str:
     phone = phone.strip()
     if len(phone) != 10 or not phone.isdigit():
@@ -228,7 +214,6 @@ def _auth_response(user: dict, has_profile: bool) -> dict:
 
 @api_router.get("/auth/admin/exists")
 async def admin_exists():
-    """Public: tells the staff portal whether first-admin signup is still open."""
     count = await db.users.count_documents({"role": "admin"})
     return {"exists": count > 0}
 
@@ -272,7 +257,6 @@ async def login(payload: LoginPayload):
 
 @api_router.post("/auth/admin/create")
 async def create_admin(payload: CreateAdminPayload, current: dict = Depends(require_roles("admin"))):
-    """Invite-only: an existing admin creates another admin."""
     phone = _validate_phone(payload.phone)
     _validate_password(payload.password)
     if await db.users.find_one({"phone": phone}):
@@ -307,9 +291,6 @@ async def auth_me(user: dict = Depends(get_current_user)):
     }
 
 
-# ---------------------------------------------------------------------------
-# Skills
-# ---------------------------------------------------------------------------
 @api_router.get("/skills")
 async def list_skills(user: dict = Depends(get_current_user)):
     skills = await db.skills.find().sort("name", 1).to_list(200)
@@ -335,16 +316,8 @@ async def delete_skill(skill_id: str, user: dict = Depends(require_roles("admin"
     return {"success": True}
 
 
-# ---------------------------------------------------------------------------
-# Location (reverse geocoding)
-# ---------------------------------------------------------------------------
 @api_router.get("/geocode/reverse")
 async def reverse_geocode(lat: float, lng: float, user: dict = Depends(get_current_user)):
-    """Server-side proxy to OpenStreetMap Nominatim. Proxying (rather than
-    calling Nominatim directly from the client) keeps a single, descriptive
-    User-Agent as required by Nominatim's usage policy, and lets us apply
-    one rate-limit point for the whole app instead of 400 uncoordinated
-    client-side callers."""
     try:
         async with httpx.AsyncClient(timeout=10) as client_http:
             resp = await client_http.get(
@@ -356,8 +329,6 @@ async def reverse_geocode(lat: float, lng: float, user: dict = Depends(get_curre
             raise HTTPException(status_code=502, detail="Location lookup failed, please enter your area manually")
         data = resp.json()
         addr = data.get("address", {})
-        # Nominatim's "suburb"/"neighbourhood" fields map best to an Indian
-        # locality/area name; fall back progressively if unavailable.
         area = (
             addr.get("suburb") or addr.get("neighbourhood") or addr.get("residential")
             or addr.get("village") or addr.get("town") or ""
@@ -377,9 +348,6 @@ async def reverse_geocode(lat: float, lng: float, user: dict = Depends(get_curre
         raise HTTPException(status_code=502, detail="Location lookup failed, please enter your area manually")
 
 
-# ---------------------------------------------------------------------------
-# Worker (artisan self-service)
-# ---------------------------------------------------------------------------
 @api_router.get("/workers/me")
 async def get_my_profile(user: dict = Depends(get_current_user)):
     worker = await worker_for_user(user)
@@ -437,7 +405,6 @@ async def _build_worker_doc(payload: WorkerProfilePayload, phone: str, user_id: 
     }
 
 
-# Fields captured in a version snapshot when a profile is edited.
 _SNAPSHOT_FIELDS = [
     "full_name", "gender", "languages", "area", "city",
     "location_lat", "location_lng", "skills",
@@ -449,13 +416,6 @@ _SNAPSHOT_FIELDS = [
 
 
 def _make_snapshot(worker: dict, edited_by: str) -> dict:
-    """Snapshot the current ('before') profile state for version history.
-
-    Image fields are intentionally excluded: they are large and can be
-    retrieved from GridFS (new uploads) or the current document (legacy
-    base64) at any time.  Excluding them keeps the history array small
-    regardless of how many edits accumulate.
-    """
     snap = {f: worker.get(f) for f in _SNAPSHOT_FIELDS if f not in gridfs_images.IMAGE_FIELDS}
     snap["snapshot_at"] = worker.get("updated_at") or now_iso()
     snap["archived_at"] = now_iso()
@@ -513,12 +473,7 @@ async def _register_referral(worker: dict):
     await db.referrals.insert_one(dict(ref))
 
 
-# ---------------------------------------------------------------------------
-# Duplicate detection (registration-time checks)
-# ---------------------------------------------------------------------------
 def _hash_data_url(data_url: str) -> Optional[str]:
-    """SHA-256 over the raw image bytes (not the data: prefix), so identical
-    photos hash identically regardless of how the client encoded the wrapper."""
     if not data_url:
         return None
     try:
@@ -534,9 +489,6 @@ def _hash_images(images: List[str]) -> List[str]:
 
 
 async def _check_hard_blocks(phone: str, upi_id: Optional[str], exclude_worker_id: Optional[str] = None):
-    """Mobile number and PhonePe/GPay number: hard blocks per business decision.
-    NOTE: UPI is hard-blocked per explicit instruction, despite shared family
-    UPI accounts being a known false-positive risk in this worker demographic."""
     query: dict = {"phone": phone}
     if exclude_worker_id:
         query["id"] = {"$ne": exclude_worker_id}
@@ -556,10 +508,6 @@ async def _check_hard_blocks(phone: str, upi_id: Optional[str], exclude_worker_i
 
 
 async def _check_aadhaar_image_reuse(aadhaar_hashes: List[str], exclude_worker_id: Optional[str] = None):
-    """Hard block: identical Aadhaar card photo (by file hash) reused across
-    two different worker registrations. Does NOT verify Aadhaar numbers
-    (no such field exists) and will not catch two different photos of the
-    same physical card."""
     if not aadhaar_hashes:
         return
     query: dict = {"aadhar_image_hashes": {"$in": aadhaar_hashes}}
@@ -574,8 +522,6 @@ async def _check_aadhaar_image_reuse(aadhaar_hashes: List[str], exclude_worker_i
 
 
 async def _check_portfolio_image_reuse(portfolio_hashes: List[str], exclude_worker_id: Optional[str] = None) -> Optional[str]:
-    """Soft fraud signal: identical portfolio photo reused by a different
-    worker. Does not block; returns a warning string for the admin queue."""
     if not portfolio_hashes:
         return None
     query: dict = {"portfolio_image_hashes": {"$in": portfolio_hashes}}
@@ -588,8 +534,6 @@ async def _check_portfolio_image_reuse(portfolio_hashes: List[str], exclude_work
 
 
 async def _check_name_duplicate(full_name: str, exclude_worker_id: Optional[str] = None) -> Optional[str]:
-    """Allowed duplicate per business decision (common names in this
-    demographic). Returns a flag string for the admin queue, never blocks."""
     query: dict = {"full_name": {"$regex": f"^{full_name.strip()}$", "$options": "i"}}
     if exclude_worker_id:
         query["id"] = {"$ne": exclude_worker_id}
@@ -600,14 +544,9 @@ async def _check_name_duplicate(full_name: str, exclude_worker_id: Optional[str]
 
 
 async def _run_duplicate_checks(payload: "WorkerProfilePayload", phone: str, exclude_worker_id: Optional[str] = None) -> List[str]:
-    """Runs all hard blocks (raises HTTPException on failure) then collects
-    soft-warning flags for the admin verification queue. Returns the list of
-    duplicate_flags to store on the worker document."""
     await _check_hard_blocks(phone, payload.upi_id, exclude_worker_id)
-
     aadhaar_hashes = _hash_images(payload.aadhar_images)
     await _check_aadhaar_image_reuse(aadhaar_hashes, exclude_worker_id)
-
     flags = []
     portfolio_hashes = _hash_images(payload.portfolio_images)
     portfolio_flag = await _check_portfolio_image_reuse(portfolio_hashes, exclude_worker_id)
@@ -628,7 +567,6 @@ async def create_my_profile(payload: WorkerProfilePayload, user: dict = Depends(
     doc = await _build_worker_doc(payload, user["phone"], user["id"], duplicate_flags)
     await db.workers.insert_one(dict(doc))
     await _register_referral(doc)
-    # notify admins
     await db.notifications.insert_one({
         "id": new_id(), "recipient_worker_id": None, "recipient_admin_id": "ALL",
         "type": "verification_update",
@@ -649,7 +587,6 @@ async def update_my_profile(payload: WorkerProfilePayload, user: dict = Depends(
     duplicate_flags = await _run_duplicate_checks(payload, user["phone"], exclude_worker_id=worker["id"])
     update = await _profile_update_fields(payload, worker)
     update["duplicate_flags"] = duplicate_flags
-    # A worker editing their own profile sends it back for re-verification.
     update["verification_status"] = "pending"
     update["verified_by"] = None
     update["verified_at"] = None
@@ -659,7 +596,6 @@ async def update_my_profile(payload: WorkerProfilePayload, user: dict = Depends(
         {"id": worker["id"]},
         {"$set": update, "$push": {"history": snapshot}},
     )
-    # Notify admins that the updated profile needs re-verification.
     await db.notifications.insert_one({
         "id": new_id(), "recipient_worker_id": None, "recipient_admin_id": "ALL",
         "type": "verification_update",
@@ -694,9 +630,6 @@ async def update_availability(payload: AvailabilityPayload, user: dict = Depends
     return {"availability_status": payload.availability_status, "available_from": available_from}
 
 
-# ---------------------------------------------------------------------------
-# Notifications
-# ---------------------------------------------------------------------------
 @api_router.get("/notifications")
 async def get_notifications(user: dict = Depends(get_current_user)):
     if user["role"] in ADMIN_ROLES:
@@ -721,9 +654,6 @@ async def mark_all_read(user: dict = Depends(get_current_user)):
     return {"success": True}
 
 
-# ---------------------------------------------------------------------------
-# Referrals (artisan)
-# ---------------------------------------------------------------------------
 @api_router.get("/referrals/me")
 async def my_referrals(user: dict = Depends(get_current_user)):
     worker = await db.workers.find_one({"phone": user["phone"]})
@@ -742,9 +672,6 @@ async def my_referrals(user: dict = Depends(get_current_user)):
     }
 
 
-# ---------------------------------------------------------------------------
-# Admin
-# ---------------------------------------------------------------------------
 @api_router.get("/admin/metrics")
 async def admin_metrics(user: dict = Depends(require_roles(*ADMIN_ROLES))):
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
@@ -766,24 +693,18 @@ async def admin_metrics(user: dict = Depends(require_roles(*ADMIN_ROLES))):
 
 @api_router.get("/admin/analytics")
 async def admin_analytics(user: dict = Depends(require_roles(*ADMIN_ROLES))):
-    """Aggregated workforce intelligence for the BI-style admin dashboard."""
     workers = await db.workers.find().to_list(10000)
     total = len(workers)
-
-    # KPI counts
     verified = sum(1 for w in workers if w.get("verification_status") == "approved")
     pending = sum(1 for w in workers if w.get("verification_status") == "pending")
     rejected = sum(1 for w in workers if w.get("verification_status") == "rejected")
     avail_now = sum(1 for w in workers if w.get("availability_status") == "available_now")
     avail_from = sum(1 for w in workers if w.get("availability_status") == "available_from")
     avail_no = sum(1 for w in workers if w.get("availability_status") == "not_available")
-
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     week_ago = (datetime.now(timezone.utc) - timedelta(days=7)).strftime("%Y-%m-%d")
     new_today = sum(1 for w in workers if (w.get("created_at") or "")[:10] >= today)
     new_week = sum(1 for w in workers if (w.get("created_at") or "")[:10] >= week_ago)
-
-    # Location concentration (by area within city)
     loc: dict = {}
     for w in workers:
         area = (w.get("area") or "Unknown").strip() or "Unknown"
@@ -794,8 +715,6 @@ async def admin_analytics(user: dict = Depends(require_roles(*ADMIN_ROLES))):
     location_distribution = sorted(loc.values(), key=lambda x: x["count"], reverse=True)
     for item in location_distribution:
         item["pct"] = round((item["count"] / total) * 100) if total else 0
-
-    # Skill distribution
     skill_counts: dict = {}
     for w in workers:
         for s in (w.get("skills") or []):
@@ -804,8 +723,6 @@ async def admin_analytics(user: dict = Depends(require_roles(*ADMIN_ROLES))):
         [{"skill": k, "count": v} for k, v in skill_counts.items()],
         key=lambda x: x["count"], reverse=True,
     )
-
-    # Experience buckets
     buckets = [
         {"label": "0-2 yrs", "count": 0},
         {"label": "3-5 yrs", "count": 0},
@@ -822,20 +739,15 @@ async def admin_analytics(user: dict = Depends(require_roles(*ADMIN_ROLES))):
             buckets[2]["count"] += 1
         else:
             buckets[3]["count"] += 1
-
-    # Gender split
     gender = {"male": 0, "female": 0, "other": 0}
     for w in workers:
         g = w.get("gender") or "other"
         gender[g] = gender.get(g, 0) + 1
-
-    # Registration trend (last 14 days)
     trend = []
     for i in range(13, -1, -1):
         d = (datetime.now(timezone.utc) - timedelta(days=i)).strftime("%Y-%m-%d")
         c = sum(1 for w in workers if (w.get("created_at") or "")[:10] == d)
         trend.append({"date": d, "count": c})
-
     return {
         "kpis": {
             "total_workers": total,
@@ -914,17 +826,17 @@ async def admin_search_workers(
     raw_items = [clean(w) for w in await cursor.to_list(page_size)]
     return {"total": total, "page": page, "page_size": page_size, "items": raw_items}
 
+
 @api_router.get("/admin/workers/{worker_id}")
 async def admin_worker_detail(worker_id: str, user: dict = Depends(require_roles(*ADMIN_ROLES))):
     worker = await db.workers.find_one({"id": worker_id})
     if not worker:
         raise HTTPException(status_code=404, detail="Worker not found")
     result = clean(worker)
-    # Hydrate only one image field at a time to avoid memory spike
     for field in ["portfolio_images", "aadhar_images", "employment_proof_images"]:
         if result.get(field):
             result[field] = await gridfs_images.hydrate_images(
-                image_bucket, result[field][:3]  # max 3 images per field
+                image_bucket, result[field][:3]
             )
     code = worker.get("referred_by_code")
     if code:
@@ -953,9 +865,6 @@ async def admin_update_worker(worker_id: str, payload: WorkerProfilePayload, use
 
 @api_router.delete("/admin/workers/{worker_id}")
 async def admin_delete_worker(worker_id: str, user: dict = Depends(require_roles(*ADMIN_ROLES))):
-    """Permanently deletes a worker profile (any verification status), unlike
-    reject which is limited to pending profiles. The artisan's login account
-    is kept so they can re-register, consistent with the reject behaviour."""
     worker = await db.workers.find_one({"id": worker_id})
     if not worker:
         raise HTTPException(status_code=404, detail="Worker not found")
@@ -1017,7 +926,6 @@ async def approve_worker(worker_id: str, background_tasks: BackgroundTasks, user
         "Congratulations! Your profile is now verified.",
         "बधाई हो! आपका प्रोफ़ाइल अब सत्यापित है।",
         "అభినందనలు! మీ ప్రొఫైల్ ఇప్పుడు ధృవీకరించబడింది.")
-    # Mock referral payout
     ref = await db.referrals.find_one({"referred_worker_id": worker_id, "status": "pending"})
     if ref:
         referrer = await db.workers.find_one({"id": ref["referrer_worker_id"]})
@@ -1038,7 +946,6 @@ async def approve_worker(worker_id: str, background_tasks: BackgroundTasks, user
                 "మీరు ₹50 సంపాదించారు! రివార్డ్ పొందడానికి మీ PhonePe/Google Pay నంబర్‌ను జోడించండి.")
     updated = await db.workers.find_one({"id": worker_id})
     updated_hydrated = await gridfs_images.hydrate_worker(image_bucket, clean(updated))
-    # Email the verified profile (with photos) as a PDF to the company inbox.
     referred_by = None
     code = updated.get("referred_by_code")
     if code:
@@ -1051,8 +958,6 @@ async def approve_worker(worker_id: str, background_tasks: BackgroundTasks, user
 
 @api_router.post("/admin/workers/{worker_id}/reject")
 async def reject_worker(worker_id: str, payload: RejectPayload, user: dict = Depends(require_roles(*VERIFY_ROLES))):
-    """Rejecting a profile removes it from the database entirely. The artisan's
-    login account is kept so they can re-register a fresh profile."""
     worker = await db.workers.find_one({"id": worker_id})
     if not worker:
         raise HTTPException(status_code=404, detail="Worker not found")
@@ -1077,9 +982,6 @@ async def export_workers_csv(
     min_exp: Optional[int] = None,
     max_exp: Optional[int] = None,
 ):
-    """Lightweight summary export (no images) for quick filtering/sorting.
-    For the full profile export including Aadhaar/proof/portfolio photos,
-    use /admin/export/full instead."""
     query = _apply_filters(search, skill, availability, verification, city, area, min_exp, max_exp)
     workers = await db.workers.find(query).sort("created_at", -1).to_list(5000)
     buf = io.StringIO()
@@ -1096,8 +998,12 @@ async def export_workers_csv(
                              headers={"Content-Disposition": "attachment; filename=workers.csv"})
 
 
+# ── PDF Export with embedded images ─────────────────────────────────────────
+# Generates a professional PDF report with worker info + embedded photos.
+# Images are fetched from GridFS one worker at a time (max 3 per field)
+# to avoid memory crashes on the 512MB Render free tier.
 @api_router.get("/admin/export/full")
-async def export_workers_xlsx(
+async def export_workers_pdf(
     user: dict = Depends(require_roles(*ADMIN_ROLES)),
     search: Optional[str] = None,
     skill: Optional[str] = None,
@@ -1109,26 +1015,38 @@ async def export_workers_xlsx(
     max_exp: Optional[int] = None,
 ):
     query = _apply_filters(search, skill, availability, verification, city, area, min_exp, max_exp)
-    workers = await db.workers.find(
-        query,
-        {
-            "portfolio_images": 0,
-            "aadhar_images": 0,
-            "employment_proof_images": 0,
-        }
-    ).sort("created_at", -1).to_list(5000)
-    hydrated = [clean(w) for w in workers]
-    xlsx_bytes = export_service.build_workers_xlsx(hydrated)
+    workers = await db.workers.find(query).sort("created_at", -1).to_list(5000)
+    # Hydrate images one worker at a time, max 3 per field to save memory
+    hydrated = []
+    for w in workers:
+        try:
+            wc = clean(w)
+            for field in ["portfolio_images", "aadhar_images", "employment_proof_images"]:
+                if wc.get(field):
+                    wc[field] = await gridfs_images.hydrate_images(
+                        image_bucket, wc[field][:3]
+                    )
+            # Attach referral info if available
+            code = wc.get("referred_by_code")
+            if code:
+                referrer = await db.workers.find_one({"referral_code": code})
+                if referrer:
+                    wc["referred_by"] = {
+                        "name": referrer.get("full_name"),
+                        "phone": referrer.get("phone"),
+                    }
+            hydrated.append(wc)
+        except Exception as e:
+            logger.warning("Skipping images for worker %s: %s", w.get("id"), e)
+            hydrated.append(clean(w))
+    pdf_bytes = export_service.build_workers_pdf(hydrated)
     return Response(
-        content=xlsx_bytes,
-        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        headers={"Content-Disposition": "attachment; filename=workers_full_export.xlsx"},
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": "attachment; filename=karigar_worker_report.pdf"},
     )
 
 
-# ---------------------------------------------------------------------------
-# Seed
-# ---------------------------------------------------------------------------
 DEFAULT_SKILLS = [
     "Aari", "Zardozi", "Dabka", "Sitara/Sequin", "Mukaish",
     "Machine Embroidery", "Bead Work",
@@ -1149,21 +1067,16 @@ async def _ensure_indexes():
     await db.workers.create_index("availability_status")
     await db.workers.create_index("verification_status")
     await db.workers.create_index("referral_code", unique=True)
-    # GridFS chunk lookup (Motor creates files/chunks collections automatically
-    # on first upload; this ensures the metadata index is in place early).
     await db["worker_images.files"].create_index("metadata.phone")
 
 
 @app.on_event("startup")
 async def seed_data():
-    # Seed reference skill taxonomy (idempotent).
     if await db.skills.count_documents({}) == 0:
         for name in DEFAULT_SKILLS:
             await db.skills.insert_one({"id": new_id(), "name": name, "created_at": now_iso()})
         logger.info("Seeded skills")
 
-    # One-time clean slate for the phone+password auth pivot: wipe legacy OTP
-    # users, dummy admins and all demo/sample worker data. Runs exactly once.
     if not await db.meta.find_one({"key": "pwd_auth_migration_v1"}):
         await db.users.delete_many({})
         await db.workers.delete_many({})
