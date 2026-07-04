@@ -899,7 +899,7 @@ async def admin_search_workers(
     min_exp: Optional[int] = None,
     max_exp: Optional[int] = None,
     page: int = 1,
-    page_size: int = 100,
+    page_size: int = 50,
 ):
     query = _apply_filters(search, skill, availability, verification, city, area, min_exp, max_exp)
     total = await db.workers.count_documents(query)
