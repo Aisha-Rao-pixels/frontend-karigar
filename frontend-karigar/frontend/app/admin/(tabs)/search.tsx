@@ -61,6 +61,7 @@ export default function WorkerSearch() {
       if (s.availability && s.availability !== "all") p.set("availability", s.availability);
       if (s.verification && s.verification !== "all") p.set("verification", s.verification);
       if (s.city) p.set("city", s.city);
+      p.set("page_size", "100");
       return p.toString();
     },
     [skill, availability, verification, city, search]
