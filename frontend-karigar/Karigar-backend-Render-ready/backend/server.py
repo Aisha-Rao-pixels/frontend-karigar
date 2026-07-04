@@ -903,11 +903,16 @@ async def admin_search_workers(
 ):
     query = _apply_filters(search, skill, availability, verification, city, area, min_exp, max_exp)
     total = await db.workers.count_documents(query)
-    cursor = db.workers.find(query).sort("created_at", -1).skip((page - 1) * page_size).limit(page_size)
+    cursor = db.workers.find(
+        query,
+        {
+            "portfolio_images": 0,
+            "aadhar_images": 0,
+            "employment_proof_images": 0,
+        }
+    ).sort("created_at", -1).skip((page - 1) * page_size).limit(page_size)
     raw_items = [clean(w) for w in await cursor.to_list(page_size)]
-    items = [await gridfs_images.hydrate_worker(image_bucket, w) for w in raw_items]
-    return {"total": total, "page": page, "page_size": page_size, "items": items}
-
+    return {"total": total, "page": page, "page_size": page_size, "items": raw_items}
 
 @api_router.get("/admin/workers/{worker_id}")
 async def admin_worker_detail(worker_id: str, user: dict = Depends(require_roles(*ADMIN_ROLES))):
