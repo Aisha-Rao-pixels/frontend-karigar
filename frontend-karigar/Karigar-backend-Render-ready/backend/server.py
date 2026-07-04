@@ -1109,20 +1109,15 @@ async def export_workers_xlsx(
     max_exp: Optional[int] = None,
 ):
     query = _apply_filters(search, skill, availability, verification, city, area, min_exp, max_exp)
-    workers = await db.workers.find(query).sort("created_at", -1).to_list(5000)
-    # Hydrate images one worker at a time to avoid memory spike
-    hydrated = []
-    for w in workers:
-        try:
-            hw = await gridfs_images.hydrate_worker(image_bucket, clean(w))
-            # Limit to max 2 images per field to save memory
-            for field in ["portfolio_images", "aadhar_images", "employment_proof_images"]:
-                if hw.get(field):
-                    hw[field] = hw[field][:2]
-            hydrated.append(hw)
-        except Exception as e:
-            logger.warning("Skipping images for worker %s: %s", w.get("id"), e)
-            hydrated.append(clean(w))
+    workers = await db.workers.find(
+        query,
+        {
+            "portfolio_images": 0,
+            "aadhar_images": 0,
+            "employment_proof_images": 0,
+        }
+    ).sort("created_at", -1).to_list(5000)
+    hydrated = [clean(w) for w in workers]
     xlsx_bytes = export_service.build_workers_xlsx(hydrated)
     return Response(
         content=xlsx_bytes,
