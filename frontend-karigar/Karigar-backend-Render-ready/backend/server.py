@@ -1108,19 +1108,22 @@ async def export_workers_xlsx(
     min_exp: Optional[int] = None,
     max_exp: Optional[int] = None,
 ):
-    """Full profile export as .xlsx with every text field plus real embedded
-    thumbnails for Aadhaar, employment proof, and portfolio images. CSV
-    cannot hold a viewable image, so this is intentionally a separate
-    workbook export rather than a CSV variant.
-
-    NOTE: with many workers and multiple images each, this is CPU/memory
-    heavier than the summary CSV and may take noticeably longer to generate
-    at full 400-worker pilot scale — it's built for spot-checking individual
-    profiles, not as a casual bulk-open file."""
     query = _apply_filters(search, skill, availability, verification, city, area, min_exp, max_exp)
     workers = await db.workers.find(query).sort("created_at", -1).to_list(5000)
-    workers = [await gridfs_images.hydrate_worker(image_bucket, clean(w)) for w in workers]
-    xlsx_bytes = export_service.build_workers_xlsx(workers)
+    # Hydrate images one worker at a time to avoid memory spike
+    hydrated = []
+    for w in workers:
+        try:
+            hw = await gridfs_images.hydrate_worker(image_bucket, clean(w))
+            # Limit to max 2 images per field to save memory
+            for field in ["portfolio_images", "aadhar_images", "employment_proof_images"]:
+                if hw.get(field):
+                    hw[field] = hw[field][:2]
+            hydrated.append(hw)
+        except Exception as e:
+            logger.warning("Skipping images for worker %s: %s", w.get("id"), e)
+            hydrated.append(clean(w))
+    xlsx_bytes = export_service.build_workers_xlsx(hydrated)
     return Response(
         content=xlsx_bytes,
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
