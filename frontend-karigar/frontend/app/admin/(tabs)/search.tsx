@@ -132,23 +132,23 @@ export default function WorkerSearch() {
     }
   };
 
-  const [exportingFull, setExportingFull] = useState(false);
   const onExportFull = async () => {
     setExportingFull(true);
     try {
       const token = await getToken();
       const q = buildQuery();
-      const res = await fetch(`${BASE}/admin/export/full?${q}`, { headers: { Authorization: `Bearer ${token}` } });
+      const exportQ = q.replace(/&?page_size=\d+/, "");
+      const res = await fetch(`${BASE}/admin/export/full?${exportQ}`, { headers: { Authorization: `Bearer ${token}` } });
       if (!res.ok) throw new Error("Export failed");
       const blob = await res.blob();
       if (Platform.OS === "web") {
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = "workers_full_export.xlsx";
+        a.download = "karigar_worker_report.pdf";
         a.click();
         URL.revokeObjectURL(url);
-        show(`Exported ${total} workers with photos`, "success");
+        show(`Exported ${total} workers`, "success");
       } else {
         show(t("fullExportWebOnly"), "info");
       }
@@ -158,7 +158,7 @@ export default function WorkerSearch() {
       setExportingFull(false);
     }
   };
-
+  
   const clearFilters = () => {
     setSkill("all");
     setAvailability("all");
