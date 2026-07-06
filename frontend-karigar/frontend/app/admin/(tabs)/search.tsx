@@ -436,10 +436,10 @@ export default function WorkerSearch() {
             </Tooltip>
           )}
         />
-      ) : (
+     ) : (
         <ScrollView style={{ flex: 1, width: "100%" }} showsVerticalScrollIndicator={true}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={true} style={{ width: "100%" }}>
-            <View>
+          <ScrollView horizontal showsHorizontalScrollIndicator={true} style={{ width: "100%" }} contentContainerStyle={{ minWidth: "100%" }}>
+            <View style={{ minWidth: "100%" }}>
               <View style={styles.tableHeader}>
                 {["Name", "Phone", "Skill", "City", "Status", "Exp"].map((h) => (
                   <AppText key={h} weight="bold" size="sm" style={styles.tableCell} color={COLORS.onBrandPrimary}>{h}</AppText>
