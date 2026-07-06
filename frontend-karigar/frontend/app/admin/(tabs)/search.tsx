@@ -28,17 +28,36 @@ const VERIF_OPTIONS = [
 // ── Tooltip component for web hover ─────────────────────────────────────────
 function Tooltip({ text, children }: { text: string; children: React.ReactNode }) {
   const [visible, setVisible] = useState(false);
+  const [pos, setPos] = useState<"top" | "bottom">("bottom");
+  const wrapRef = useRef<View>(null);
+
   if (Platform.OS !== "web") return <>{children}</>;
+
+  const handleEnter = () => {
+    // @ts-ignore - getBoundingClientRect exists on web
+    const rect = wrapRef.current?.getBoundingClientRect?.();
+    if (rect && rect.top < 48) setPos("bottom");
+    else setPos("top");
+    setVisible(true);
+  };
+
   return (
     <View
+      ref={wrapRef}
       style={{ position: "relative" }}
       // @ts-ignore
-      onMouseEnter={() => setVisible(true)}
+      onMouseEnter={handleEnter}
       onMouseLeave={() => setVisible(false)}
     >
       {children}
       {visible && (
-        <View style={tooltipStyles.box} pointerEvents="none">
+        <View
+          style={[
+            tooltipStyles.box,
+            pos === "bottom" ? { top: "110%", bottom: undefined } : { bottom: "110%" },
+          ]}
+          pointerEvents="none"
+        >
           <AppText size="sm" color="#fff" style={{ textAlign: "center" }}>{text}</AppText>
         </View>
       )}
