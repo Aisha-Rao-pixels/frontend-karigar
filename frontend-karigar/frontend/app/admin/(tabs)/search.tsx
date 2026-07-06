@@ -490,7 +490,7 @@ const styles = StyleSheet.create({
   sheetInput: { height: 48, borderWidth: 1, borderColor: COLORS.border, borderRadius: RADIUS.md, paddingHorizontal: SPACING.md, fontSize: FONT.base, color: COLORS.onSurface, backgroundColor: COLORS.surface },
   tableHeader: { flexDirection: "row", backgroundColor: COLORS.brandPrimary, paddingVertical: SPACING.sm, paddingHorizontal: SPACING.md },
   tableRow: { flexDirection: "row", paddingVertical: SPACING.sm, paddingHorizontal: SPACING.md, borderBottomWidth: 1, borderBottomColor: COLORS.border },
-  tableCell: { width: 130, paddingHorizontal: 4 },
+  tableCell: { width: 160, paddingHorizontal: 6 },
   galleryContainer: { flex: 1, backgroundColor: COLORS.surface },
   galleryHeader: { flexDirection: "row", alignItems: "center", padding: SPACING.lg, borderBottomWidth: 1, borderBottomColor: COLORS.border, paddingTop: SPACING["2xl"] },
   galleryBack: { width: 40, height: 40, alignItems: "center", justifyContent: "center", marginRight: SPACING.sm },
