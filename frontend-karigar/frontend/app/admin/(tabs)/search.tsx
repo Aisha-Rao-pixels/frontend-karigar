@@ -208,32 +208,33 @@ export default function WorkerSearch() {
     }
   };
 
-  const onExportFull = async () => {
-    setExportingFull(true);
-    try {
-      const token = await getToken();
-      const q = buildQuery();
-      const exportQ = q.replace(/&?page_size=\d+/, "");
-      const res = await fetch(`${BASE}/admin/export/full?${exportQ}`, { headers: { Authorization: `Bearer ${token}` } });
-      if (!res.ok) throw new Error("Export failed");
-      const blob = await res.blob();
-      if (Platform.OS === "web") {
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = "karigar_worker_report.pdf";
-        a.click();
-        URL.revokeObjectURL(url);
-        show(`PDF report downloaded!`, "success");
-      } else {
-        show(t("fullExportWebOnly"), "info");
-      }
-    } catch (e: any) {
-      show(e.message || t("genericError"), "error");
-    } finally {
-      setExportingFull(false);
+const onExportFull = async (limit?: number) => {
+  setExportingFull(true);
+  try {
+    const token = await getToken();
+    const q = buildQuery();
+    const exportQ = q.replace(/&?page_size=\d+/, "");
+    const limitParam = limit ? `&limit=${limit}` : "";
+    const res = await fetch(`${BASE}/admin/export/full?${exportQ}${limitParam}`, { headers: { Authorization: `Bearer ${token}` } });
+    if (!res.ok) throw new Error("Export failed");
+    const blob = await res.blob();
+    if (Platform.OS === "web") {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "karigar_worker_report.pdf";
+      a.click();
+      URL.revokeObjectURL(url);
+      show(`PDF report downloaded!`, "success");
+    } else {
+      show(t("fullExportWebOnly"), "info");
     }
-  };
+  } catch (e: any) {
+    show(e.message || t("genericError"), "error");
+  } finally {
+    setExportingFull(false);
+  }
+};
 
   const clearFilters = () => {
     setSkill("all");
@@ -426,17 +427,22 @@ export default function WorkerSearch() {
               <AppText size="sm" color={COLORS.brandPrimary} weight="semibold">{t("exportCsv")}</AppText>
             </Pressable>
           </Tooltip>
-          <Tooltip text="Download professional PDF report with worker photos">
-            <Pressable onPress={onExportFull} disabled={exportingFull} style={[styles.exportBtn, exportingFull && { opacity: 0.5 }]} testID="export-full-btn">
-              <Ionicons name="document-text-outline" size={16} color={COLORS.brandSecondary} />
-              <AppText size="sm" color={COLORS.brandSecondary} weight="semibold">
-                {exportingFull ? t("exporting") : "Export PDF Report"}
-              </AppText>
-            </Pressable>
-          </Tooltip>
-        </View>
-      </View>
-
+        <Tooltip text="Download a quick 5-worker sample PDF (safe on free hosting tier)">
+          <Pressable onPress={() => onExportFull(5)} disabled={exportingFull} style={[styles.exportBtn, exportingFull && { opacity: 0.5 }]} testID="export-sample-btn">
+            <Ionicons name="document-text-outline" size={16} color={COLORS.brandSecondary} />
+            <AppText size="sm" color={COLORS.brandSecondary} weight="semibold">
+              {exportingFull ? t("exporting") : "Export Sample (5)"}
+            </AppText>
+          </Pressable>
+        </Tooltip>
+        <Tooltip text="Download professional PDF report with worker photos">
+          <Pressable onPress={() => onExportFull()} disabled={exportingFull} style={[styles.exportBtn, exportingFull && { opacity: 0.5 }]} testID="export-full-btn">
+            <Ionicons name="document-text-outline" size={16} color={COLORS.brandSecondary} />
+            <AppText size="sm" color={COLORS.brandSecondary} weight="semibold">
+              {exportingFull ? t("exporting") : "Export PDF Report"}
+            </AppText>
+          </Pressable>
+        </Tooltip>
       {loading ? <Loader /> : viewMode === "card" ? (
         <FlatList
           data={items}
