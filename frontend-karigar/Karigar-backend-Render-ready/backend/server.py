@@ -5,6 +5,7 @@ from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorGridFSBucket
 import os
 import io
+import asyncio
 import csv
 import random
 import string
@@ -1016,8 +1017,6 @@ async def export_workers_pdf(
 ):
     query = _apply_filters(search, skill, availability, verification, city, area, min_exp, max_exp)
     workers = await db.workers.find(query).sort("created_at", -1).to_list(5000)
-    # Hydrate images one worker at a time, max 3 per field to save memory
-    import asyncio
 
     async def _hydrate_one(w):
         try:
@@ -1040,14 +1039,17 @@ async def export_workers_pdf(
             logger.warning("Skipping images for worker %s: %s", w.get("id"), e)
             return clean(w)
 
+    # Hydrate all workers' images concurrently instead of one at a time,
+    # so the request doesn't exceed Render's timeout on larger lists.
     hydrated = await asyncio.gather(*[_hydrate_one(w) for w in workers])
 
     try:
         pdf_bytes = export_service.build_workers_pdf(hydrated)
     except Exception as e:
         logger.exception("PDF build failed")
-        raise HTTPException(status_code=500, detail=f"PDF generation failed: {e}")   
-        return Response(
+        raise HTTPException(status_code=500, detail=f"PDF generation failed: {e}")
+
+    return Response(
         content=pdf_bytes,
         media_type="application/pdf",
         headers={"Content-Disposition": "attachment; filename=karigar_worker_report.pdf"},
