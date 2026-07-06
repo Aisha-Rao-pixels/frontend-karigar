@@ -1014,10 +1014,11 @@ async def export_workers_pdf(
     area: Optional[str] = None,
     min_exp: Optional[int] = None,
     max_exp: Optional[int] = None,
+    limit: Optional[int] = None,
 ):
     query = _apply_filters(search, skill, availability, verification, city, area, min_exp, max_exp)
-    workers = await db.workers.find(query).sort("created_at", -1).to_list(5000)
-
+    fetch_cap = min(limit, 5000) if limit else 5000
+    workers = await db.workers.find(query).sort("created_at", -1).to_list(fetch_cap)
     async def _hydrate_one(w):
         try:
             wc = clean(w)
