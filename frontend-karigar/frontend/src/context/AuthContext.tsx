@@ -31,17 +31,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const token = await getToken();
       if (token) {
-        const me = await apiFetch<AuthUser>("/auth/me");
-        setUser(me);
+        try {
+          const me = await apiFetch<AuthUser>("/auth/me");
+          setUser(me);
+        } catch (e: any) {
+          // Only clear token if it's actually invalid (401)
+          // NOT on network errors (backend sleeping on Render free tier)
+          if (e?.status === 401) {
+            await clearToken();
+            setUser(null);
+          }
+          // Otherwise keep the token and retry next time
+        }
       }
     } catch {
-      await clearToken();
-      setUser(null);
     } finally {
       setLoading(false);
     }
   }, []);
-
   useEffect(() => {
     bootstrap();
   }, [bootstrap]);
