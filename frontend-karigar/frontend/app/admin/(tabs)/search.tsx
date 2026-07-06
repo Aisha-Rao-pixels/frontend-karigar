@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   View, StyleSheet, FlatList, Pressable, TextInput,
   Platform, Share, ScrollView, Modal, Image,
@@ -13,6 +13,7 @@ import BottomSheet, { BottomSheetScrollView } from "@gorhom/bottom-sheet";
 import { COLORS, SPACING, RADIUS, FONT, shadow } from "@/src/theme";
 import { AppText, Avatar, Chip, EmptyState, Loader, Button } from "@/src/components/ui";
 import { apiFetch, getToken, BASE } from "@/src/api/client";
+import { storage } from "@/src/utils/storage";
 import { Worker, availabilityColor, verificationColor } from "@/src/utils/profile";
 import { AVAILABILITY_OPTIONS } from "@/src/constants/app";
 import { ALL_SKILLS } from "@/src/constants/skills";
@@ -25,44 +26,127 @@ const VERIF_OPTIONS = [
   { value: "rejected", key: "rejected" },
 ];
 
-  function Tooltip({ text, children }export default function WorkerSearch() {
-    const router = useRouter();
-    const { t } = useTranslation();
-    const { show } = useToast();
-    const insets = useSafeAreaInsets();
-    const sheetRef = useRef<BottomSheet>(null);
+// ── Tooltip component for web hover ─────────────────────────────────────────
+function Tooltip({ text, children }: { text: string; children: React.ReactNode }) {
+  const [visible, setVisible] = useState(false);
+  const [vPos, setVPos] = useState<"top" | "bottom">("bottom");
+  const [hAlign, setHAlign] = useState<"center" | "left" | "right">("center");
+  const wrapRef = useRef<View>(null);
 
-    const [search, setSearch] = useState("");
-    const [skill, setSkill] = useState("all");
-    const [availability, setAvailability] = useState("all");
-    const [verification, setVerification] = useState("all");
-    const [city, setCity] = useState("");
-    const [items, setItems] = useState<Worker[]>([]);
-    const [total, setTotal] = useState(0);
-    const [loading, setLoading] = useState(true);
-    const [viewMode, setViewMode] = useState<"card" | "table">("card");
-    const [gallerySkill, setGallerySkill] = useState<string | null>(null);
-    const [galleryWorkers, setGalleryWorkers] = useState<Worker[]>([]);
-    const [galleryLoading, setGalleryLoading] = useState(false);
-    const [galleryVisible, setGalleryVisible] = useState(false);
-    const [exportingFull, setExportingFull] = useState(false);
+  if (Platform.OS !== "web") return <>{children}</>;
 
-    const snapPoints = useMemo(() => ["65%"], []);
+  const handleEnter = () => {
+    // @ts-ignore - getBoundingClientRect exists on web
+    const rect = wrapRef.current?.getBoundingClientRect?.();
+    if (rect) {
+      setVPos(rect.top < 48 ? "bottom" : "top");
+      const halfW = 70; // half of the 140px tooltip width
+      if (rect.left - halfW < 8) setHAlign("left");
+      else if (rect.right + halfW > window.innerWidth - 8) setHAlign("right");
+      else setHAlign("center");
+    }
+    setVisible(true);
+  };
 
-    const buildQuery = useCallback(
-      (overrides?: Partial<{ skill: string; availability: string; verification: string; city: string; search: string }>) => {
-        const s = { skill, availability, verification, city, search, ...overrides };
-        const p = new URLSearchParams();
-        if (s.search) p.set("search", s.search);
-        if (s.skill && s.skill !== "all") p.set("skill", s.skill);
-        if (s.availability && s.availability !== "all") p.set("availability", s.availability);
-        if (s.verification && s.verification !== "all") p.set("verification", s.verification);
-        if (s.city) p.set("city", s.city);
-        p.set("page_size", "100");
-        return p.toString();
-      },
-      [skill, availability, verification, city, search]
-    );
+  const hStyle =
+    hAlign === "left"
+      ? { left: 0, right: undefined, transform: [] as any }
+      : hAlign === "right"
+      ? { left: undefined, right: 0, transform: [] as any }
+      : { left: "50%", right: undefined, transform: [{ translateX: -70 }] };
+
+  return (
+    <View
+      ref={wrapRef}
+      style={{ position: "relative" }}
+      // @ts-ignore
+      onMouseEnter={handleEnter}
+      onMouseLeave={() => setVisible(false)}
+    >
+      {children}
+      {visible && (
+        <View
+          style={[
+            tooltipStyles.box,
+            vPos === "bottom" ? { top: "110%", bottom: undefined } : { bottom: "110%" },
+            hStyle,
+          ]}
+          pointerEvents="none"
+        >
+          <AppText size="sm" color="#fff" style={{ textAlign: "center" }}>{text}</AppText>
+        </View>
+      )}
+    </View>
+  );
+}
+
+const tooltipStyles = StyleSheet.create({
+  box: {
+    position: "absolute",
+    width: 140,
+    backgroundColor: "rgba(0,0,0,0.9)",
+    borderRadius: 6,
+    padding: 8,
+    zIndex: 9999,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+  },
+});
+
+export default function WorkerSearch() {
+  const router = useRouter();
+  const { t } = useTranslation();
+  const { show } = useToast();
+  const insets = useSafeAreaInsets();
+  const sheetRef = useRef<BottomSheet>(null);
+
+  const [search, setSearch] = useState("");
+  const [skill, setSkill] = useState("all");
+  const [availability, setAvailability] = useState("all");
+  const [verification, setVerification] = useState("all");
+  const [city, setCity] = useState("");
+  const [items, setItems] = useState<Worker[]>([]);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [viewMode, setViewModeState] = useState<"card" | "table">("card");
+  const [viewModeLoaded, setViewModeLoaded] = useState(false);
+  const [gallerySkill, setGallerySkill] = useState<string | null>(null);
+  const [galleryWorkers, setGalleryWorkers] = useState<Worker[]>([]);
+  const [galleryLoading, setGalleryLoading] = useState(false);
+  const [galleryVisible, setGalleryVisible] = useState(false);
+  const [exportingFull, setExportingFull] = useState(false);
+
+  const snapPoints = useMemo(() => ["65%"], []);
+
+  // Restore last-used view mode (card/table) on mount
+  useEffect(() => {
+    storage.getItem("admin_search_view_mode", "card").then((v) => {
+      if (v === "table" || v === "card") setViewModeState(v as "card" | "table");
+      setViewModeLoaded(true);
+    });
+  }, []);
+
+  const setViewMode = useCallback((mode: "card" | "table") => {
+    setViewModeState(mode);
+    storage.setItem("admin_search_view_mode", mode);
+  }, []);
+
+  const buildQuery = useCallback(
+    (overrides?: Partial<{ skill: string; availability: string; verification: string; city: string; search: string }>) => {
+      const s = { skill, availability, verification, city, search, ...overrides };
+      const p = new URLSearchParams();
+      if (s.search) p.set("search", s.search);
+      if (s.skill && s.skill !== "all") p.set("skill", s.skill);
+      if (s.availability && s.availability !== "all") p.set("availability", s.availability);
+      if (s.verification && s.verification !== "all") p.set("verification", s.verification);
+      if (s.city) p.set("city", s.city);
+      p.set("page_size", "100");
+      return p.toString();
+    },
+    [skill, availability, verification, city, search]
+  );
 
   const load = useCallback(
     async (overrides?: any) => {
@@ -378,7 +462,7 @@ const VERIF_OPTIONS = [
             </Tooltip>
           )}
         />
-     ) : (
+      ) : (
         <ScrollView style={{ flex: 1, width: "100%" }} showsVerticalScrollIndicator={true}>
           <ScrollView horizontal showsHorizontalScrollIndicator={true} style={{ width: "100%" }} contentContainerStyle={{ minWidth: "100%" }}>
             <View style={{ minWidth: "100%" }}>
