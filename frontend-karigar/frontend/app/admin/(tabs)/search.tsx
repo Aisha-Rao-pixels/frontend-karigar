@@ -418,8 +418,8 @@ export default function WorkerSearch() {
           )}
         />
       ) : (
-        <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={true}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={true}>
+        <ScrollView style={{ flex: 1, width: "100%" }} showsVerticalScrollIndicator={true}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={true} style={{ width: "100%" }}>
             <View>
               <View style={styles.tableHeader}>
                 {["Name", "Phone", "Skill", "City", "Status", "Exp"].map((h) => (
