@@ -49,7 +49,7 @@ function Tooltip({ text, children }: { text: string; children: React.ReactNode }
 const tooltipStyles = StyleSheet.create({
   box: {
     position: "absolute",
-    bottom: "130%",
+    bottom: "110%",
     left: "50%",
     transform: [{ translateX: -60 }],
     width: 140,
