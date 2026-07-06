@@ -1017,8 +1017,9 @@ async def export_workers_pdf(
     query = _apply_filters(search, skill, availability, verification, city, area, min_exp, max_exp)
     workers = await db.workers.find(query).sort("created_at", -1).to_list(5000)
     # Hydrate images one worker at a time, max 3 per field to save memory
-    hydrated = []
-    for w in workers:
+    import asyncio
+
+    async def _hydrate_one(w):
         try:
             wc = clean(w)
             for field in ["portfolio_images", "aadhar_images", "employment_proof_images"]:
@@ -1026,7 +1027,6 @@ async def export_workers_pdf(
                     wc[field] = await gridfs_images.hydrate_images(
                         image_bucket, wc[field][:1]
                     )
-            # Attach referral info if available
             code = wc.get("referred_by_code")
             if code:
                 referrer = await db.workers.find_one({"referral_code": code})
@@ -1035,12 +1035,18 @@ async def export_workers_pdf(
                         "name": referrer.get("full_name"),
                         "phone": referrer.get("phone"),
                     }
-            hydrated.append(wc)
+            return wc
         except Exception as e:
             logger.warning("Skipping images for worker %s: %s", w.get("id"), e)
-            hydrated.append(clean(w))
-    pdf_bytes = export_service.build_workers_pdf(hydrated)
-    return Response(
+            return clean(w)
+
+    hydrated = await asyncio.gather(*[_hydrate_one(w) for w in workers])
+
+    try:
+        pdf_bytes = export_service.build_workers_pdf(hydrated)
+    except Exception as e:
+        logger.exception("PDF build failed")
+        raise HTTPException(status_code=500, detail=f"PDF generation failed: {e}")    return Response(
         content=pdf_bytes,
         media_type="application/pdf",
         headers={"Content-Disposition": "attachment; filename=karigar_worker_report.pdf"},
