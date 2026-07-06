@@ -9,6 +9,7 @@ import { StatusBar } from "expo-status-bar";
 import { useIconFonts } from "@/src/hooks/use-icon-fonts";
 import { AuthProvider } from "@/src/context/AuthContext";
 import { ToastProvider } from "@/src/components/Toast";
+import OfflineHandler from "@/src/components/OfflineHandler";
 import "@/src/i18n";
 import { loadSavedLanguage } from "@/src/i18n";
 
@@ -35,8 +36,10 @@ export default function RootLayout() {
         <BottomSheetModalProvider>
           <AuthProvider>
             <ToastProvider>
-              <StatusBar style="dark" />
-              <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: "#FCFAF8" } }} />
+              <OfflineHandler>
+                <StatusBar style="dark" />
+                <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: "#FCFAF8" } }} />
+              </OfflineHandler>
             </ToastProvider>
           </AuthProvider>
         </BottomSheetModalProvider>
