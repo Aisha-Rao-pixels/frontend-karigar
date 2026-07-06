@@ -49,14 +49,18 @@ function Tooltip({ text, children }: { text: string; children: React.ReactNode }
 const tooltipStyles = StyleSheet.create({
   box: {
     position: "absolute",
-    bottom: "120%",
+    bottom: "130%",
     left: "50%",
     transform: [{ translateX: -60 }],
-    width: 120,
-    backgroundColor: "rgba(0,0,0,0.75)",
+    width: 140,
+    backgroundColor: "rgba(0,0,0,0.9)",
     borderRadius: 6,
-    padding: 6,
-    zIndex: 999,
+    padding: 8,
+    zIndex: 9999,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
   },
 });
 
