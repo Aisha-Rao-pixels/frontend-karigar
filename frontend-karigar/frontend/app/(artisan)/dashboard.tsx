@@ -20,6 +20,27 @@ import i18n from "@/src/i18n";
 const REFERRAL_BG =
   "https://images.unsplash.com/photo-1619459074324-33d5f591c53e?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA4Mzl8MHwxfHNlYXJjaHwyfHx3YXJtJTIwZmFicmljJTIwdGV4dHVyZSUyMGJhY2tncm91bmQlMjBjcmFmdHxlbnwwfHx8fDE3ODEyNTk4MTd8MA&ixlib=rb-4.1.0&q=85";
 
+// ── Profile completion helper ─────────────────────────────────────────────
+function getMissingFields(worker: Worker): string[] {
+  const missing: string[] = [];
+  if (!worker.portfolio_images || worker.portfolio_images.length === 0)
+    missing.push("Portfolio photos");
+  if (!worker.aadhar_images || worker.aadhar_images.length === 0)
+    missing.push("Aadhaar card");
+  if (!worker.upi_id) missing.push("PhonePe/Google Pay number");
+  if (!worker.employment_proof_images || worker.employment_proof_images.length === 0)
+    missing.push("Employment proof");
+  if (!worker.current_employer) missing.push("Current employer");
+  if (!worker.wage_expectation) missing.push("Expected wage");
+  return missing;
+}
+
+function completionColor(pct: number): string {
+  if (pct === 100) return COLORS.success;
+  if (pct >= 60) return COLORS.warning;
+  return COLORS.error;
+}
+
 export default function ArtisanDashboard() {
   const router = useRouter();
   const { t } = useTranslation();
@@ -28,30 +49,35 @@ export default function ArtisanDashboard() {
   const [worker, setWorker] = useState<Worker | null>(null);
   const [notifs, setNotifs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [updating, setUpdating] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
+
   const load = useCallback(async () => {
     try {
-      const [w, n] = await Promise.all([apiFetch<Worker>("/workers/me"), apiFetch<any[]>("/notifications")]);
+      const [w, n] = await Promise.all([
+        apiFetch<Worker>("/workers/me"),
+        apiFetch<any[]>("/notifications"),
+      ]);
       setWorker(w);
       setNotifs(n);
     } catch {
     } finally {
-        setLoading(false);
-        setRefreshing(false);
-        }
-      }, []);
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, []);
 
-    const onRefresh = useCallback(() => {
-      setRefreshing(true);
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    load();
+  }, [load]);
+
+  useFocusEffect(
+    useCallback(() => {
       load();
-    }, [load]);
-    useFocusEffect(
-      useCallback(() => {
-        load();
-      },  [load])
-    );
+    }, [load])
+  );
 
   const commitAvailability = async (status: string, availableFrom: string | null) => {
     if (!worker) return;
@@ -84,6 +110,8 @@ export default function ArtisanDashboard() {
   if (!worker) return null;
 
   const completion = profileCompletion(worker);
+  const missingFields = getMissingFields(worker);
+  const isComplete = completion === 100;
   const lang = i18n.language;
   const notifTitle = (n: any) => n[`title_${lang}`] || n.title_en;
   const unread = notifs.filter((n) => !n.is_read).length;
@@ -93,7 +121,13 @@ export default function ArtisanDashboard() {
       <ScrollView
         contentContainerStyle={{ paddingTop: insets.top + SPACING.md, paddingBottom: SPACING["2xl"] }}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.brandPrimary} />}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={COLORS.brandPrimary}
+          />
+        }
       >
         {/* Header */}
         <View style={styles.headerRow}>
@@ -105,7 +139,11 @@ export default function ArtisanDashboard() {
               {worker.full_name}
             </AppText>
           </View>
-          <Pressable testID="dashboard-bell" onPress={() => router.push("/(artisan)/notifications")} style={styles.bell}>
+          <Pressable
+            testID="dashboard-bell"
+            onPress={() => router.push("/(artisan)/notifications")}
+            style={styles.bell}
+          >
             <Ionicons name="notifications" size={22} color={COLORS.onSurface} />
             {unread > 0 && (
               <View style={styles.bellBadge}>
@@ -142,12 +180,22 @@ export default function ArtisanDashboard() {
                   <Pressable
                     onPress={() => onPickAvailability(o.value)}
                     disabled={updating}
-                    style={[styles.availBtn, { borderColor: active ? c : COLORS.border, backgroundColor: active ? c + "14" : COLORS.surface }]}
+                    style={[
+                      styles.availBtn,
+                      {
+                        borderColor: active ? c : COLORS.border,
+                        backgroundColor: active ? c + "14" : COLORS.surface,
+                      },
+                    ]}
                     testID={`dash-avail-${o.value}`}
                   >
                     <View style={[styles.availDot, { backgroundColor: c }]} />
                     <View style={{ flex: 1 }}>
-                      <AppText weight={active ? "bold" : "medium"} size="lg" color={active ? c : COLORS.onSurface}>
+                      <AppText
+                        weight={active ? "bold" : "medium"}
+                        size="lg"
+                        color={active ? c : COLORS.onSurface}
+                      >
                         {t(o.key)}
                       </AppText>
                       {o.value === "available_from" && active && worker.available_from ? (
@@ -157,7 +205,11 @@ export default function ArtisanDashboard() {
                       ) : null}
                     </View>
                     {o.value === "available_from" ? (
-                      <Ionicons name={pickerOpen ? "chevron-up" : "calendar-outline"} size={20} color={active ? c : COLORS.muted} />
+                      <Ionicons
+                        name={pickerOpen ? "chevron-up" : "calendar-outline"}
+                        size={20}
+                        color={active ? c : COLORS.muted}
+                      />
                     ) : active ? (
                       <Ionicons name="checkmark-circle" size={22} color={c} />
                     ) : null}
@@ -169,7 +221,10 @@ export default function ArtisanDashboard() {
                       </AppText>
                       <Calendar
                         value={worker.available_from || null}
-                        onSelect={(iso) => { commitAvailability("available_from", iso); setPickerOpen(false); }}
+                        onSelect={(iso) => {
+                          commitAvailability("available_from", iso);
+                          setPickerOpen(false);
+                        }}
                         testID="dash-availfrom-calendar"
                       />
                     </View>
@@ -180,35 +235,91 @@ export default function ArtisanDashboard() {
           </View>
         </Card>
 
-        {/* Completion */}
+        {/* ── Profile Completion Card ── */}
         <Card style={styles.sectionCard}>
           <View style={styles.rowBetween}>
-            <AppText weight="semibold">{t("profileCompletion")}</AppText>
-            <AppText weight="bold" color={COLORS.brandPrimary}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: SPACING.sm }}>
+              <AppText weight="semibold">{t("profileCompletion")}</AppText>
+              {/* ✅ Completion Badge — shows when profile is 100% complete */}
+              {isComplete && (
+                <View style={styles.completeBadge} testID="profile-complete-badge">
+                  <Ionicons name="checkmark-circle" size={18} color={COLORS.success} />
+                  <AppText size="sm" weight="bold" color={COLORS.success}>
+                    Complete!
+                  </AppText>
+                </View>
+              )}
+            </View>
+            <AppText weight="bold" color={completionColor(completion)}>
               {completion}%
             </AppText>
           </View>
+
+          {/* Progress bar with dynamic color */}
           <View style={{ marginTop: SPACING.sm }}>
-            <ProgressBar value={completion} />
+            <ProgressBar value={completion} color={completionColor(completion)} />
           </View>
-          {completion < 100 && (
-            <Pressable onPress={() => router.push("/profile-form?mode=edit")} style={{ marginTop: SPACING.md }} testID="complete-profile-link">
+
+          {/* Missing fields list */}
+          {!isComplete && missingFields.length > 0 && (
+            <View style={styles.missingList}>
+              <AppText size="sm" color={COLORS.muted} style={{ marginBottom: 4 }}>
+                Complete your profile by adding:
+              </AppText>
+              {missingFields.map((field) => (
+                <View key={field} style={styles.missingItem}>
+                  <Ionicons name="alert-circle-outline" size={14} color={COLORS.warning} />
+                  <AppText size="sm" color={COLORS.warning}>{field}</AppText>
+                </View>
+              ))}
+            </View>
+          )}
+
+          {/* Edit profile link */}
+          {!isComplete && (
+            <Pressable
+              onPress={() => router.push("/profile-form?mode=edit")}
+              style={{ marginTop: SPACING.md }}
+              testID="complete-profile-link"
+            >
               <AppText color={COLORS.brandPrimary} weight="semibold">
                 {t("editProfile")} →
               </AppText>
             </Pressable>
           )}
+
+          {/* 🎉 Completion message */}
+          {isComplete && (
+            <View style={styles.completeMessage}>
+              <Ionicons name="trophy" size={20} color={COLORS.success} />
+              <AppText size="sm" color={COLORS.success} weight="semibold">
+                Great job! Your profile is fully complete. You're more likely to get hired!
+              </AppText>
+            </View>
+          )}
         </Card>
 
         {/* Referral */}
-        <Pressable onPress={() => router.push("/referral")} style={styles.referralWrap} testID="referral-card">
-          <Image source={{ uri: REFERRAL_BG }} style={StyleSheet.absoluteFill} contentFit="cover" />
+        <Pressable
+          onPress={() => router.push("/referral")}
+          style={styles.referralWrap}
+          testID="referral-card"
+        >
+          <Image
+            source={{ uri: REFERRAL_BG }}
+            style={StyleSheet.absoluteFill}
+            contentFit="cover"
+          />
           <View style={styles.referralOverlay} />
           <View style={{ padding: SPACING.lg }}>
             <AppText weight="bold" size="lg" color="#fff">
               {t("referFriends")}
             </AppText>
-            <AppText size="sm" color="rgba(255,255,255,0.85)" style={{ marginTop: 4, marginBottom: SPACING.md }}>
+            <AppText
+              size="sm"
+              color="rgba(255,255,255,0.85)"
+              style={{ marginTop: 4, marginBottom: SPACING.md }}
+            >
               {t("referDesc")}
             </AppText>
             <View style={styles.codePill}>
@@ -256,7 +367,11 @@ export default function ArtisanDashboard() {
         </View>
 
         {/* Support */}
-        <Pressable onPress={() => router.push("/support")} style={styles.supportLink} testID="support-link">
+        <Pressable
+          onPress={() => router.push("/support")}
+          style={styles.supportLink}
+          testID="support-link"
+        >
           <Ionicons name="headset" size={20} color={COLORS.brandPrimary} />
           <AppText weight="semibold" color={COLORS.brandPrimary}>
             {t("getSupport")}
@@ -270,24 +385,25 @@ export default function ArtisanDashboard() {
 function verificationKey(s: string) {
   return s === "approved" ? "verified" : s === "pending" ? "pending" : "rejected";
 }
+
 function notifIcon(type: string): keyof typeof Ionicons.glyphMap {
   switch (type) {
-    case "job_alert":
-      return "briefcase";
-    case "referral_reward":
-      return "gift";
-    case "training":
-      return "school";
-    case "verification_update":
-      return "shield-checkmark";
-    default:
-      return "megaphone";
+    case "job_alert": return "briefcase";
+    case "referral_reward": return "gift";
+    case "training": return "school";
+    case "verification_update": return "shield-checkmark";
+    default: return "megaphone";
   }
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.surface },
-  headerRow: { flexDirection: "row", alignItems: "center", paddingHorizontal: SPACING.lg, gap: SPACING.md },
+  headerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: SPACING.lg,
+    gap: SPACING.md,
+  },
   bell: {
     width: 44,
     height: 44,
@@ -330,6 +446,43 @@ const styles = StyleSheet.create({
     marginTop: SPACING.xl,
     marginBottom: SPACING.sm,
   },
+
+  // Profile completion styles
+  completeBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: COLORS.success + "15",
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: 2,
+    borderRadius: RADIUS.pill,
+  },
+  missingList: {
+    marginTop: SPACING.md,
+    padding: SPACING.md,
+    backgroundColor: COLORS.warning + "10",
+    borderRadius: RADIUS.md,
+    borderLeftWidth: 3,
+    borderLeftColor: COLORS.warning,
+    gap: 4,
+  },
+  missingItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: SPACING.sm,
+  },
+  completeMessage: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: SPACING.sm,
+    marginTop: SPACING.md,
+    padding: SPACING.md,
+    backgroundColor: COLORS.success + "10",
+    borderRadius: RADIUS.md,
+    borderLeftWidth: 3,
+    borderLeftColor: COLORS.success,
+  },
+
   referralWrap: {
     marginHorizontal: SPACING.lg,
     marginTop: SPACING.md,
@@ -337,7 +490,10 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     minHeight: 150,
   },
-  referralOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(40,25,18,0.7)" },
+  referralOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(40,25,18,0.7)",
+  },
   codePill: {
     flexDirection: "row",
     alignItems: "center",
@@ -349,7 +505,13 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.pill,
   },
   notifRow: { flexDirection: "row", alignItems: "center", gap: SPACING.md },
-  notifIcon: { width: 38, height: 38, borderRadius: RADIUS.md, alignItems: "center", justifyContent: "center" },
+  notifIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: RADIUS.md,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   supportLink: {
     flexDirection: "row",
     alignItems: "center",
