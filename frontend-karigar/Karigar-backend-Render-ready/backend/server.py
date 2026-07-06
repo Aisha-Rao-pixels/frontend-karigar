@@ -1046,7 +1046,8 @@ async def export_workers_pdf(
         pdf_bytes = export_service.build_workers_pdf(hydrated)
     except Exception as e:
         logger.exception("PDF build failed")
-        raise HTTPException(status_code=500, detail=f"PDF generation failed: {e}")    return Response(
+        raise HTTPException(status_code=500, detail=f"PDF generation failed: {e}")   
+        return Response(
         content=pdf_bytes,
         media_type="application/pdf",
         headers={"Content-Disposition": "attachment; filename=karigar_worker_report.pdf"},
