@@ -30,12 +30,26 @@ export default function Index() {
       router.replace("/login");
       return;
     }
-    if (user.role === "karigar") {
-      if (!user.has_profile) router.replace("/profile-form?mode=create");
-      else router.replace("/(artisan)/dashboard");
-    } else {
-      router.replace("/admin/dashboard");
-    }
+
+    (async () => {
+      const lastPath = await storage.getItem("last_path", "");
+
+      if (user.role === "karigar") {
+        if (!user.has_profile) {
+          router.replace("/profile-form?mode=create");
+        } else if (lastPath && lastPath.startsWith("/(artisan)")) {
+          router.replace(lastPath as any);
+        } else {
+          router.replace("/(artisan)/dashboard");
+        }
+      } else {
+        if (lastPath && lastPath.startsWith("/admin")) {
+          router.replace(lastPath as any);
+        } else {
+          router.replace("/admin/dashboard");
+        }
+      }
+    })();
   }, [loading, langChecked, hasLang, user, router]);
 
   return (
