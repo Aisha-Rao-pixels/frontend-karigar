@@ -267,7 +267,9 @@ export default function WorkerForm({
       base64: true,
     });
     if (!res.canceled) {
-      const uris = res.assets.filter((a) => a.base64).map((a) => `data:image/jpeg;base64,${a.base64}`);
+      const uris = await Promise.all(
+        res.assets.filter((a) => a.uri).map((a) => shrinkImage(a.uri, 100))
+      );
       if (uris.length) set(field, [...(v[field] as string[]), ...uris]);
     }
   };
