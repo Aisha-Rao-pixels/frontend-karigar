@@ -122,7 +122,22 @@ async def store_images(
             logger.warning("Dropping unuploadable image entry (first 80 chars): %.80s", entry)
     return results
 
-
+async def sync_images(
+    bucket: AsyncIOMotorGridFSBucket,
+    old_images: List[str],
+    new_images: List[str],
+    metadata: Optional[dict] = None,
+) -> List[str]:
+    """Upload new_images, then delete old GridFS files no longer used."""
+    new_refs = await store_images(bucket, new_images, metadata=metadata)
+    keep = set(new_refs)
+    old_refs = {r for r in (old_images or []) if _is_ref(r)}
+    for ref in old_refs - keep:
+        try:
+            await bucket.delete(_ref_to_id(ref))
+        except Exception as exc:
+            logger.warning("Could not delete replaced GridFS file %s: %s", ref, exc)
+    return new_refs
 async def hydrate_images(
     bucket: AsyncIOMotorGridFSBucket,
     images: List[str],
