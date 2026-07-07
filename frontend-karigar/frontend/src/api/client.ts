@@ -22,12 +22,25 @@ export async function apiFetch<T = any>(path: string, opts: Options = {}): Promi
     const token = await getToken();
     if (token) headers.Authorization = `Bearer ${token}`;
   }
-  const res = await fetch(`${BASE}${path}`, {
-    method,
-    headers,
-    body: body ? JSON.stringify(body) : undefined,
-  });
-  if (!res.ok) {
+  // Retry once if backend is sleeping (Render free tier)
+  let res: Response | null = null;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      res = await fetch(`${BASE}${path}`, {
+        method,
+        headers,
+        body: body ? JSON.stringify(body) : undefined,
+      });
+      break;
+    } catch (e) {
+      if (attempt === 0) {
+        await new Promise((r) => setTimeout(r, 3000));
+        continue;
+      }
+      throw e;
+    }
+  }
+  if (!res) throw new ApiError("Network error", 0);  if (!res.ok) {
     let detail = "Something went wrong";
     try {
       const data = await res.json();
