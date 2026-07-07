@@ -363,9 +363,12 @@ async def _build_worker_doc(payload: WorkerProfilePayload, phone: str, user_id: 
         code = gen_referral_code()
 
     img_meta = {"phone": phone}
-    portfolio_refs = await gridfs_images.store_images(image_bucket, payload.portfolio_images, metadata=img_meta)
-    aadhar_refs = await gridfs_images.store_images(image_bucket, payload.aadhar_images, metadata=img_meta)
-    proof_refs = await gridfs_images.store_images(image_bucket, payload.employment_proof_images, metadata=img_meta)
+    portfolio_refs = await gridfs_images.sync_images(
+        image_bucket, worker.get("portfolio_images"), payload.portfolio_images, metadata=img_meta)
+    aadhar_refs = await gridfs_images.sync_images(
+        image_bucket, worker.get("aadhar_images"), payload.aadhar_images, metadata=img_meta)
+    proof_refs = await gridfs_images.sync_images(
+        image_bucket, worker.get("employment_proof_images"), payload.employment_proof_images, metadata=img_meta)
 
     return {
         "id": new_id(),
