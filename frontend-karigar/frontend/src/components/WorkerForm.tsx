@@ -22,6 +22,7 @@ import { SKILL_CATEGORIES } from "@/src/constants/skills";
 import { availabilityColor, formatDate, Worker } from "@/src/utils/profile";
 import { useToast } from "@/src/components/Toast";
 import { apiFetch } from "@/src/api/client";
+import { storage } from "@/src/utils/storage";
 
 export interface WorkerFormValues {
   mobile?: string;
