@@ -20,6 +20,7 @@ export default function VerificationCenter() {
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
+    setLoading(true);
     try {
       const res = await apiFetch<Worker[]>("/admin/verification/queue");
       setItems(res);
