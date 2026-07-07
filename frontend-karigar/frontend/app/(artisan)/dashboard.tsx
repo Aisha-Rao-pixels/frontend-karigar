@@ -131,6 +131,12 @@ export default function ArtisanDashboard() {
           />
         }
       >
+        {/* Web pull to refresh indicator */}
+        {refreshing && (
+          <View style={{ alignItems: "center", paddingVertical: SPACING.sm }}>
+            <Loader />
+          </View>
+        )}
         {/* Header */}
         <View style={styles.headerRow}>
           <View style={{ flex: 1 }}>
