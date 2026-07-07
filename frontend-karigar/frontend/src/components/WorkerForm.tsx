@@ -252,7 +252,8 @@ export default function WorkerForm({
       const uris = await Promise.all(
         res.assets.filter((a) => a.uri).map((a) => shrinkImage(a.uri, 60))
       );
-      if (uris.length) set("portfolio_images", [...v.portfolio_images, ...uris]);
+      const combined = [...v.portfolio_images, ...uris].slice(0, 5);
+      if (uris.length) set("portfolio_images", combined);
     }
   };
 
