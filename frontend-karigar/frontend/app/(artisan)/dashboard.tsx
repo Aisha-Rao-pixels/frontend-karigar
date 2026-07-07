@@ -126,6 +126,8 @@ export default function ArtisanDashboard() {
             refreshing={refreshing}
             onRefresh={onRefresh}
             tintColor={COLORS.brandPrimary}
+            colors={[COLORS.brandPrimary]}
+            progressBackgroundColor={COLORS.surfaceSecondary}
           />
         }
       >
