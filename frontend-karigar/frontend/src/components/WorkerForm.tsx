@@ -269,11 +269,12 @@ export default function WorkerForm({
       quality: 0.6,
       base64: true,
     });
-    if (!res.canceled) {
+   if (!res.canceled) {
       const uris = await Promise.all(
         res.assets.filter((a) => a.uri).map((a) => shrinkImage(a.uri, 100))
       );
-      if (uris.length) set(field, [...(v[field] as string[]), ...uris]);
+      const combined = [...(v[field] as string[]), ...uris].slice(0, 3);
+      if (uris.length) set(field, combined);
     }
   };
 
