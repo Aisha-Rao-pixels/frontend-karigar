@@ -10,6 +10,7 @@ import {
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
+import * as ImageManipulator from "expo-image-manipulator";
 import * as Location from "expo-location";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -18,6 +19,27 @@ import { COLORS, SPACING, RADIUS, FONT } from "@/src/theme";
 import { AppText, Button, Chip, Field } from "@/src/components/ui";
 import { Calendar } from "@/src/components/Calendar";
 import { GENDERS, SPOKEN_LANGUAGES, AVAILABILITY_OPTIONS, PROOF_TYPES } from "@/src/constants/app";
+
+// Shrinks an image to roughly targetKB by resizing + compressing.
+async function shrinkImage(uri: string, targetKB = 60): Promise<string> {
+  let width = 900;
+  let quality = 0.5;
+
+  for (let attempt = 0; attempt < 4; attempt++) {
+    const result = await ImageManipulator.manipulateAsync(
+      uri,
+      [{ resize: { width } }],
+      { compress: quality, format: ImageManipulator.SaveFormat.JPEG, base64: true }
+    );
+    const sizeKB = (result.base64!.length * 0.75) / 1024;
+    if (sizeKB <= targetKB || attempt === 3) {
+      return `data:image/jpeg;base64,${result.base64}`;
+    }
+    width = Math.round(width * 0.7);
+    quality = Math.max(0.3, quality - 0.1);
+  }
+  return uri;
+}
 import { SKILL_CATEGORIES } from "@/src/constants/skills";
 import { availabilityColor, formatDate, Worker } from "@/src/utils/profile";
 import { useToast } from "@/src/components/Toast";
