@@ -20,6 +20,10 @@ Public API
   hydrate_worker(bucket, worker_dict)       -> worker dict with all 3 fields hydrated
   store_images(bucket, image_list)          -> list of "gridfs:<id>" strings
                                              (uploads only new non-ref entries)
+  sync_images(bucket, old_list, new_list)   -> uploads new_list, then deletes
+                                             any GridFS file from old_list that
+                                             is no longer referenced (use this
+                                             on profile EDITS, not creates)
 """
 
 import base64
@@ -109,6 +113,10 @@ async def store_images(
 
     Entries that fail to upload are dropped with a warning (rather than
     crashing the entire profile save).  Returns the list of references.
+
+    Use this for brand-new profiles (there is no "old" list to clean up).
+    For profile EDITS, use sync_images() instead so replaced images don't
+    pile up as orphaned files.
     """
     results: List[str] = []
     for entry in images or []:
@@ -121,6 +129,35 @@ async def store_images(
         else:
             logger.warning("Dropping unuploadable image entry (first 80 chars): %.80s", entry)
     return results
+
+
+async def sync_images(
+    bucket: AsyncIOMotorGridFSBucket,
+    old_images: Optional[List[str]],
+    new_images: List[str],
+    metadata: Optional[dict] = None,
+) -> List[str]:
+    """Upload *new_images*, then delete any GridFS files from *old_images*
+    that are no longer referenced in the result.
+
+    This is the correct way to save an updated image list on a profile edit:
+    it prevents orphaned files piling up in GridFS every time a worker swaps
+    out a photo (which is what fills up storage over time). Non-ref (legacy
+    base64) entries in *old_images* are simply dropped from tracking — there
+    is nothing in GridFS to clean up for them.
+
+    New images are uploaded and stored *before* anything old is deleted, so
+    a failed upload never leaves the worker without their existing photos.
+    """
+    new_refs = await store_images(bucket, new_images, metadata=metadata)
+    keep = set(new_refs)
+    old_refs = {r for r in (old_images or []) if _is_ref(r)}
+    for ref in old_refs - keep:
+        try:
+            await bucket.delete(_ref_to_id(ref))
+        except Exception as exc:
+            logger.warning("Could not delete replaced GridFS file %s: %s", ref, exc)
+    return new_refs
 
 
 async def hydrate_images(
