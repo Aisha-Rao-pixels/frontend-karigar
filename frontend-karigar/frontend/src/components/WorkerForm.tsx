@@ -310,7 +310,10 @@ export default function WorkerForm({
   };
 
   const handleSubmit = () => {
-    if (validate()) onSubmit(v);
+    if (validate()) {
+      storage.removeItem("form_draft");
+      onSubmit(v);
+    }
   };
 
   return (
