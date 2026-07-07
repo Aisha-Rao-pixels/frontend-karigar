@@ -363,12 +363,9 @@ async def _build_worker_doc(payload: WorkerProfilePayload, phone: str, user_id: 
         code = gen_referral_code()
 
     img_meta = {"phone": phone}
-    portfolio_refs = await gridfs_images.sync_images(
-        image_bucket, worker.get("portfolio_images"), payload.portfolio_images, metadata=img_meta)
-    aadhar_refs = await gridfs_images.sync_images(
-        image_bucket, worker.get("aadhar_images"), payload.aadhar_images, metadata=img_meta)
-    proof_refs = await gridfs_images.sync_images(
-        image_bucket, worker.get("employment_proof_images"), payload.employment_proof_images, metadata=img_meta)
+    portfolio_refs = await gridfs_images.store_images(image_bucket, payload.portfolio_images, metadata=img_meta)
+    aadhar_refs = await gridfs_images.store_images(image_bucket, payload.aadhar_images, metadata=img_meta)
+    proof_refs = await gridfs_images.store_images(image_bucket, payload.employment_proof_images, metadata=img_meta)
 
     return {
         "id": new_id(),
@@ -401,6 +398,7 @@ async def _build_worker_doc(payload: WorkerProfilePayload, phone: str, user_id: 
         "verified_by": None,
         "verified_at": None,
         "rejection_reason": None,
+        "rejected_at": None,
         "duplicate_flags": duplicate_flags or [],
         "history": [],
         "profile_submitted_at": now_iso(),
@@ -429,9 +427,15 @@ def _make_snapshot(worker: dict, edited_by: str) -> dict:
 
 async def _profile_update_fields(payload: WorkerProfilePayload, worker: dict) -> dict:
     img_meta = {"phone": worker.get("phone", "")}
-    portfolio_refs = await gridfs_images.store_images(image_bucket, payload.portfolio_images, metadata=img_meta)
-    aadhar_refs = await gridfs_images.store_images(image_bucket, payload.aadhar_images, metadata=img_meta)
-    proof_refs = await gridfs_images.store_images(image_bucket, payload.employment_proof_images, metadata=img_meta)
+    # Use sync_images (not store_images) here: this is an *edit*, so any old
+    # GridFS files that got replaced or removed need to be deleted, or they
+    # sit around forever and quietly eat storage on every profile edit.
+    portfolio_refs = await gridfs_images.sync_images(
+        image_bucket, worker.get("portfolio_images"), payload.portfolio_images, metadata=img_meta)
+    aadhar_refs = await gridfs_images.sync_images(
+        image_bucket, worker.get("aadhar_images"), payload.aadhar_images, metadata=img_meta)
+    proof_refs = await gridfs_images.sync_images(
+        image_bucket, worker.get("employment_proof_images"), payload.employment_proof_images, metadata=img_meta)
     return {
         "full_name": payload.full_name.strip(),
         "gender": payload.gender,
@@ -595,6 +599,7 @@ async def update_my_profile(payload: WorkerProfilePayload, user: dict = Depends(
     update["verified_by"] = None
     update["verified_at"] = None
     update["rejection_reason"] = None
+    update["rejected_at"] = None
     snapshot = _make_snapshot(worker, edited_by="worker")
     await db.workers.update_one(
         {"id": worker["id"]},
@@ -923,7 +928,8 @@ async def approve_worker(worker_id: str, background_tasks: BackgroundTasks, user
         raise HTTPException(status_code=404, detail="Worker not found")
     await db.workers.update_one({"id": worker_id}, {"$set": {
         "verification_status": "approved", "verified_by": user["id"],
-        "verified_at": now_iso(), "rejection_reason": None, "updated_at": now_iso(),
+        "verified_at": now_iso(), "rejection_reason": None, "rejected_at": None,
+        "updated_at": now_iso(),
     }})
     await _notify_worker(worker, "verification_update",
         "Profile Verified ✓", "प्रोफ़ाइल सत्यापित ✓", "ప్రొఫైల్ ధృవీకరించబడింది ✓",
@@ -965,13 +971,29 @@ async def reject_worker(worker_id: str, payload: RejectPayload, user: dict = Dep
     worker = await db.workers.find_one({"id": worker_id})
     if not worker:
         raise HTTPException(status_code=404, detail="Worker not found")
-    await gridfs_images.delete_worker_images(image_bucket, worker)
-    await db.workers.delete_one({"id": worker_id})
-    await db.referrals.delete_many({"$or": [
-        {"referred_worker_id": worker_id}, {"referrer_worker_id": worker_id},
-    ]})
-    await db.notifications.delete_many({"recipient_worker_id": worker_id})
-    return {"success": True, "deleted": True}
+    reason = (payload.reason or "").strip() or None
+    await db.workers.update_one({"id": worker_id}, {"$set": {
+        "verification_status": "rejected",
+        "rejection_reason": reason,
+        "verified_by": user["id"],
+        "verified_at": None,
+        "rejected_at": now_iso(),
+        "updated_at": now_iso(),
+    }})
+    reason_en = f" Reason: {reason}" if reason else ""
+    reason_hi = f" \u0915\u093e\u0930\u0923: {reason}" if reason else ""
+    reason_te = f" \u0c15\u0c3e\u0c30\u0c23\u0c02: {reason}" if reason else ""
+    title_hi = "\u092a\u094d\u0930\u094b\u092b\u093c\u093e\u0907\u0932 \u0905\u0938\u094d\u0935\u0940\u0915\u0943\u0924"
+    title_te = "\u0c2a\u0c4d\u0c30\u0c4a\u0c2b\u0c48\u0c32\u0c4d \u0c24\u0c3f\u0c30\u0c38\u0c4d\u0c15\u0c30\u0c3f\u0c02\u0c1a\u0c2c\u0c21\u0c3f\u0c02\u0c26\u0c3f"
+    body_hi = f"\u0906\u092a\u0915\u093e \u092a\u094d\u0930\u094b\u092b\u093c\u093e\u0907\u0932 \u0905\u0938\u094d\u0935\u0940\u0915\u0943\u0924 \u0915\u0930 \u0926\u093f\u092f\u093e \u0917\u092f\u093e\u0964{reason_hi} \u0915\u0943\u092a\u092f\u093e \u0938\u092e\u0940\u0915\u094d\u0937\u093e \u0915\u0930 \u092a\u0941\u0928\u0903 \u091c\u092e\u093e \u0915\u0930\u0947\u0902\u0964"
+    body_te = f"\u0c2e\u0c40 \u0c2a\u0c4d\u0c30\u0c4a\u0c2b\u0c48\u0c32\u0c4d \u0c24\u0c3f\u0c30\u0c38\u0c4d\u0c15\u0c30\u0c3f\u0c02\u0c1a\u0c2c\u0c21\u0c3f\u0c02\u0c26\u0c3f.{reason_te} \u0c26\u0c2f\u0c1a\u0c47\u0c38\u0c3f \u0c38\u0c2e\u0c40\u0c15\u0c4d\u0c37\u0c3f\u0c02\u0c1a\u0c3f \u0c2e\u0c33\u0c4d\u0c32\u0c40 \u0c38\u0c2e\u0c30\u0c4d\u0c2a\u0c3f\u0c02\u0c1a\u0c02\u0c21\u0c3f."
+    await _notify_worker(worker, "verification_update",
+        "Profile Rejected", title_hi, title_te,
+        f"Your profile was rejected.{reason_en} Please review and resubmit.",
+        body_hi,
+        body_te)
+    updated = await db.workers.find_one({"id": worker_id})
+    return await gridfs_images.hydrate_worker(image_bucket, clean(updated))
 
 
 @api_router.get("/admin/export", response_class=PlainTextResponse)
