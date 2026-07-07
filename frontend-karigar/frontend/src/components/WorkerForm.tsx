@@ -193,7 +193,11 @@ export default function WorkerForm({
   const [proofOpen, setProofOpen] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const set = (k: keyof WorkerFormValues, val: any) => setV((p) => ({ ...p, [k]: val }));
+  const set = (k: keyof WorkerFormValues, val: any) => setV((p) => {
+    const updated = { ...p, [k]: val };
+    storage.setItem("form_draft", JSON.stringify(updated));
+    return updated;
+  });
   const toggle = (k: "languages" | "skills", item: string) =>
     setV((p) => {
       const arr = p[k];
