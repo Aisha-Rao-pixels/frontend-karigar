@@ -1082,22 +1082,24 @@ async def _ensure_indexes():
 
 @app.on_event("startup")
 async def seed_data():
-    if await db.skills.count_documents({}) == 0:
-        for name in DEFAULT_SKILLS:
-            await db.skills.insert_one({"id": new_id(), "name": name, "created_at": now_iso()})
-        logger.info("Seeded skills")
+    try:
+        if await db.skills.count_documents({}) == 0:
+            for name in DEFAULT_SKILLS:
+                await db.skills.insert_one({"id": new_id(), "name": name, "created_at": now_iso()})
+            logger.info("Seeded skills")
 
-    if not await db.meta.find_one({"key": "pwd_auth_migration_v1"}):
-        await db.users.delete_many({})
-        await db.workers.delete_many({})
-        await db.otp_requests.delete_many({})
-        await db.referrals.delete_many({})
-        await db.notifications.delete_many({})
-        await db.meta.insert_one({"key": "pwd_auth_migration_v1", "done_at": now_iso()})
-        logger.info("Auth pivot: wiped legacy users/workers/demo data")
+        if not await db.meta.find_one({"key": "pwd_auth_migration_v1"}):
+            await db.users.delete_many({})
+            await db.workers.delete_many({})
+            await db.otp_requests.delete_many({})
+            await db.referrals.delete_many({})
+            await db.notifications.delete_many({})
+            await db.meta.insert_one({"key": "pwd_auth_migration_v1", "done_at": now_iso()})
+            logger.info("Auth pivot: wiped legacy users/workers/demo data")
 
-    await _ensure_indexes()
-
+        await _ensure_indexes()
+    except Exception as exc:
+        logger.error("Startup seeding/index step failed, but app will still start: %s", exc)
 
 @api_router.get("/")
 async def root():
