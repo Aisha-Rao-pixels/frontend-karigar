@@ -187,7 +187,13 @@ export default function WorkerForm({
   const { t } = useTranslation();
   const { show } = useToast();
   const insets = useSafeAreaInsets();
-  const [v, setV] = useState<WorkerFormValues>(initial);
+  const [v, setV] = useState<WorkerFormValues>(() => {
+    try {
+      const draft = storage.getItemSync?.("form_draft");
+      if (draft) return { ...initial, ...JSON.parse(draft) };
+    } catch {}
+    return initial;
+  });
   const [gpsFilledArea, setGpsFilledArea] = useState<string | null>(null);
   const [expandedCat, setExpandedCat] = useState<string | null>(null);
   const [proofOpen, setProofOpen] = useState(false);
