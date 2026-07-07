@@ -877,7 +877,50 @@ async def admin_delete_worker(worker_id: str, user: dict = Depends(require_roles
     await db.notifications.delete_many({"recipient_worker_id": worker_id})
     return {"success": True, "deleted": True}
 
+@api_router.post("/admin/maintenance/cleanup-orphaned-images")
+async def cleanup_orphaned_images(
+    user: dict = Depends(require_roles("admin")),
+    dry_run: bool = True,
+):
+    in_use = set()
+    async for w in db.workers.find({}, {f: 1 for f in gridfs_images.IMAGE_FIELDS}):
+        for field in gridfs_images.IMAGE_FIELDS:
+            for entry in w.get(field) or []:
+                if isinstance(entry, str) and entry.startswith(gridfs_images.GRIDFS_PREFIX):
+                    in_use.add(entry)
 
+    total_files = 0
+    total_bytes = 0
+    orphans = []
+    async for f in db["worker_images.files"].find({}, {"_id": 1, "length": 1}):
+        total_files += 1
+        total_bytes += f.get("length", 0)
+        ref = f"{gridfs_images.GRIDFS_PREFIX}{f['_id']}"
+        if ref not in in_use:
+            orphans.append(f)
+
+    orphan_bytes = sum(f.get("length", 0) for f in orphans)
+
+    if dry_run:
+        return {
+            "dry_run": True,
+            "total_files": total_files,
+            "total_mb": round(total_bytes / 1_000_000, 2),
+            "orphaned_files": len(orphans),
+            "orphaned_mb": round(orphan_bytes / 1_000_000, 2),
+        }
+
+    deleted = 0
+    for f in orphans:
+        try:
+            await image_bucket.delete(f["_id"])
+            deleted += 1
+        except Exception as exc:
+            logger.warning("Could not delete orphaned file %s: %s", f["_id"], exc)
+
+    return {"dry_run": False, "deleted": deleted, "attempted": len(orphans),
+            "freed_mb": round(orphan_bytes / 1_000_000, 2)}
+    
 @api_router.post("/admin/workers")
 async def admin_register_worker(payload: AdminRegisterWorkerPayload, user: dict = Depends(require_roles(*ADMIN_ROLES))):
     phone = payload.mobile.strip()
