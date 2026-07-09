@@ -417,7 +417,7 @@ _SNAPSHOT_FIELDS = [
 
 
 def _make_snapshot(worker: dict, edited_by: str) -> dict:
-    snap = {f: worker.get(f) for f in _SNAPSHOT_FIELDS if f not in gridfs_images.IMAGE_FIELDS}
+    snap = {f: worker.get(f) for f in _SNAPSHOT_FIELDS}
     snap["snapshot_at"] = worker.get("updated_at") or now_iso()
     snap["archived_at"] = now_iso()
     snap["edited_by"] = edited_by
