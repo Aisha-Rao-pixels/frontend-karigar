@@ -981,11 +981,9 @@ async def approve_worker(worker_id: str, background_tasks: BackgroundTasks, user
     worker = await db.workers.find_one({"id": worker_id})
     if not worker:
         raise HTTPException(status_code=404, detail="Worker not found")
-    cleaned_history = await gridfs_images.purge_history_images(image_bucket, worker)
     await db.workers.update_one({"id": worker_id}, {"$set": {
         "verification_status": "approved", "verified_by": user["id"],
         "verified_at": now_iso(), "rejection_reason": None, "updated_at": now_iso(),
-        "history": cleaned_history,
     }})
     await _notify_worker(worker, "verification_update",
         "Profile Verified ✓", "प्रोफ़ाइल सत्यापित ✓", "ప్రొఫైల్ ధృవీకరించబడింది ✓",
