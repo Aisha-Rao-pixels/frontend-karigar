@@ -94,8 +94,6 @@ export default function ReviewScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      <ScreenHeader
-        title={t("reviewProfile")}
         <ScreenHeader
         title={t("reviewProfile")}
         onBack={() => router.replace("/admin/(tabs)/verify")}
