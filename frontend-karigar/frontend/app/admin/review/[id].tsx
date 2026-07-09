@@ -26,7 +26,12 @@ export default function ReviewScreen() {
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
 
-  const load = () => apiFetch<Worker>(`/admin/workers/${id}`).then(setWorker).catch(() => {});
+  const [notFound, setNotFound] = useState(false);
+
+  const load = () =>
+    apiFetch<Worker>(`/admin/workers/${id}`)
+      .then(setWorker)
+      .catch(() => setNotFound(true));
 
   useEffect(() => {
     load();
