@@ -20,6 +20,50 @@ import { AppText, Button, Chip, Field } from "@/src/components/ui";
 import { Calendar } from "@/src/components/Calendar";
 import { GENDERS, SPOKEN_LANGUAGES, AVAILABILITY_OPTIONS, PROOF_TYPES } from "@/src/constants/app";
 
+const PortfolioImages = React.memo(function PortfolioImages({
+  images,
+  onRemove,
+  onAdd,
+  error,
+  addLabel,
+}: {
+  images: string[];
+  onRemove: (index: number) => void;
+  onAdd: () => void;
+  error?: string;
+  addLabel: string;
+}) {
+  return (
+    <>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: SPACING.sm }}>
+        {images.map((img, i) => (
+          <View key={i} style={styles.thumbWrap}>
+            <Image source={{ uri: img }} style={styles.thumb} contentFit="cover" />
+            <Pressable style={styles.thumbX} onPress={() => onRemove(i)} testID={`remove-photo-${i}`}>
+              <Ionicons name="close" size={14} color="#fff" />
+            </Pressable>
+          </View>
+        ))}
+        <Pressable
+          style={[styles.addPhoto, error && images.length === 0 && { borderColor: COLORS.error }]}
+          onPress={onAdd}
+          testID="add-photo-btn"
+        >
+          <Ionicons name="camera" size={24} color={COLORS.brandPrimary} />
+          <AppText size="sm" color={COLORS.brandPrimary} style={{ marginTop: 4 }}>
+            {addLabel}
+          </AppText>
+        </Pressable>
+      </ScrollView>
+      {error && (
+        <AppText size="sm" color={COLORS.error} style={{ marginTop: 4 }}>
+          {error}
+        </AppText>
+      )}
+    </>
+  );
+});
+
 // Shrinks an image to roughly targetKB by resizing + compressing.
 async function shrinkImage(uri: string, targetKB = 60): Promise<string> {
   let width = 900;
