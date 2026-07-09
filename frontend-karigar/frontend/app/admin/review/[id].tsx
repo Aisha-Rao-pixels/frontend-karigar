@@ -96,7 +96,10 @@ export default function ReviewScreen() {
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <ScreenHeader
         title={t("reviewProfile")}
-        onBack={() => (router.canGoBack() ? router.back() : router.replace("/admin/(tabs)/verify"))}
+        <ScreenHeader
+        title={t("reviewProfile")}
+        onBack={() => router.replace("/admin/(tabs)/verify")}
+      />
         right={
           worker ? (
             <Pressable onPress={() => setEditing(true)} style={styles.editBtn} testID="edit-worker-btn">
