@@ -245,10 +245,12 @@ export default function WorkerForm({
     });
 
   const pickImage = async () => {
-    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!perm.granted) {
-      show("Photo permission needed to upload portfolio", "error");
-      return;
+    if (Platform.OS !== "web") {
+      const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!perm.granted) {
+        show("Photo permission needed to upload portfolio", "error");
+        return;
+      }
     }
     const res = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ["images"],
