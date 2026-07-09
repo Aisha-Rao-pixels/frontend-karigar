@@ -33,7 +33,7 @@ export default function AdminWorkerDetail() {
       await apiFetch(`/admin/workers/${id}`, { method: "DELETE" });
       show(t("workerDeleted"), "success");
       sheetRef.current?.close();
-      router.back();
+      router.canGoBack() ? router.back() : router.replace("/admin/(tabs)/search");
     } catch (e: any) {
       show(e.message || t("genericError"), "error");
     } finally {
@@ -45,7 +45,7 @@ export default function AdminWorkerDetail() {
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <ScreenHeader
         title={t("reviewProfile")}
-        onBack={() => router.back()}
+        onBack={() => (router.canGoBack() ? router.back() : router.replace("/admin/(tabs)/search"))}
         right={
           worker ? (
             <Pressable onPress={() => sheetRef.current?.expand()} style={styles.deleteBtn} testID="delete-worker-btn">
