@@ -229,15 +229,10 @@ async def purge_history_images(
                         await bucket.delete(_ref_to_id(entry))
                     except Exception as exc:
                         logger.warning("Could not delete old version image %s: %s", entry, exc)
-            snap[field] = []  # this snapshot's photos are gone now, clear the dangling refs
+            snap[field] = []
         cleaned_history.append(snap)
     return cleaned_history
 
-
-  async def delete_worker_images(
-      bucket: AsyncIOMotorGridFSBucket,
-      worker: dict,
-  ) -> None:
 
 async def delete_worker_images(
     bucket: AsyncIOMotorGridFSBucket,
