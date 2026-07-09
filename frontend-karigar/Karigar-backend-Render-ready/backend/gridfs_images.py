@@ -202,6 +202,42 @@ async def hydrate_worker(
             w[field] = await hydrate_images(bucket, w[field])
     return w
 
+async def purge_history_images(
+    bucket: AsyncIOMotorGridFSBucket,
+    worker: dict,
+) -> list:
+    """Delete GridFS files referenced only in old history snapshots (not in
+    the worker's current live fields), and strip those refs from history.
+
+    Called on approval: once a version is approved, older submitted
+    versions no longer need their photos kept, so this frees that space.
+    Returns the cleaned history list to save back on the worker doc.
+    """
+    live_refs = set()
+    for field in IMAGE_FIELDS:
+        for entry in worker.get(field) or []:
+            if _is_ref(entry):
+                live_refs.add(entry)
+
+    cleaned_history = []
+    for snap in worker.get("history") or []:
+        snap = dict(snap)
+        for field in IMAGE_FIELDS:
+            for entry in snap.get(field) or []:
+                if _is_ref(entry) and entry not in live_refs:
+                    try:
+                        await bucket.delete(_ref_to_id(entry))
+                    except Exception as exc:
+                        logger.warning("Could not delete old version image %s: %s", entry, exc)
+            snap[field] = []  # this snapshot's photos are gone now, clear the dangling refs
+        cleaned_history.append(snap)
+    return cleaned_history
+
+
+  async def delete_worker_images(
+      bucket: AsyncIOMotorGridFSBucket,
+      worker: dict,
+  ) -> None:
 
 async def delete_worker_images(
     bucket: AsyncIOMotorGridFSBucket,
