@@ -268,10 +268,12 @@ export default function WorkerForm({
   };
 
   const pickMulti = async (field: "aadhar_images" | "employment_proof_images") => {
-    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!perm.granted) {
-      show("Photo permission needed to upload documents", "error");
-      return;
+    if (Platform.OS !== "web") {
+      const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!perm.granted) {
+        show("Photo permission needed to upload documents", "error");
+        return;
+      }
     }
     const res = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ["images"],
