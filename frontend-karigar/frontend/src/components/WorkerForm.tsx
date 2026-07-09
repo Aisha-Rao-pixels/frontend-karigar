@@ -35,13 +35,31 @@ const PortfolioImages = React.memo(function PortfolioImages({
 }) {
   return (
     <>
-      <PortfolioImages
-          images={v.portfolio_images}
-          onRemove={(i) => removeAt("portfolio_images", i)}
-          onAdd={pickImage}
-          error={errors.portfolio_images}
-          addLabel={t("addPhoto")}
-        />
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: SPACING.sm }}>
+        {images.map((img, i) => (
+          <View key={i} style={styles.thumbWrap}>
+            <Image source={{ uri: img }} style={styles.thumb} contentFit="cover" />
+            <Pressable style={styles.thumbX} onPress={() => onRemove(i)} testID={`remove-photo-${i}`}>
+              <Ionicons name="close" size={14} color="#fff" />
+            </Pressable>
+          </View>
+        ))}
+        <Pressable
+          style={[styles.addPhoto, error && images.length === 0 && { borderColor: COLORS.error }]}
+          onPress={onAdd}
+          testID="add-photo-btn"
+        >
+          <Ionicons name="camera" size={24} color={COLORS.brandPrimary} />
+          <AppText size="sm" color={COLORS.brandPrimary} style={{ marginTop: 4 }}>
+            {addLabel}
+          </AppText>
+        </Pressable>
+      </ScrollView>
+      {error && (
+        <AppText size="sm" color={COLORS.error} style={{ marginTop: 4 }}>
+          {error}
+        </AppText>
+      )}
     </>
   );
 });
@@ -587,35 +605,13 @@ export default function WorkerForm({
         <AppText weight="semibold" style={{ marginBottom: SPACING.sm }}>
           {t("portfolio")}
         </AppText>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: SPACING.sm }}>
-          {v.portfolio_images.map((img, i) => (
-            <View key={i} style={styles.thumbWrap}>
-              <Image source={{ uri: img }} style={styles.thumb} contentFit="cover" />
-              <Pressable
-                style={styles.thumbX}
-                onPress={() => removeAt("portfolio_images", i)}
-                testID={`remove-photo-${i}`}
-              >
-                <Ionicons name="close" size={14} color="#fff" />
-              </Pressable>
-            </View>
-          ))}
-          <Pressable
-            style={[styles.addPhoto, errors.portfolio_images && v.portfolio_images.length === 0 && { borderColor: COLORS.error }]}
-            onPress={pickImage}
-            testID="add-photo-btn"
-          >
-            <Ionicons name="camera" size={24} color={COLORS.brandPrimary} />
-            <AppText size="sm" color={COLORS.brandPrimary} style={{ marginTop: 4 }}>
-              {t("addPhoto")}
-            </AppText>
-          </Pressable>
-        </ScrollView>
-        {errors.portfolio_images && (
-          <AppText size="sm" color={COLORS.error} style={{ marginTop: 4 }}>
-            {errors.portfolio_images}
-          </AppText>
-        )}
+        <PortfolioImages
+          images={v.portfolio_images}
+          onRemove={(i) => removeAt("portfolio_images", i)}
+          onAdd={pickImage}
+          error={errors.portfolio_images}
+          addLabel={t("addPhoto")}
+        />
 
         {/* Availability */}
         <AppText weight="semibold" style={{ marginTop: SPACING.lg, marginBottom: SPACING.sm }}>
