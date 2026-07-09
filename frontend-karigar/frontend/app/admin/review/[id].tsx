@@ -97,7 +97,6 @@ export default function ReviewScreen() {
         <ScreenHeader
         title={t("reviewProfile")}
         onBack={() => router.replace("/admin/(tabs)/verify")}
-      />
         right={
           worker ? (
             <Pressable onPress={() => setEditing(true)} style={styles.editBtn} testID="edit-worker-btn">
