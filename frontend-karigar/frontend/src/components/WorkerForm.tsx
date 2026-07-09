@@ -46,6 +46,14 @@ import { useToast } from "@/src/components/Toast";
 import { apiFetch } from "@/src/api/client";
 import { storage } from "@/src/utils/storage";
 
+let draftSaveTimer: ReturnType<typeof setTimeout> | null = null;
+function scheduleDraftSave(data: unknown) {
+  if (draftSaveTimer) clearTimeout(draftSaveTimer);
+  draftSaveTimer = setTimeout(() => {
+    storage.setItem("form_draft", JSON.stringify(data));
+  }, 600);
+}
+
 export interface WorkerFormValues {
   mobile?: string;
   full_name: string;
@@ -227,7 +235,7 @@ export default function WorkerForm({
 
   const set = (k: keyof WorkerFormValues, val: any) => setV((p) => {
     const updated = { ...p, [k]: val };
-    storage.setItem("form_draft", JSON.stringify(updated));
+    scheduleDraftSave(updated);
     return updated;
   });
   const toggle = (k: "languages" | "skills", item: string) =>
