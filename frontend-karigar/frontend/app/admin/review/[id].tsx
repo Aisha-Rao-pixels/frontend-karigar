@@ -106,7 +106,15 @@ export default function ReviewScreen() {
           ) : undefined
         }
       />
-      {worker ? <WorkerDetail worker={worker} contentBottom={120} /> : <Loader />}
+      {worker ? (
+      <WorkerDetail worker={worker} contentBottom={120} />
+      ) : notFound ? (
+      <View style={{ padding: 20 }}>
+      <AppText>This profile could not be found. It may have already been reviewed.</AppText>
+      </View>
+      ) : (
+      <Loader />
+      )}
 
       {worker && (
         <View style={[styles.footer, { paddingBottom: insets.bottom + SPACING.md }]}>
