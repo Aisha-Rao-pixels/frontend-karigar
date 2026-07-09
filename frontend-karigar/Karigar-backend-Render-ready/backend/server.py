@@ -849,17 +849,7 @@ async def admin_worker_detail(worker_id: str, user: dict = Depends(require_roles
             hydrated_history.append(snap)
         result["history"] = hydrated_history
     code = worker.get("referred_by_code")
-    if result.get("history"):
-        hydrated_history = []
-        for snap in result["history"]:
-            snap = dict(snap)
-            for field in ["portfolio_images", "aadhar_images", "employment_proof_images"]:
-                if snap.get(field):
-                    snap[field] = await gridfs_images.hydrate_images(image_bucket, snap[field])
-            hydrated_history.append(snap)
-        result["history"] = hydrated_history
-    code = worker.get("referred_by_code")
-    code = worker.get("referred_by_code")
+   
     if code:
         referrer = await db.workers.find_one({"referral_code": code})
         if referrer:
