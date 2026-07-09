@@ -230,9 +230,8 @@ async def purge_history_images(
                         await bucket.delete(_ref_to_id(entry))
                     except Exception as exc:
                         logger.warning("Could not delete old version image %s: %s", entry, exc)
-                    # not kept — this was a truly superseded/old photo, now freed
                 else:
-                    kept.append(entry)  # still in use (matches current live photo) or non-ref legacy entry
+                    kept.append(entry)
             snap[field] = kept
         cleaned_history.append(snap)
     return cleaned_history
