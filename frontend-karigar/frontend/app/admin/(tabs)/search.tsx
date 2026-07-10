@@ -39,7 +39,7 @@ function Tooltip({ text, children }: { text: string; children: React.ReactNode }
     // @ts-ignore - getBoundingClientRect exists on web
     const rect = wrapRef.current?.getBoundingClientRect?.();
     if (rect) {
-      setVPos(rect.top < 48 ? "bottom" : "top");
+      setVPos(rect.top < 160 ? "bottom" : "top");
       const halfW = 70; // half of the 140px tooltip width
       if (rect.left - halfW < 8) setHAlign("left");
       else if (rect.right + halfW > window.innerWidth - 8) setHAlign("right");
