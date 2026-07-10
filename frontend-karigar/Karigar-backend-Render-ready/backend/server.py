@@ -793,6 +793,13 @@ async def admin_metrics(user: dict = Depends(require_roles(*ADMIN_ROLES))):
     }
 
 
+@api_router.get("/admin/rejected-profiles")
+async def list_rejected_profiles(user: dict = Depends(require_roles(*ADMIN_ROLES))):
+    docs = await db.rejected_profiles.find().sort("rejected_at", -1).to_list(2000)
+    hydrated = [await gridfs_images.hydrate_worker(image_bucket, clean(d)) for d in docs]
+    return {"profiles": hydrated, "count": len(hydrated)}
+
+
 @api_router.get("/admin/analytics")
 async def admin_analytics(user: dict = Depends(require_roles(*ADMIN_ROLES))):
     workers = await db.workers.find().to_list(10000)
