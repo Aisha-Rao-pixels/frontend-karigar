@@ -39,6 +39,23 @@ export default function AdminDashboard() {
   const [a, setA] = useState<Analytics | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [sendingEmail, setSendingEmail] = useState(false);
+  const [emailStatus, setEmailStatus] = useState<"idle" | "success" | "error">("idle");
+
+  const sendSummaryEmail = async () => {
+    setSendingEmail(true);
+    setEmailStatus("idle");
+    try {
+      await apiFetch("/admin/daily-summary/run", { method: "POST" });
+      setEmailStatus("success");
+    } catch {
+      setEmailStatus("error");
+    } finally {
+      setSendingEmail(false);
+      setTimeout(() => setEmailStatus("idle"), 4000);
+    }
+  };
+
 
   const load = useCallback(async () => {
     try {
@@ -227,7 +244,40 @@ export default function AdminDashboard() {
           <Button title={t("registerWorker")} onPress={() => router.push("/admin/register")} icon="person-add" testID="register-worker-btn" />
           <Button title={t("skillManagement")} variant="ghost" onPress={() => router.push("/admin/skills")} icon="construct" testID="skills-btn" />
           <Button title={t("manageAdmins")} variant="ghost" onPress={() => router.push("/admin/manage-admins")} icon="people-circle" testID="manage-admins-btn" />
-          <Button title="Referral Dashboard" variant="ghost" onPress={() => router.push("/admin/referrals")} icon="gift" testID="referrals-dashboard-btn" />        </View>
+          <Button title="Referral Dashboard" variant="ghost" onPress={() => router.push("/admin/referrals")} icon="gift" testID="referrals-dashboard-btn" />
+
+          {/* Send Summary Email Button */}
+          <Pressable
+            onPress={sendSummaryEmail}
+            disabled={sendingEmail}
+            testID="send-summary-btn"
+            style={[
+              styles.summaryBtn,
+              emailStatus === "success" && styles.summaryBtnSuccess,
+              emailStatus === "error"   && styles.summaryBtnError,
+            ]}
+          >
+            <Ionicons
+              name={
+                sendingEmail ? "time-outline"
+                : emailStatus === "success" ? "checkmark-circle"
+                : emailStatus === "error"   ? "alert-circle"
+                : "mail"
+              }
+              size={20}
+              color="#fff"
+            />
+            <AppText weight="semibold" size="sm" color="#fff" style={{ marginLeft: 8 }}>
+              {sendingEmail
+                ? "Sending..."
+                : emailStatus === "success"
+                ? "Email Sent to Manager 2713"
+                : emailStatus === "error"
+                ? "Failed — Try Again"
+                : "Send Summary Email to Manager"}
+            </AppText>
+          </Pressable>
+        </View>
       </ScrollView>
     </View>
   );
@@ -269,4 +319,16 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
   },
   queueIcon: { width: 48, height: 48, borderRadius: RADIUS.md, alignItems: "center", justifyContent: "center" },
+  summaryBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#7A2E1D",
+    borderRadius: RADIUS.md,
+    paddingVertical: SPACING.md,
+    paddingHorizontal: SPACING.lg,
+    marginTop: SPACING.sm,
+  },
+  summaryBtnSuccess: { backgroundColor: "#2D7A4F" },
+  summaryBtnError:   { backgroundColor: "#B91C1C" },
 });
