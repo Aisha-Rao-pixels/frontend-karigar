@@ -857,6 +857,8 @@ async def admin_analytics(user: dict = Depends(require_roles(*ADMIN_ROLES))):
         d = (datetime.now(timezone.utc) - timedelta(days=i)).strftime("%Y-%m-%d")
         c = sum(1 for w in workers if (w.get("created_at") or "")[:10] == d)
         trend.append({"date": d, "count": c})
+    rejected_profiles_count = await db.rejected_profiles.count_documents({})
+    total_referrals = await db.referrals.count_documents({"status": {"$in": ["pending", "reward_triggered", "paid"]}})
     return {
         "kpis": {
             "total_workers": total,
@@ -866,6 +868,8 @@ async def admin_analytics(user: dict = Depends(require_roles(*ADMIN_ROLES))):
             "available_workers": avail_now,
             "new_today": new_today,
             "new_this_week": new_week,
+            "rejected_profiles": rejected_profiles_count,
+            "total_referrals": total_referrals,
         },
         "location_distribution": location_distribution,
         "skill_distribution": skill_distribution,
