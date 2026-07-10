@@ -90,7 +90,7 @@ export default function LoginScreen() {
       const u =
         mode === "login"
           ? await login(trimmedPhone, password)
-          : await register(trimmedPhone, password, "karigar");
+          : await register(trimmedPhone, password, "karigar", ref);
       routeUser(u);
     } catch (e: any) {
       show(e.message || t("genericError"), "error");
