@@ -694,6 +694,48 @@ async def my_referrals(user: dict = Depends(get_current_user)):
     }
 
 
+@api_router.get("/admin/referrals/overview")
+async def admin_referrals_overview(user: dict = Depends(require_roles(*ADMIN_ROLES))):
+    workers = await db.workers.find({"referral_code": {"$exists": True}}).to_list(10000)
+    clicks = await db.referral_clicks.find().to_list(100000)
+    refs = await db.referrals.find().to_list(100000)
+
+    click_counts: dict = {}
+    for c in clicks:
+        click_counts[c["referral_code"]] = click_counts.get(c["referral_code"], 0) + 1
+
+    reg_by_referrer: dict = {}
+    for r in refs:
+        reg_by_referrer.setdefault(r["referrer_worker_id"], []).append(r)
+
+    rows = []
+    for w in workers:
+        code = w.get("referral_code")
+        if not code:
+            continue
+        total_clicks = click_counts.get(code, 0)
+        registered_refs = reg_by_referrer.get(w["id"], [])
+        registered_count = len(registered_refs)
+        paid = sum(1 for r in registered_refs if r["status"] == "paid")
+        pending = registered_count - paid
+        total_referred = max(total_clicks, registered_count)
+        not_registered = max(total_referred - registered_count, 0)
+        rows.append({
+            "worker_id": w["id"],
+            "full_name": w.get("full_name") or "Unknown",
+            "phone": w.get("phone"),
+            "referral_code": code,
+            "total_referred": total_referred,
+            "registered_count": registered_count,
+            "not_registered_count": not_registered,
+            "paid_count": paid,
+            "pending_count": pending,
+        })
+
+    rows.sort(key=lambda r: r["total_referred"], reverse=True)
+    return {"rows": rows}
+
+
 @api_router.get("/admin/metrics")
 async def admin_metrics(user: dict = Depends(require_roles(*ADMIN_ROLES))):
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
