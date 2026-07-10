@@ -98,7 +98,15 @@ export default function AdminDashboard() {
                 {t("administrator")}
               </AppText>
             </View>
-            <Pressable onPress={async () => { await logout(); router.replace("/admin/login"); }} style={styles.logoutBtn} testID="admin-logout-btn">
+            <Pressable
+              onPress={async () => { await logout(); router.replace("/admin/login"); }}
+              testID="admin-logout-btn"
+              style={({ pressed }) => [
+                styles.logoutBtn,
+                { backgroundColor: pressed ? "#EF4444" : "rgba(255,255,255,0.12)",
+                  transform: [{ scale: pressed ? 0.93 : 1 }] }
+              ]}
+            >
               <Ionicons name="log-out-outline" size={20} color="#fff" />
             </Pressable>
           </View>
@@ -227,7 +235,21 @@ export default function AdminDashboard() {
         </Panel>
 
         {/* Verification queue CTA */}
-        <Pressable onPress={() => router.push("/admin/verify")} testID="verify-queue-cta" style={styles.queueCard}>
+        <Pressable
+          onPress={() => router.push("/admin/verify")}
+          testID="verify-queue-cta"
+          style={({ pressed }) => [
+            styles.queueCard,
+            {
+              backgroundColor: pressed ? "#FFF3E0" : COLORS.surfaceSecondary,
+              borderColor: pressed ? COLORS.warning : COLORS.border,
+              transform: [{ scale: pressed ? 0.98 : 1 }],
+              shadowOpacity: pressed ? 0.14 : 0.06,
+              shadowRadius: pressed ? 12 : 8,
+              elevation: pressed ? 5 : 2,
+            }
+          ]}
+        >
           <View style={[styles.queueIcon, { backgroundColor: COLORS.warning + "1A" }]}>
             <Ionicons name="shield-checkmark" size={24} color={COLORS.warning} />
           </View>
