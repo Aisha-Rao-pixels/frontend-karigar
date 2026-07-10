@@ -21,9 +21,19 @@ export default function ProfileFormScreen() {
   const isEdit = mode === "edit";
   const { setHasProfile, refresh } = useAuth();
 
-  const [initial, setInitial] = useState<WorkerFormValues | null>(
-    isEdit ? null : { ...emptyValues(), referred_by_code: ref ?? "" }
-  );
+  const [initial, setInitial] = useState<WorkerFormValues | null>(isEdit ? null : emptyValues());
+
+  useEffect(() => {
+    if (!isEdit) {
+      (async () => {
+        const savedRef = ref || (await storage.getItem("pending_ref", ""));
+        if (savedRef) {
+          setInitial((prev) => (prev ? { ...prev, referred_by_code: savedRef } : prev));
+          storage.removeItem("pending_ref");
+        }
+      })();
+    }
+  }, [isEdit]);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
