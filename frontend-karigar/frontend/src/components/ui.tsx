@@ -90,9 +90,22 @@ export function Button({
     success: COLORS.onSuccess,
   }[variant];
   const isDisabled = disabled || loading;
+  const [hovered, setHovered] = React.useState(false);
+
+  // Hover background — subtle, one step lighter/darker than the base color
+  const hoverBg = {
+    primary:   "#8C4A24",
+    secondary: "#EFE6DE",
+    ghost:     "#FBF3EF",
+    danger:    "#D9463A",
+    success:   "#22B457",
+  }[variant];
+
   return (
     <Pressable
       testID={testID}
+      onHoverIn={() => setHovered(true)}
+      onHoverOut={() => setHovered(false)}
       onPress={() => {
         if (isDisabled) return;
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
@@ -101,20 +114,19 @@ export function Button({
       style={({ pressed }) => [
         styles.btn,
         {
-          backgroundColor: isDisabled ? bg : pressed ? pressedBg : bg,
+          backgroundColor: isDisabled ? bg : pressed ? pressedBg : hovered ? hoverBg : bg,
           opacity: isDisabled ? 0.5 : 1,
           transform: [{ scale: pressed ? 0.97 : 1 }],
           shadowColor: pressed ? "#000" : "#1A1817",
-          shadowOpacity: pressed ? 0.18 : 0.06,
-          shadowRadius: pressed ? 12 : 8,
+          shadowOpacity: pressed ? 0.18 : hovered ? 0.1 : 0.06,
+          shadowRadius: pressed ? 12 : hovered ? 10 : 8,
           shadowOffset: { width: 0, height: pressed ? 4 : 2 },
-          elevation: pressed ? 6 : 2,
+          elevation: pressed ? 6 : hovered ? 4 : 2,
         },
-        variant === "ghost" && { borderWidth: 1, borderColor: pressed ? COLORS.brandPrimary : COLORS.border },
+        variant === "ghost" && { borderWidth: 1, borderColor: pressed || hovered ? COLORS.brandPrimary : COLORS.border },
         style,
       ]}
-    >
-      {loading ? (
+    >      {loading ? (
         <ActivityIndicator color={fg} />
       ) : (
         <View style={styles.btnRow}>
