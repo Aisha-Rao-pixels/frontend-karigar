@@ -72,6 +72,16 @@ export function Button({
     danger: COLORS.error,
     success: COLORS.success,
   }[variant];
+
+  // Pressed (hover) background — richer, darker shade for each variant
+  const pressedBg = {
+    primary:   "#7A3F1E",   // deeper brand brown
+    secondary: "#E8DDD5",   // warm taupe
+    ghost:     "#F7EBE5",   // soft brand tint
+    danger:    "#C0392B",   // deeper red
+    success:   "#16A34A",   // deeper green
+  }[variant];
+
   const fg = {
     primary: COLORS.onBrandPrimary,
     secondary: COLORS.onSurfaceTertiary,
@@ -90,8 +100,17 @@ export function Button({
       }}
       style={({ pressed }) => [
         styles.btn,
-        { backgroundColor: bg, opacity: isDisabled ? 0.5 : pressed ? 0.85 : 1 },
-        variant === "ghost" && { borderWidth: 1, borderColor: COLORS.border },
+        {
+          backgroundColor: isDisabled ? bg : pressed ? pressedBg : bg,
+          opacity: isDisabled ? 0.5 : 1,
+          transform: [{ scale: pressed ? 0.97 : 1 }],
+          shadowColor: pressed ? "#000" : "#1A1817",
+          shadowOpacity: pressed ? 0.18 : 0.06,
+          shadowRadius: pressed ? 12 : 8,
+          shadowOffset: { width: 0, height: pressed ? 4 : 2 },
+          elevation: pressed ? 6 : 2,
+        },
+        variant === "ghost" && { borderWidth: 1, borderColor: pressed ? COLORS.brandPrimary : COLORS.border },
         style,
       ]}
     >
@@ -123,11 +142,15 @@ export function Chip({
     <Pressable
       testID={testID}
       onPress={onPress}
-      style={[
+      style={({ pressed }) => [
         styles.chip,
         {
-          backgroundColor: selected ? COLORS.brandPrimary : COLORS.brandTertiary,
+          backgroundColor: pressed
+            ? selected ? "#7A3F1E" : "#EDD9CE"
+            : selected ? COLORS.brandPrimary : COLORS.brandTertiary,
           borderColor: selected ? COLORS.brandPrimary : COLORS.border,
+          transform: [{ scale: pressed ? 0.96 : 1 }],
+          opacity: pressed ? 0.9 : 1,
         },
       ]}
     >
@@ -293,8 +316,20 @@ export function ScreenHeader({
   return (
     <View style={styles.header}>
       {onBack && (
-        <Pressable testID="header-back" onPress={onBack} style={styles.backBtn} hitSlop={10}>
-          <Ionicons name="chevron-back" size={24} color={COLORS.onSurface} />
+        <Pressable
+          testID="header-back"
+          onPress={onBack}
+          hitSlop={10}
+          style={({ pressed }) => [
+            styles.backBtn,
+            {
+              backgroundColor: pressed ? COLORS.brandTertiary : "transparent",
+              transform: [{ scale: pressed ? 0.93 : 1 }],
+              borderRadius: RADIUS.md,
+            },
+          ]}
+        >
+          <Ionicons name="chevron-back" size={24} color={pressed ? COLORS.brandPrimary : COLORS.onSurface} />
         </Pressable>
       )}
       <View style={{ flex: 1 }}>
