@@ -53,10 +53,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     bootstrap();
   }, [bootstrap]);
 
-  const register = async (phone: string, password: string, role: Role) => {
+ const register = async (phone: string, password: string, role: Role, referredByCode?: string) => {
     const res = await apiFetch<{ access_token: string; user: AuthUser }>("/auth/register", {
       method: "POST",
-      body: { phone, password, role },
+      body: { phone, password, role, referred_by_code: referredByCode || undefined },
       auth: false,
     });
     await setToken(res.access_token);
