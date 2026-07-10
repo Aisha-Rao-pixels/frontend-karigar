@@ -88,12 +88,41 @@ export default function AdminDashboard() {
 
           {/* KPI tiles overlapping the band */}
           <View style={styles.kpiRow}>
-            <StatTile label={t("totalWorkers")} value={k.total_workers} delta={`+${k.new_this_week}`} icon="people" tint={SERIES[0]} testID="kpi-total" />
-            <StatTile label={t("availableWorkers")} value={k.available_workers} icon="flash" tint={SERIES[1]} testID="kpi-available" />
+            <StatTile
+              label={t("totalWorkers")}
+              value={k.total_workers}
+              delta={`+${k.new_this_week}`}
+              icon="people"
+              tint={SERIES[0]}
+              testID="kpi-total"
+              onPress={() => router.push({ pathname: "/admin/search", params: { verification: "all", availability: "all" } })}
+            />
+            <StatTile
+              label={t("availableWorkers")}
+              value={k.available_workers}
+              icon="flash"
+              tint={SERIES[1]}
+              testID="kpi-available"
+              onPress={() => router.push({ pathname: "/admin/search", params: { availability: "available_now" } })}
+            />
           </View>
           <View style={styles.kpiRow}>
-            <StatTile label={t("verifiedWorkers")} value={k.verified_workers} icon="shield-checkmark" tint={SERIES[2]} testID="kpi-verified" />
-            <StatTile label={t("pendingVerification")} value={k.pending_verification} icon="hourglass" tint={SERIES[3]} testID="kpi-pending" />
+            <StatTile
+              label={t("verifiedWorkers")}
+              value={k.verified_workers}
+              icon="shield-checkmark"
+              tint={SERIES[2]}
+              testID="kpi-verified"
+              onPress={() => router.push({ pathname: "/admin/search", params: { verification: "approved" } })}
+            />
+            <StatTile
+              label={t("pendingVerification")}
+              value={k.pending_verification}
+              icon="hourglass"
+              tint={SERIES[3]}
+              testID="kpi-pending"
+              onPress={() => router.push("/admin/verify")}
+            />
           </View>
         </View>
 
