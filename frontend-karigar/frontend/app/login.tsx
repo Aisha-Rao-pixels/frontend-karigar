@@ -40,7 +40,11 @@ export default function LoginScreen() {
 
   const routeUser = (u: { role: string; has_profile: boolean }) => {
     if (u.role === "karigar") {
-      router.replace(u.has_profile ? "/(artisan)/dashboard" : "/profile-form?mode=create");
+      router.replace(
+        u.has_profile
+          ? "/(artisan)/dashboard"
+          : `/profile-form?mode=create${ref ? `&ref=${ref}` : ""}`
+      );
     } else {
       router.replace("/admin/dashboard");
     }
