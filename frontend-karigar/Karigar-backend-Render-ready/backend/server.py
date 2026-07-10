@@ -1116,13 +1116,22 @@ async def reject_worker(worker_id: str, payload: RejectPayload, user: dict = Dep
     worker = await db.workers.find_one({"id": worker_id})
     if not worker:
         raise HTTPException(status_code=404, detail="Worker not found")
-    await gridfs_images.delete_worker_images(image_bucket, worker)
+
+    archived = clean(dict(worker))
+    archived.pop("_id", None)
+    archived["rejection_reason"] = payload.reason
+    archived["rejected_by"] = user.get("phone") or user.get("id")
+    archived["rejected_at"] = now_iso()
+    await db.rejected_profiles.insert_one(archived)
+
+    # Note: images are intentionally kept in storage (not deleted) so the
+    # archived record above remains fully viewable for future reference.
     await db.workers.delete_one({"id": worker_id})
     await db.referrals.delete_many({"$or": [
         {"referred_worker_id": worker_id}, {"referrer_worker_id": worker_id},
     ]})
     await db.notifications.delete_many({"recipient_worker_id": worker_id})
-    return {"success": True, "deleted": True}
+    return {"success": True, "deleted": True, "archived": True}
 
 
 @api_router.get("/admin/export", response_class=PlainTextResponse)
