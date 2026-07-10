@@ -31,7 +31,8 @@ export default function LoginScreen() {
   const { show } = useToast();
   const insets = useSafeAreaInsets();
   const { login, register } = useAuth();
-  const [mode, setMode] = useState<"login" | "register">("login");
+  const { ref, mode: modeParam } = useLocalSearchParams<{ ref?: string; mode?: string }>();
+  const [mode, setMode] = useState<"login" | "register">(modeParam === "register" ? "register" : "login");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [showPwd, setShowPwd] = useState(false);
