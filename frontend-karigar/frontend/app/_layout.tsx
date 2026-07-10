@@ -16,6 +16,10 @@ SplashScreen.preventAutoHideAsync();
 export default function RootLayout() {
   const [loaded, error] = useIconFonts();
   const pathname = usePathname();
+  const { ref } = useGlobalSearchParams<{ ref?: string }>();
+  useEffect(() => {
+    if (ref) storage.setItem("pending_ref", ref);
+  }, [ref]);
   useEffect(() => {
     loadSavedLanguage();
   }, []);
