@@ -198,7 +198,7 @@ export default function AdminDashboard() {
           <Button title={t("registerWorker")} onPress={() => router.push("/admin/register")} icon="person-add" testID="register-worker-btn" />
           <Button title={t("skillManagement")} variant="ghost" onPress={() => router.push("/admin/skills")} icon="construct" testID="skills-btn" />
           <Button title={t("manageAdmins")} variant="ghost" onPress={() => router.push("/admin/manage-admins")} icon="people-circle" testID="manage-admins-btn" />
-        </View>
+          <Button title="Referral Dashboard" variant="ghost" onPress={() => router.push("/admin/referrals")} icon="gift" testID="referrals-dashboard-btn" />        </View>
       </ScrollView>
     </View>
   );
