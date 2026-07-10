@@ -262,7 +262,7 @@ export default function WorkerSearch() {
     >
       <AppText size="sm" numberOfLines={1} style={styles.tableCell}>{item.full_name}</AppText>
       <AppText size="sm" numberOfLines={1} style={styles.tableCell} color={COLORS.muted}>
-        {item.phone?.slice(-4) ? `****${item.phone.slice(-4)}` : "—"}
+        {item.phone || "—"}
       </AppText>
       <AppText size="sm" numberOfLines={1} style={styles.tableCell}>{item.skills?.[0] || "—"}</AppText>
       <AppText size="sm" numberOfLines={1} style={styles.tableCell}>{item.city || "—"}</AppText>
