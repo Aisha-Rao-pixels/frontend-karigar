@@ -749,12 +749,13 @@ async def admin_referrals_overview(user: dict = Depends(require_roles(*ADMIN_ROL
         if not code:
             continue
         total_clicks = click_counts.get(code, 0)
-        registered_refs = reg_by_referrer.get(w["id"], [])
-        registered_count = len(registered_refs)
-        paid = sum(1 for r in registered_refs if r["status"] == "paid")
-        pending = registered_count - paid
-        total_referred = max(total_clicks, registered_count)
-        not_registered = max(total_referred - registered_count, 0)
+        referrer_refs = reg_by_referrer.get(w["id"], [])
+        account_created_count = sum(1 for r in referrer_refs if r["status"] == "account_created")
+        registered_count = sum(1 for r in referrer_refs if r["status"] in ("pending", "reward_triggered", "paid"))
+        total_referred = max(total_clicks, len(referrer_refs))
+        not_registered = max(total_referred - registered_count - account_created_count, 0)
+        paid_amount = sum(r["payout_amount_rs"] for r in referrer_refs if r["status"] == "paid")
+        pending_amount = sum(r["payout_amount_rs"] for r in referrer_refs if r["status"] in ("pending", "reward_triggered"))
         rows.append({
             "worker_id": w["id"],
             "full_name": w.get("full_name") or "Unknown",
@@ -762,13 +763,14 @@ async def admin_referrals_overview(user: dict = Depends(require_roles(*ADMIN_ROL
             "referral_code": code,
             "total_referred": total_referred,
             "registered_count": registered_count,
+            "account_created_count": account_created_count,
             "not_registered_count": not_registered,
-            "paid_count": paid,
-            "pending_count": pending,
+            "paid_amount_rs": paid_amount,
+            "pending_amount_rs": pending_amount,
         })
 
     rows.sort(key=lambda r: r["total_referred"], reverse=True)
-    return {"rows": rows}
+    return {"rows": rows}    return {"rows": rows}
 
 
 @api_router.get("/admin/metrics")
