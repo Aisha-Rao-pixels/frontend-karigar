@@ -13,7 +13,7 @@ export interface AuthUser {
 interface AuthCtx {
   user: AuthUser | null;
   loading: boolean;
-  register: (phone: string, password: string, role: Role) => Promise<AuthUser>;
+  register: (phone: string, password: string, role: Role, referredByCode?: string) => Promise<AuthUser>;
   login: (phone: string, password: string) => Promise<AuthUser>;
   refresh: () => Promise<void>;
   setHasProfile: (v: boolean) => void;
