@@ -331,14 +331,16 @@ export default function WorkerSearch() {
       <GalleryModal />
       <View style={styles.header}>
         <View style={styles.titleRow}>
-          {router.canGoBack() && (
-            <Pressable onPress={() => router.back()} style={{ marginRight: SPACING.sm }} testID="search-back-btn" hitSlop={10}>
-              <Ionicons name="chevron-back" size={24} color={COLORS.onSurface} />
-            </Pressable>
-          )}
+          <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
+            {router.canGoBack() && (
+              <Pressable onPress={() => router.back()} style={{ marginRight: SPACING.sm }} testID="search-back-btn" hitSlop={10}>
+                <Ionicons name="chevron-back" size={24} color={COLORS.onSurface} />
+              </Pressable>
+            )}
           <AppText weight="bold" size="2xl">Worker Directory</AppText>
-          {/* View Toggle with tooltips */}
-          <View style={styles.viewToggle}>
+        </View>
+        {/* View Toggle with tooltips */}
+        <View style={styles.viewToggle}>
             <Tooltip text="Card View">
               <Pressable
                 onPress={() => setViewMode("card")}
