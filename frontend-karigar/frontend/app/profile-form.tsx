@@ -24,17 +24,7 @@ export default function ProfileFormScreen() {
 
   const [initial, setInitial] = useState<WorkerFormValues | null>(isEdit ? null : emptyValues());
 
-  useEffect(() => {
-    if (!isEdit) {
-      (async () => {
-        const savedRef = ref || (await storage.getItem("pending_ref", ""));
-        if (savedRef) {
-          setInitial((prev) => (prev ? { ...prev, referred_by_code: savedRef } : prev));
-          storage.removeItem("pending_ref");
-        }
-      })();
-    }
-  }, [isEdit]);
+  const [initial, setInitial] = useState<WorkerFormValues | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -45,9 +35,14 @@ export default function ProfileFormScreen() {
           show(t("genericError"), "error");
           setInitial(emptyValues());
         });
+    } else {
+      (async () => {
+        const savedRef = ref || (await storage.getItem("pending_ref", ""));
+        if (savedRef) storage.removeItem("pending_ref");
+        setInitial({ ...emptyValues(), referred_by_code: savedRef || "" });
+      })();
     }
   }, [isEdit]);
-
   const handleSubmit = async (v: WorkerFormValues) => {
     setSubmitting(true);
     try {
