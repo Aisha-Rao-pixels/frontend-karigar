@@ -770,7 +770,7 @@ async def admin_referrals_overview(user: dict = Depends(require_roles(*ADMIN_ROL
         })
 
     rows.sort(key=lambda r: r["total_referred"], reverse=True)
-    return {"rows": rows}    return {"rows": rows}
+    return {"rows": rows}    
 
 
 @api_router.get("/admin/metrics")
