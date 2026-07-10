@@ -460,17 +460,50 @@ async def _profile_update_fields(payload: WorkerProfilePayload, worker: dict) ->
     }
 
 
+async def _register_referral_account(user_id: str, phone: str, code: Optional[str]):
+    if not code:
+        return
+    code = code.strip().upper()
+    referrer = await db.workers.find_one({"referral_code": code})
+    if not referrer:
+        return
+    existing = await db.referrals.find_one({"referred_user_id": user_id})
+    if existing:
+        return
+    ref = {
+        "id": new_id(),
+        "referrer_worker_id": referrer["id"],
+        "referred_worker_id": None,
+        "referred_user_id": user_id,
+        "referred_phone": phone,
+        "status": "account_created",
+        "payout_amount_rs": 50,
+        "razorpay_payout_id": None,
+        "created_at": now_iso(),
+    }
+    await db.referrals.insert_one(dict(ref))
+
+
 async def _register_referral(worker: dict):
     code = worker.get("referred_by_code")
     if not code:
         return
+    code = code.strip().upper()
     referrer = await db.workers.find_one({"referral_code": code})
     if not referrer:
+        return
+    existing = await db.referrals.find_one({"referred_phone": worker.get("phone"), "status": "account_created"})
+    if existing:
+        await db.referrals.update_one({"id": existing["id"]}, {"$set": {
+            "referred_worker_id": worker["id"], "status": "pending",
+        }})
         return
     ref = {
         "id": new_id(),
         "referrer_worker_id": referrer["id"],
         "referred_worker_id": worker["id"],
+        "referred_user_id": None,
+        "referred_phone": worker.get("phone"),
         "status": "pending",
         "payout_amount_rs": 50,
         "razorpay_payout_id": None,
