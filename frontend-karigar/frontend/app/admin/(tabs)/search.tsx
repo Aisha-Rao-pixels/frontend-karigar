@@ -3,7 +3,7 @@ import {
   View, StyleSheet, FlatList, Pressable, TextInput,
   Platform, Share, ScrollView, Modal, Image,
 } from "react-native";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
 import { useTranslation } from "react-i18next";
 import { Ionicons } from "@expo/vector-icons";
@@ -101,11 +101,12 @@ export default function WorkerSearch() {
   const { show } = useToast();
   const insets = useSafeAreaInsets();
   const sheetRef = useRef<BottomSheet>(null);
+  const params = useLocalSearchParams<{ verification?: string; availability?: string }>();
 
   const [search, setSearch] = useState("");
   const [skill, setSkill] = useState("all");
-  const [availability, setAvailability] = useState("all");
-  const [verification, setVerification] = useState("all");
+  const [availability, setAvailability] = useState(params.availability || "all");
+  const [verification, setVerification] = useState(params.verification || "all");
   const [city, setCity] = useState("");
   const [items, setItems] = useState<Worker[]>([]);
   const [total, setTotal] = useState(0);
@@ -330,6 +331,11 @@ export default function WorkerSearch() {
       <GalleryModal />
       <View style={styles.header}>
         <View style={styles.titleRow}>
+          {router.canGoBack() && (
+            <Pressable onPress={() => router.back()} style={{ marginRight: SPACING.sm }} testID="search-back-btn" hitSlop={10}>
+              <Ionicons name="chevron-back" size={24} color={COLORS.onSurface} />
+            </Pressable>
+          )}
           <AppText weight="bold" size="2xl">Worker Directory</AppText>
           {/* View Toggle with tooltips */}
           <View style={styles.viewToggle}>
