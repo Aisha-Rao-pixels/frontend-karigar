@@ -151,8 +151,25 @@ export default function AdminDashboard() {
               onPress={() => router.push("/admin/verify")}
             />
           </View>
+          <View style={styles.kpiRow}>
+            <StatTile
+              label="Referrals"
+              value={k.total_referrals}
+              icon="gift"
+              tint={SERIES[4]}
+              testID="kpi-referrals"
+              onPress={() => router.push("/admin/referrals")}
+            />
+            <StatTile
+              label="Rejected Profiles"
+              value={k.rejected_profiles}
+              icon="close-circle"
+              tint={COLORS.error}
+              testID="kpi-rejected"
+              onPress={() => router.push("/admin/rejected-profiles")}
+            />
+          </View>
         </View>
-
         <View style={{ height: SPACING.lg }} />
 
         {/* Location concentration — headline */}
