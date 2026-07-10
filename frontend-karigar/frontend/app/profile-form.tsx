@@ -17,7 +17,7 @@ export default function ProfileFormScreen() {
   const { t } = useTranslation();
   const { show } = useToast();
   const insets = useSafeAreaInsets();
-  const { mode } = useLocalSearchParams<{ mode: string }>();
+  const { mode, ref } = useLocalSearchParams<{ mode: string; ref?: string }>();
   const isEdit = mode === "edit";
   const { setHasProfile, refresh } = useAuth();
 
