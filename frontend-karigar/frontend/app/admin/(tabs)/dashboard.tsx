@@ -21,6 +21,8 @@ interface Analytics {
     available_workers: number;
     new_today: number;
     new_this_week: number;
+    rejected_profiles: number;
+    total_referrals: number;
   };
   location_distribution: { area: string; city: string; count: number; pct: number }[];
   skill_distribution: { skill: string; count: number }[];
