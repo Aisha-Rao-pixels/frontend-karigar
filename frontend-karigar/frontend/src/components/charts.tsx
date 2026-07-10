@@ -67,6 +67,7 @@ export function StatTile({
   icon,
   tint = COLORS.brandPrimary,
   testID,
+  onPress,
 }: {
   label: string;
   value: number | string;
@@ -74,9 +75,10 @@ export function StatTile({
   icon: keyof typeof Ionicons.glyphMap;
   tint?: string;
   testID?: string;
+  onPress?: () => void;
 }) {
   return (
-    <View testID={testID} style={[styles.tile, shadow]}>
+    <Pressable testID={testID} onPress={onPress} style={[styles.tile, shadow]}>
       <View style={styles.tileTop}>
         <View style={[styles.tileIcon, { backgroundColor: tint + "1A" }]}>
           <Ionicons name={icon} size={15} color={tint} />
