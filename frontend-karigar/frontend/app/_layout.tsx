@@ -18,7 +18,19 @@ export default function RootLayout() {
   const pathname = usePathname();
   const { ref } = useGlobalSearchParams<{ ref?: string }>();
   useEffect(() => {
-    if (ref) storage.setItem("pending_ref", ref);
+    if (!ref) return;
+    storage.setItem("pending_ref", ref);
+    const trackedKey = `tracked_ref_${ref}`;
+    storage.getItem(trackedKey, false).then((already) => {
+      if (!already) {
+        fetch(`${process.env.EXPO_PUBLIC_BACKEND_URL ?? ""}/api/referrals/track`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ referral_code: ref }),
+        }).catch(() => {});
+        storage.setItem(trackedKey, true);
+      }
+    });
   }, [ref]);
   useEffect(() => {
     loadSavedLanguage();
