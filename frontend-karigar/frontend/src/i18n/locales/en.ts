@@ -175,7 +175,7 @@ export default {
   paidOut: "Paid Out",
   pendingReward: "Pending",
   shareInvite: "Share Invite",
-  referralShareMsg: "Join Karigar — the network for skilled artisans! Use my referral code {{code}} when you sign up. Download now.",
+  referralShareMsg: "Join Karigar — the network for skilled artisans! Use my referral code {{code}} when you sign up. {{link}}",
 
   // support
   support: "Support",
