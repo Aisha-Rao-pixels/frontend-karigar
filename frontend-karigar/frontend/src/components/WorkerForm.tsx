@@ -267,7 +267,12 @@ export default function WorkerForm({
     storage.getItem("form_draft", "").then((draft) => {
       if (draft) {
         try {
-          setV((prev) => ({ ...prev, ...JSON.parse(draft) }));
+          const parsed = JSON.parse(draft);
+          setV((prev) => ({
+            ...prev,
+            ...parsed,
+            referred_by_code: initial.referred_by_code || parsed.referred_by_code || "",
+          }));
         } catch {}
       }
     });
