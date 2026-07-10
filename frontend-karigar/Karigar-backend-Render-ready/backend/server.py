@@ -136,6 +136,10 @@ class SkillPayload(BaseModel):
     name: str
 
 
+class ReferralClickPayload(BaseModel):
+    referral_code: str
+
+
 class AdminRegisterWorkerPayload(WorkerProfilePayload):
     mobile: str
 
