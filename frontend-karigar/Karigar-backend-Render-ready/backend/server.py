@@ -246,6 +246,7 @@ async def register(payload: RegisterPayload):
         "created_at": now_iso(),
     }
     await db.users.insert_one(dict(user))
+    await _register_referral_account(user["id"], phone, payload.referred_by_code)
     worker = await db.workers.find_one({"phone": phone})
     return _auth_response(user, worker is not None)
 
