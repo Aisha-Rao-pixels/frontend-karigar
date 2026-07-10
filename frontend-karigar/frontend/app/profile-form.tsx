@@ -21,7 +21,9 @@ export default function ProfileFormScreen() {
   const isEdit = mode === "edit";
   const { setHasProfile, refresh } = useAuth();
 
-  const [initial, setInitial] = useState<WorkerFormValues | null>(isEdit ? null : emptyValues());
+  const [initial, setInitial] = useState<WorkerFormValues | null>(
+    isEdit ? null : { ...emptyValues(), referred_by_code: ref ?? "" }
+  );
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
