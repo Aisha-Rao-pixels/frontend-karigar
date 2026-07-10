@@ -88,6 +88,7 @@ class RegisterPayload(BaseModel):
     phone: str
     password: str
     role: str = "karigar"
+    referred_by_code: Optional[str] = None
 
 
 class LoginPayload(BaseModel):
