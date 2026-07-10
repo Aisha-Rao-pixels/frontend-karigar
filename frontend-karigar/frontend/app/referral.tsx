@@ -38,8 +38,9 @@ export default function ReferralScreen() {
 
   const onShare = async () => {
     if (!data) return;
+    const link = `https://frontend-karigar-swart.vercel.app/login?ref=${data.referral_code}&mode=register`;
     try {
-      await Share.share({ message: t("referralShareMsg", { code: data.referral_code }) });
+      await Share.share({ message: t("referralShareMsg", { code: data.referral_code, link }) });
     } catch {}
   };
 
