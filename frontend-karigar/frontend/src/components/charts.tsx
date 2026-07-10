@@ -1,5 +1,5 @@
 import React from "react";
-import { View, StyleSheet } from "react-native";
+import { View, Pressable, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { AppText } from "@/src/components/ui";
 import { COLORS, SPACING, RADIUS, FONT, shadow } from "@/src/theme";
@@ -95,7 +95,7 @@ export function StatTile({
       <AppText size="sm" color={COLORS.muted} numberOfLines={1}>
         {label}
       </AppText>
-    </View>
+    </Pressable>
   );
 }
 
