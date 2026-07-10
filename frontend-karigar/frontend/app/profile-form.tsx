@@ -3,7 +3,6 @@ import { View, StyleSheet } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-
 import { COLORS, SPACING } from "@/src/theme";
 import { ScreenHeader, Loader } from "@/src/components/ui";
 import WorkerForm, { emptyValues, fromWorker, toPayload, WorkerFormValues } from "@/src/components/WorkerForm";
@@ -12,7 +11,6 @@ import { Worker } from "@/src/utils/profile";
 import { useAuth } from "@/src/context/AuthContext";
 import { storage } from "@/src/utils/storage";
 import { useToast } from "@/src/components/Toast";
-
 export default function ProfileFormScreen() {
   const router = useRouter();
   const { t } = useTranslation();
@@ -21,12 +19,8 @@ export default function ProfileFormScreen() {
   const { mode, ref } = useLocalSearchParams<{ mode: string; ref?: string }>();
   const isEdit = mode === "edit";
   const { setHasProfile, refresh } = useAuth();
-
-  const [initial, setInitial] = useState<WorkerFormValues | null>(isEdit ? null : emptyValues());
-
   const [initial, setInitial] = useState<WorkerFormValues | null>(null);
   const [submitting, setSubmitting] = useState(false);
-
   useEffect(() => {
     if (isEdit) {
       apiFetch<Worker>("/workers/me")
@@ -63,7 +57,6 @@ export default function ProfileFormScreen() {
       setSubmitting(false);
     }
   };
-
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <ScreenHeader
@@ -84,7 +77,6 @@ export default function ProfileFormScreen() {
     </View>
   );
 }
-
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.surface },
 });
