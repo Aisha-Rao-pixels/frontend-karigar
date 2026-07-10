@@ -10,6 +10,7 @@ import WorkerForm, { emptyValues, fromWorker, toPayload, WorkerFormValues } from
 import { apiFetch } from "@/src/api/client";
 import { Worker } from "@/src/utils/profile";
 import { useAuth } from "@/src/context/AuthContext";
+import { storage } from "@/src/utils/storage";
 import { useToast } from "@/src/components/Toast";
 
 export default function ProfileFormScreen() {
