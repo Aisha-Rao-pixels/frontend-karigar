@@ -659,6 +659,23 @@ async def mark_all_read(user: dict = Depends(get_current_user)):
     return {"success": True}
 
 
+@api_router.post("/referrals/track")
+async def track_referral_click(payload: ReferralClickPayload):
+    code = (payload.referral_code or "").strip().upper()
+    if not code:
+        return {"success": False}
+    referrer = await db.workers.find_one({"referral_code": code})
+    if not referrer:
+        return {"success": False}
+    await db.referral_clicks.insert_one({
+        "id": new_id(),
+        "referral_code": code,
+        "referrer_worker_id": referrer["id"],
+        "created_at": now_iso(),
+    })
+    return {"success": True}
+
+
 @api_router.get("/referrals/me")
 async def my_referrals(user: dict = Depends(get_current_user)):
     worker = await db.workers.find_one({"phone": user["phone"]})
