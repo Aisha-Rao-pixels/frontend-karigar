@@ -28,6 +28,7 @@ import msg91_client
 import email_service
 import export_service
 import gridfs_images
+import daily_summary_service
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -1251,8 +1252,76 @@ async def seed_data():
             logger.info("Auth pivot: wiped legacy users/workers/demo data")
 
         await _ensure_indexes()
+
+        # ── Start daily summary scheduler ────────────────────────────────────
+        asyncio.create_task(_daily_summary_loop())
+        logger.info("Daily summary scheduler started.")
+
     except Exception as exc:
         logger.error("Startup seeding/index step failed, but app will still start: %s", exc)
+
+
+# ── Daily summary scheduler ──────────────────────────────────────────────────
+# Checks every 30 minutes whether it's past 5:30 PM IST and summary not yet
+# sent today. Render's free tier can sleep the app, so we never rely on a
+# simple "sleep 24 hours" approach — checking every 30 min means it catches up
+# the moment the server wakes up.
+
+_IST = timezone(timedelta(hours=5, minutes=30))
+_last_summary_date: str = ""          # "YYYY-MM-DD" of last successful send
+
+
+async def _daily_summary_loop():
+    global _last_summary_date
+    while True:
+        try:
+            await asyncio.sleep(30 * 60)          # check every 30 minutes
+            now_ist  = datetime.now(_IST)
+            today_str = now_ist.strftime("%Y-%m-%d")
+
+            # Send only once per day, at or after 17:30 IST
+            if (
+                now_ist.hour > 17
+                or (now_ist.hour == 17 and now_ist.minute >= 30)
+            ) and _last_summary_date != today_str:
+                logger.info("Daily summary: triggering scheduled send for %s", today_str)
+                success = await daily_summary_service.send_daily_summary(db)
+                if success:
+                    _last_summary_date = today_str
+                    logger.info("Daily summary: sent successfully for %s", today_str)
+                else:
+                    logger.warning("Daily summary: send failed for %s — will retry next cycle", today_str)
+
+        except asyncio.CancelledError:
+            break
+        except Exception as exc:
+            logger.error("Daily summary scheduler error: %s", exc, exc_info=True)
+
+
+# ── Admin endpoints: manual trigger + status ─────────────────────────────────
+
+@api_router.post("/admin/daily-summary/run")
+async def run_daily_summary_now(current_user=Depends(get_current_user)):
+    """Trigger the daily summary email immediately (for testing or manual send)."""
+    if current_user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin only")
+    success = await daily_summary_service.send_daily_summary(db)
+    return {
+        "success": success,
+        "message": "Summary email sent." if success else "Failed to send — check server logs.",
+    }
+
+
+@api_router.get("/admin/daily-summary/status")
+async def daily_summary_status(current_user=Depends(get_current_user)):
+    """Check when the last daily summary was sent."""
+    if current_user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin only")
+    return {
+        "last_sent_date": _last_summary_date or "Never",
+        "next_scheduled":  "Today at 17:30 IST" if not _last_summary_date else "Tomorrow at 17:30 IST",
+    }
+
 
 @api_router.get("/")
 async def root():
