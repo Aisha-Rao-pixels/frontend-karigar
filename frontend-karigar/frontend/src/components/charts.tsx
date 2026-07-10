@@ -78,7 +78,23 @@ export function StatTile({
   onPress?: () => void;
 }) {
   return (
-    <Pressable testID={testID} onPress={onPress} style={[styles.tile, shadow]}>
+    <Pressable
+      testID={testID}
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.tile,
+        shadow,
+        {
+          backgroundColor: pressed ? tint + "15" : "#FFFFFF",
+          borderWidth: pressed ? 1.5 : 0,
+          borderColor: pressed ? tint : "transparent",
+          transform: [{ scale: pressed ? 0.96 : 1 }],
+          shadowOpacity: pressed ? 0.16 : 0.06,
+          shadowRadius: pressed ? 14 : 8,
+          elevation: pressed ? 7 : 2,
+        }
+      ]}
+    >
       <View style={styles.tileTop}>
         <View style={[styles.tileIcon, { backgroundColor: tint + "1A" }]}>
           <Ionicons name={icon} size={15} color={tint} />
