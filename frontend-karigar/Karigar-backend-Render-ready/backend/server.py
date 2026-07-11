@@ -802,6 +802,7 @@ async def admin_referral_detail(worker_id: str, user: dict = Depends(require_rol
             if w:
                 name = w.get("full_name")
         people.append({
+            "worker_id": r.get("referred_worker_id"),
             "name": name or "Not registered yet",
             "phone": r.get("referred_phone") or "—",
             "status": r.get("status"),
