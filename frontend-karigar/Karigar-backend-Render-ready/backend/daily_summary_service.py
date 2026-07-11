@@ -19,8 +19,10 @@ Environment variables required (same ones already used by email_service.py):
 import asyncio
 import base64
 import io
+import json
 import logging
 import os
+import zipfile
 from datetime import datetime, timezone, timedelta
 
 import httpx
@@ -261,6 +263,34 @@ def build_excel(workers: list[dict], week_start: datetime, today: datetime) -> b
 
 # ── Email sender ─────────────────────────────────────────────────────────────
 
+# ── Full database backup (separate from the weekly report above) ───────────
+# Unlike the Excel report (which resets every Monday), this backs up EVERY
+# collection, EVERY record, from day one — nothing is ever left out or reset.
+# Runs as a plain JSON export per collection, zipped into one file.
+
+BACKUP_COLLECTIONS = [
+    "users", "workers", "referrals", "referral_clicks",
+    "notifications", "employer_requirements", "rejected_profiles",
+    "otp_requests", "skills", "meta",
+]
+
+
+def _json_default(value):
+    # Handles Mongo's ObjectId / datetime objects that json.dumps can't serialize directly.
+    return str(value)
+
+
+async def _build_full_backup_zip(db) -> bytes:
+    """Exports every document in every collection to one .zip of .json files."""
+    buffer = io.BytesIO()
+    with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as zf:
+        for name in BACKUP_COLLECTIONS:
+            docs = await db[name].find({}).to_list(None)
+            zf.writestr(f"{name}.json", json.dumps(docs, default=_json_default, indent=2))
+    buffer.seek(0)
+    return buffer.read()
+
+
 async def send_daily_summary(db) -> bool:
     """
     Build the weekly-rolling Excel report and email it to the manager.
@@ -349,15 +379,25 @@ async def send_daily_summary(db) -> bool:
         </div>
         """
 
+        # Full backup — separate from the report above, never resets, always complete.
+        backup_bytes = await _build_full_backup_zip(db)
+        backup_filename = f"Karigar_FULL_BACKUP_{today_ist.strftime('%d%b%Y')}.zip"
+
         payload = {
             "from": RESEND_FROM_EMAIL,
             "to":   [MANAGER_EMAIL],
             "subject": subject,
             "html":    html,
-            "attachments": [{
-                "filename": filename,
-                "content":  base64.b64encode(excel_bytes).decode("ascii"),
-            }],
+            "attachments": [
+                {
+                    "filename": filename,
+                    "content":  base64.b64encode(excel_bytes).decode("ascii"),
+                },
+                {
+                    "filename": backup_filename,
+                    "content":  base64.b64encode(backup_bytes).decode("ascii"),
+                },
+            ],
         }
 
         async with httpx.AsyncClient(timeout=30) as client:
