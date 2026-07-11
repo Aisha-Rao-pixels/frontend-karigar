@@ -77,7 +77,7 @@ export default function RejectedProfiles() {
               <AppText size="sm" color={COLORS.muted} style={{ marginTop: SPACING.xs }}>
                 Rejected {new Date(item.rejected_at).toLocaleDateString()} by {item.rejected_by}
               </AppText>
-            </View>
+            </Pressable>
           )}
         />
       )}
