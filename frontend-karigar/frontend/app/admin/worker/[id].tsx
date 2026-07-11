@@ -18,10 +18,19 @@ export default function AdminWorkerDetail() {
   const { t } = useTranslation();
   const { show } = useToast();
   const insets = useSafeAreaInsets();
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, from } = useLocalSearchParams<{ id: string; from?: string }>();
   const sheetRef = useRef<BottomSheet>(null);
   const [worker, setWorker] = useState<Worker | null>(null);
   const [busy, setBusy] = useState(false);
+
+  // This screen is reachable from two different flows:
+  //   1) Dashboard -> Search -> Worker                     (from=search)
+  //   2) Dashboard -> Referrals -> Referred User -> Worker  (from=referral)
+  // Same fix as the Review screen: only fall back to a hardcoded route when
+  // the navigation stack is actually lost, and pick the fallback based on
+  // which flow we came from, instead of always assuming "Search".
+  const fallbackRoute = from === "referral" ? "/admin/referrals" : "/admin/(tabs)/search";
+  const goBack = () => (router.canGoBack() ? router.back() : router.replace(fallbackRoute));
 
   useEffect(() => {
     apiFetch<Worker>(`/admin/workers/${id}`).then(setWorker).catch(() => {});
@@ -33,7 +42,7 @@ export default function AdminWorkerDetail() {
       await apiFetch(`/admin/workers/${id}`, { method: "DELETE" });
       show(t("workerDeleted"), "success");
       sheetRef.current?.close();
-      router.canGoBack() ? router.back() : router.replace("/admin/(tabs)/search");
+      goBack();
     } catch (e: any) {
       show(e.message || t("genericError"), "error");
     } finally {
@@ -45,7 +54,7 @@ export default function AdminWorkerDetail() {
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <ScreenHeader
         title={t("reviewProfile")}
-        onBack={() => (router.canGoBack() ? router.back() : router.replace("/admin/(tabs)/search"))}
+        onBack={goBack}
         right={
           worker ? (
             <Pressable onPress={() => sheetRef.current?.expand()} style={styles.deleteBtn} testID="delete-worker-btn">
