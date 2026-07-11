@@ -38,8 +38,13 @@ export default function VerificationCenter() {
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.header}>
-        <AppText weight="bold" size="2xl">{t("verificationCenter")}</AppText>
-        {!loading && <AppText size="sm" color={COLORS.muted}>{t("pendingReviews", { count: items.length })}</AppText>}
+        <View style={{ flexDirection: "row", alignItems: "center", gap: SPACING.sm }}>
+          <Pressable onPress={() => router.back()} hitSlop={10} testID="verify-back-btn">
+            <Ionicons name="arrow-back" size={24} color={COLORS.onSurface} />
+          </Pressable>
+          <AppText weight="bold" size="2xl">{t("verificationCenter")}</AppText>
+        </View>
+        {!loading && <AppText size="sm" color={COLORS.muted} style={{ marginLeft: 32 }}>{t("pendingReviews", { count: items.length })}</AppText>}
       </View>
       {loading ? (
         <Loader />
