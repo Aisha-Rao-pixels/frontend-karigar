@@ -168,8 +168,7 @@ export default function AdminDashboard() {
               testID="kpi-rejected"
               onPress={() => router.push("/admin/rejected-profiles")}
             />
-          </View>
-        </View>        
+          </View>        
         <View style={{ height: SPACING.lg }} />
 
         {/* Location concentration — headline */}
