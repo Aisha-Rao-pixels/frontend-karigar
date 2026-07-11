@@ -341,7 +341,9 @@ export function ScreenHeader({
             },
           ]}
         >
-          <Ionicons name="chevron-back" size={24} color={pressed ? COLORS.brandPrimary : COLORS.onSurface} />
+          {({ pressed }) => (
+            <Ionicons name="chevron-back" size={24} color={pressed ? COLORS.brandPrimary : COLORS.onSurface} />
+          )}
         </Pressable>
       )}
       <View style={{ flex: 1 }}>
