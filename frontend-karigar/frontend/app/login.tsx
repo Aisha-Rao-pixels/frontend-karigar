@@ -37,13 +37,20 @@ export default function LoginScreen() {
   const [password, setPassword] = useState("");
   const [showPwd, setShowPwd] = useState(false);
   const [loading, setLoading] = useState(false);
+  // Referral code: pre-filled when the user arrived via a shared link
+  // (?ref=CODE), but always editable so someone who was told the code
+  // out loud (not via a link) has somewhere to type it in at signup —
+  // previously the only referral field in the whole app was buried at
+  // the end of the long profile form.
+  const [referralCode, setReferralCode] = useState(ref || "");
 
   const routeUser = (u: { role: string; has_profile: boolean }) => {
+    const effectiveRef = referralCode.trim() || ref;
     if (u.role === "karigar") {
       router.replace(
         u.has_profile
           ? "/(artisan)/dashboard"
-          : `/profile-form?mode=create${ref ? `&ref=${ref}` : ""}`
+          : `/profile-form?mode=create${effectiveRef ? `&ref=${effectiveRef}` : ""}`
       );
     } else {
       router.replace("/admin/dashboard");
@@ -90,7 +97,7 @@ export default function LoginScreen() {
       const u =
         mode === "login"
           ? await login(trimmedPhone, password)
-          : await register(trimmedPhone, password, "karigar", ref);
+          : await register(trimmedPhone, password, "karigar", referralCode.trim() || undefined);
       routeUser(u);
     } catch (e: any) {
       show(e.message || t("genericError"), "error");
@@ -162,6 +169,24 @@ export default function LoginScreen() {
           <AppText size="sm" color={COLORS.muted} style={{ marginTop: 6 }}>
             {t("passwordMin6")}
           </AppText>
+        )}
+
+        {isRegister && (
+          <>
+            <View style={{ height: SPACING.lg }} />
+            <AppText weight="semibold" style={{ marginBottom: SPACING.sm }}>
+              {t("referredBy")}
+            </AppText>
+            <TextInput
+              testID="referral-code-input"
+              value={referralCode}
+              onChangeText={(x) => setReferralCode(x.toUpperCase())}
+              placeholder={t("referredByPh")}
+              placeholderTextColor={COLORS.muted}
+              autoCapitalize="none"
+              style={styles.phoneInput}
+            />
+          </>
         )}
 
         {/* Forgot Password — only show on login mode, not register */}
