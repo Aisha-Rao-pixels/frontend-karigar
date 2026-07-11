@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useState } from "react";
-import { View, StyleSheet, ScrollView, RefreshControl } from "react-native";
+import { View, StyleSheet, ScrollView, RefreshControl, Pressable } from "react-native";
 import { useRouter } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -106,7 +106,15 @@ export default function AdminReferrals() {
               </View>
               {/* Rows */}
               {rows.map((r, i) => (
-                <View key={r.worker_id} style={[styles.dataRow, { backgroundColor: i % 2 === 0 ? COLORS.surface : COLORS.surfaceSecondary }]}>
+                <Pressable
+                  key={r.worker_id}
+                  onPress={() => router.push(`/admin/referral-detail/${r.worker_id}`)}
+                  style={({ pressed }) => [
+                    styles.dataRow,
+                    { backgroundColor: i % 2 === 0 ? COLORS.surface : COLORS.surfaceSecondary },
+                    pressed && { opacity: 0.6 },
+                  ]}
+                >
                   <Cell width={COLS[0].width}><AppText size="sm">{i + 1}</AppText></Cell>
                   <Cell width={COLS[1].width}><AppText size="sm" weight="semibold">{r.full_name}</AppText></Cell>
                   <Cell width={COLS[2].width}><AppText size="sm" color={COLORS.muted}>{r.phone}</AppText></Cell>
@@ -117,7 +125,7 @@ export default function AdminReferrals() {
                   <Cell width={COLS[7].width}><AppText size="sm" color={COLORS.error} weight="semibold">{r.not_registered_count}</AppText></Cell>
                   <Cell width={COLS[8].width}><AppText size="sm" color={COLORS.success}>₹{r.paid_amount_rs}</AppText></Cell>
                   <Cell width={COLS[9].width}><AppText size="sm" color={COLORS.warning}>₹{r.pending_amount_rs}</AppText></Cell>
-                </View>
+                </Pressable>
               ))}
               {rows.length === 0 && (
                 <View style={{ padding: SPACING.xl, alignItems: "center" }}>
