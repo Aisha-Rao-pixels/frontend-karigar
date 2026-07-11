@@ -991,14 +991,20 @@ async def admin_delete_worker(worker_id: str, user: dict = Depends(require_roles
     worker = await db.workers.find_one({"id": worker_id})
     if not worker:
         raise HTTPException(status_code=404, detail="Worker not found")
-    await gridfs_images.delete_worker_images(image_bucket, worker)
+
+    archived = clean(dict(worker))
+    archived.pop("_id", None)
+    archived["rejection_reason"] = archived.get("rejection_reason") or "Deleted by admin"
+    archived["rejected_by"] = user.get("phone") or user.get("id")
+    archived["rejected_at"] = now_iso()
+    await db.rejected_profiles.insert_one(archived)
+
     await db.workers.delete_one({"id": worker_id})
     await db.referrals.delete_many({"$or": [
         {"referred_worker_id": worker_id}, {"referrer_worker_id": worker_id},
     ]})
     await db.notifications.delete_many({"recipient_worker_id": worker_id})
-    return {"success": True, "deleted": True}
-
+    return {"success": True, "deleted": True, "archived": True}
 @api_router.post("/admin/maintenance/cleanup-orphaned-images")
 async def cleanup_orphaned_images(
     user: dict = Depends(require_roles("admin")),
