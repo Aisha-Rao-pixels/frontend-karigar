@@ -256,7 +256,7 @@ export default function WorkerSearch() {
 
   const TableRow = ({ item, index }: { item: Worker; index: number }) => (
     <Pressable
-      onPress={() => router.push(`/admin/worker/${item.id}`)}
+      onPress={() => router.push(`/admin/worker/${item.id}?from=search`)}
       style={[styles.tableRow, { backgroundColor: index % 2 === 0 ? COLORS.surfaceSecondary : COLORS.surface }]}
       testID={`table-row-${item.id}`}
     >
@@ -298,7 +298,7 @@ export default function WorkerSearch() {
             columnWrapperStyle={{ gap: SPACING.md }}
             renderItem={({ item }) => (
               <Pressable
-                onPress={() => { setGalleryVisible(false); router.push(`/admin/worker/${item.id}`); }}
+                onPress={() => { setGalleryVisible(false); router.push(`/admin/worker/${item.id}?from=search`); }}
                 style={styles.galleryCard}
                 testID={`gallery-card-${item.id}`}
               >
@@ -462,7 +462,7 @@ export default function WorkerSearch() {
           ListEmptyComponent={<EmptyState image="https://images.unsplash.com/photo-1521401415461-83e7162b8e64?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2Nzd8MHwxfHNlYXJjaHwxfHxpbmRpYW4lMjBhcnRpc2FuJTIwZW1icm9pZGVyeSUyMHRhaWxvcmluZyUyMHdvcmtlcnxlbnwwfHx8fDE3ODEyNTk4MTd8MA&ixlib=rb-4.1.0&q=85" title={t("noWorkers")} />}
           renderItem={({ item }) => (
             <Tooltip text={`View ${item.full_name}'s full profile`}>
-              <Pressable onPress={() => router.push(`/admin/worker/${item.id}`)} style={[styles.workerCard, shadow]} testID={`worker-card-${item.id}`}>
+              <Pressable onPress={() => router.push(`/admin/worker/${item.id}?from=search`)} style={[styles.workerCard, shadow]} testID={`worker-card-${item.id}`}>
                 <Avatar name={item.full_name} size={48} />
                 <View style={{ flex: 1 }}>
                   <AppText weight="bold" size="base" numberOfLines={1}>{item.full_name}</AppText>
