@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from "react";
-import { View, StyleSheet, ScrollView, RefreshControl } from "react-native";
+import { View, StyleSheet, ScrollView, RefreshControl, Pressable } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -9,6 +9,7 @@ import { ScreenHeader, AppText, Loader } from "@/src/components/ui";
 import { apiFetch } from "@/src/api/client";
 
 interface ReferredPerson {
+  worker_id: string | null;
   name: string;
   phone: string;
   status: string;
@@ -80,46 +81,51 @@ export default function AdminReferralDetail() {
             {data.referrer_phone} · {data.referral_code} · {data.people.length} referred
           </AppText>
 
-          <ScrollView horizontal showsHorizontalScrollIndicator={true}>
-            <View style={{ width: TABLE_WIDTH, borderWidth: 1, borderColor: COLORS.border, borderRadius: RADIUS.md, overflow: "hidden" }}>
-              {/* Header */}
-              <View style={styles.headerRow}>
-                {COLS.map((c) => (
-                  <View key={c.key} style={{ width: c.width, paddingVertical: SPACING.sm, paddingHorizontal: SPACING.sm }}>
-                    <AppText size="sm" weight="bold" color="#fff">{c.label}</AppText>
-                  </View>
-                ))}
-              </View>
-
-              {/* Rows */}
-              {data.people.map((p, i) => {
-                const statusInfo = STATUS_LABELS[p.status] || { label: p.status, color: COLORS.muted };
-                return (
-                  <View
-                    key={i}
-                    style={[styles.dataRow, { backgroundColor: i % 2 === 0 ? COLORS.surface : COLORS.surfaceSecondary }]}
-                  >
-                    <Cell width={COLS[0].width}><AppText size="sm">{i + 1}</AppText></Cell>
-                    <Cell width={COLS[1].width}><AppText size="sm" weight="semibold">{p.name}</AppText></Cell>
-                    <Cell width={COLS[2].width}><AppText size="sm" color={COLORS.muted}>{p.phone}</AppText></Cell>
-                    <Cell width={COLS[3].width}><AppText size="sm" weight="semibold" color={statusInfo.color}>{statusInfo.label}</AppText></Cell>
-                    <Cell width={COLS[4].width}><AppText size="sm" color={COLORS.success}>₹{p.payout_amount_rs}</AppText></Cell>
-                    <Cell width={COLS[5].width}>
-                      <AppText size="sm" color={COLORS.muted}>
-                        {new Date(p.created_at).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
-                      </AppText>
-                    </Cell>
-                  </View>
-                );
-              })}
-
-              {data.people.length === 0 && (
-                <View style={{ padding: SPACING.xl, alignItems: "center" }}>
-                  <AppText color={COLORS.muted}>No referrals yet from this person</AppText>
+          <View style={{ width: "100%", minWidth: TABLE_WIDTH, borderWidth: 1, borderColor: COLORS.border, borderRadius: RADIUS.md, overflow: "hidden" }}>
+            {/* Header */}
+            <View style={styles.headerRow}>
+              {COLS.map((c) => (
+                <View key={c.key} style={{ flex: 1, minWidth: c.width, paddingVertical: SPACING.sm, paddingHorizontal: SPACING.sm }}>
+                  <AppText size="sm" weight="bold" color="#fff">{c.label}</AppText>
                 </View>
-              )}
+              ))}
             </View>
-          </ScrollView>
+
+            {/* Rows */}
+            {data.people.map((p, i) => {
+              const statusInfo = STATUS_LABELS[p.status] || { label: p.status, color: COLORS.muted };
+              const canReview = !!p.worker_id;
+              const row = (
+                <View
+                  style={[styles.dataRow, { backgroundColor: i % 2 === 0 ? COLORS.surface : COLORS.surfaceSecondary }]}
+                >
+                  <Cell width={COLS[0].width}><AppText size="sm">{i + 1}</AppText></Cell>
+                  <Cell width={COLS[1].width}><AppText size="sm" weight="semibold">{p.name}</AppText></Cell>
+                  <Cell width={COLS[2].width}><AppText size="sm" color={COLORS.muted}>{p.phone}</AppText></Cell>
+                  <Cell width={COLS[3].width}><AppText size="sm" weight="semibold" color={statusInfo.color}>{statusInfo.label}</AppText></Cell>
+                  <Cell width={COLS[4].width}><AppText size="sm" color={COLORS.success}>₹{p.payout_amount_rs}</AppText></Cell>
+                  <Cell width={COLS[5].width}>
+                    <AppText size="sm" color={COLORS.muted}>
+                      {new Date(p.created_at).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
+                    </AppText>
+                  </Cell>
+                </View>
+              );
+              return canReview ? (
+                <Pressable key={i} onPress={() => router.push(`/admin/review/${p.worker_id}`)}>
+                  {row}
+                </Pressable>
+              ) : (
+                <View key={i}>{row}</View>
+              );
+            })}
+
+            {data.people.length === 0 && (
+              <View style={{ padding: SPACING.xl, alignItems: "center" }}>
+                <AppText color={COLORS.muted}>No referrals yet from this person</AppText>
+              </View>
+            )}
+          </View>
         </ScrollView>
       )}
     </View>
@@ -128,7 +134,7 @@ export default function AdminReferralDetail() {
 
 function Cell({ width, children }: { width: number; children: React.ReactNode }) {
   return (
-    <View style={{ width, paddingVertical: SPACING.sm, paddingHorizontal: SPACING.sm, borderRightWidth: 1, borderRightColor: COLORS.divider }}>
+    <View style={{ flex: 1, minWidth: width, paddingVertical: SPACING.sm, paddingHorizontal: SPACING.sm, borderRightWidth: 1, borderRightColor: COLORS.divider }}>
       {children}
     </View>
   );
