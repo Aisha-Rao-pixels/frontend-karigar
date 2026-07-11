@@ -3,13 +3,26 @@ import { storage } from "@/src/utils/storage";
 const BASE = (process.env.EXPO_PUBLIC_BACKEND_URL ?? "") + "/api";
 const TOKEN_KEY = "karigar_token";
 
+// Persistent storage (IndexedDB/AsyncStorage on web) can silently fail to
+// write in some browsers — most notably the in-app browsers used by
+// WhatsApp/Instagram/Facebook (exactly how referral links get opened) and
+// Safari private browsing. When that happens the old code had no fallback:
+// the user would fill out the entire registration form and only discover
+// at final submit that there was no token to send ("Missing token").
+// Keeping an in-memory copy guarantees the current tab/session always has
+// a working token even if the persistent write silently failed.
+let inMemoryToken: string | null = null;
+
 export async function getToken(): Promise<string | null> {
-  return storage.secureGet(TOKEN_KEY, "");
+  const stored = await storage.secureGet(TOKEN_KEY, "");
+  return stored || inMemoryToken;
 }
 export async function setToken(token: string) {
+  inMemoryToken = token;
   await storage.secureSet(TOKEN_KEY, token);
 }
 export async function clearToken() {
+  inMemoryToken = null;
   await storage.secureRemove(TOKEN_KEY);
 }
 
