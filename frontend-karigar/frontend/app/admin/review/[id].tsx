@@ -19,7 +19,7 @@ export default function ReviewScreen() {
   const { t } = useTranslation();
   const { show } = useToast();
   const insets = useSafeAreaInsets();
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, from } = useLocalSearchParams<{ id: string; from?: string }>();
   const sheetRef = useRef<BottomSheet>(null);
   const [worker, setWorker] = useState<Worker | null>(null);
   const [editing, setEditing] = useState(false);
@@ -27,6 +27,18 @@ export default function ReviewScreen() {
   const [busy, setBusy] = useState(false);
 
   const [notFound, setNotFound] = useState(false);
+
+  // This screen is reachable from two different flows:
+  //   1) Dashboard -> Verify -> Review                     (from=verify)
+  //   2) Dashboard -> Referrals -> Referred User -> Review  (from=referral)
+  // router.back() correctly returns to whichever of these the admin came
+  // from. It only fails when the navigation stack has been lost (e.g. a
+  // browser refresh on web, or a direct link into this screen) — in that
+  // case router.canGoBack() is false and we fall back to a sensible parent
+  // screen based on where we were told we came from, instead of always
+  // assuming "Verify" (which used to silently skip the referral flow).
+  const fallbackRoute = from === "referral" ? "/admin/referrals" : "/admin/(tabs)/verify";
+  const goBack = () => (router.canGoBack() ? router.back() : router.replace(fallbackRoute));
 
   const load = () =>
     apiFetch<Worker>(`/admin/workers/${id}`)
@@ -42,7 +54,7 @@ export default function ReviewScreen() {
     try {
       await apiFetch(`/admin/workers/${id}/approve`, { method: "POST" });
       show(t("workerApproved"), "success");
-      router.back();
+      goBack();
     } catch (e: any) {
       show(e.message || t("genericError"), "error");
     } finally {
@@ -56,7 +68,7 @@ export default function ReviewScreen() {
       await apiFetch(`/admin/workers/${id}/reject`, { method: "POST", body: { reason: reason.trim() } });
       show(t("workerRejectedRemoved"), "success");
       sheetRef.current?.close();
-      router.back();
+      goBack();
     } catch (e: any) {
       show(e.message || t("genericError"), "error");
     } finally {
@@ -96,7 +108,7 @@ export default function ReviewScreen() {
     <View style={[styles.container, { paddingTop: insets.top }]}>
         <ScreenHeader
         title={t("reviewProfile")}
-        onBack={() => (router.canGoBack() ? router.back() : router.replace("/admin/(tabs)/verify"))}
+        onBack={goBack}
         right={
           worker ? (
             <Pressable onPress={() => setEditing(true)} style={styles.editBtn} testID="edit-worker-btn">
