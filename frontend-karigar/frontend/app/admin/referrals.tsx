@@ -110,7 +110,7 @@ export default function AdminReferrals() {
                 style={[styles.dataRow, { backgroundColor: i % 2 === 0 ? COLORS.surface : COLORS.surfaceSecondary }]}
               >
                 <Cell width={COLS[0].width}><AppText size="sm">{i + 1}</AppText></Cell>
-                <Pressable onPress={() => router.push(`/admin/worker/${r.worker_id}`)}>
+                <Pressable onPress={() => router.push(`/admin/worker/${r.worker_id}?from=referral`)}>
                   <Cell width={COLS[1].width}>
                     <AppText size="sm" weight="semibold">{r.full_name}</AppText>
                   </Cell>
