@@ -106,26 +106,29 @@ export default function AdminReferrals() {
               </View>
               {/* Rows */}
               {rows.map((r, i) => (
-                <Pressable
+                <View
                   key={r.worker_id}
-                  onPress={() => router.push(`/admin/referral-detail/${r.worker_id}`)}
-                  style={({ pressed }) => [
-                    styles.dataRow,
-                    { backgroundColor: i % 2 === 0 ? COLORS.surface : COLORS.surfaceSecondary },
-                    pressed && { opacity: 0.6 },
-                  ]}
+                  style={[styles.dataRow, { backgroundColor: i % 2 === 0 ? COLORS.surface : COLORS.surfaceSecondary }]}
                 >
                   <Cell width={COLS[0].width}><AppText size="sm">{i + 1}</AppText></Cell>
-                  <Cell width={COLS[1].width}><AppText size="sm" weight="semibold">{r.full_name}</AppText></Cell>
+                  <Pressable onPress={() => router.push(`/admin/worker/${r.worker_id}`)}>
+                    <Cell width={COLS[1].width}>
+                      <AppText size="sm" weight="semibold">{r.full_name}</AppText>
+                    </Cell>
+                  </Pressable>
                   <Cell width={COLS[2].width}><AppText size="sm" color={COLORS.muted}>{r.phone}</AppText></Cell>
                   <Cell width={COLS[3].width}><AppText size="sm" weight="semibold" color={COLORS.brandPrimary}>{r.referral_code}</AppText></Cell>
-                  <Cell width={COLS[4].width}><AppText size="sm">{r.total_referred}</AppText></Cell>
+                  <Pressable onPress={() => router.push(`/admin/referral-detail/${r.worker_id}`)}>
+                    <Cell width={COLS[4].width}>
+                      <AppText size="sm">{r.total_referred}</AppText>
+                    </Cell>
+                  </Pressable>
                   <Cell width={COLS[5].width}><AppText size="sm" color={COLORS.success} weight="semibold">{r.registered_count}</AppText></Cell>
                   <Cell width={COLS[6].width}><AppText size="sm" color={COLORS.warning} weight="semibold">{r.account_created_count}</AppText></Cell>
                   <Cell width={COLS[7].width}><AppText size="sm" color={COLORS.error} weight="semibold">{r.not_registered_count}</AppText></Cell>
                   <Cell width={COLS[8].width}><AppText size="sm" color={COLORS.success}>₹{r.paid_amount_rs}</AppText></Cell>
                   <Cell width={COLS[9].width}><AppText size="sm" color={COLORS.warning}>₹{r.pending_amount_rs}</AppText></Cell>
-                </Pressable>
+                </View>
               ))}
               {rows.length === 0 && (
                 <View style={{ padding: SPACING.xl, alignItems: "center" }}>
