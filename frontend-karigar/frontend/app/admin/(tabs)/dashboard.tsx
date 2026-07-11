@@ -169,7 +169,7 @@ export default function AdminDashboard() {
               onPress={() => router.push("/admin/rejected-profiles")}
             />
           </View>
-        </View>
+        </View>        
         <View style={{ height: SPACING.lg }} />
 
         {/* Location concentration — headline */}
