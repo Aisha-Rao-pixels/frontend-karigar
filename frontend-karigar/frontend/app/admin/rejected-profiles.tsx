@@ -55,8 +55,7 @@ export default function RejectedProfiles() {
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(); }} tintColor={COLORS.brandPrimary} />
           }
-          ListEmptyComponent={<AppText color={COLORS.muted} style={{ textAlign: "center", marginTop: SPACING.xl }}>No rejected profiles</AppText>}
-          renderItem={({ item }) => (
+         ListEmptyComponent={<AppText color={COLORS.muted} style={{ textAlign: "center", marginTop: SPACING.xl }}>No Rejected Profiles</AppText>}          renderItem={({ item }) => (
             <View style={[styles.card, shadow]}>
               <View style={styles.row}>
                 {item.portfolio_images?.[0] ? (
