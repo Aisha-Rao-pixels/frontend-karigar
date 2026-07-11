@@ -800,6 +800,39 @@ async def list_rejected_profiles(user: dict = Depends(require_roles(*ADMIN_ROLES
     return {"profiles": hydrated, "count": len(hydrated)}
 
 
+@api_router.get("/admin/rejected-profiles/{profile_id}")
+async def get_rejected_profile(profile_id: str, user: dict = Depends(require_roles(*ADMIN_ROLES))):
+    doc = await db.rejected_profiles.find_one({"id": profile_id})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Rejected profile not found")
+    return await gridfs_images.hydrate_worker(image_bucket, clean(doc))
+
+
+@api_router.post("/admin/rejected-profiles/{profile_id}/restore")
+async def restore_rejected_profile(profile_id: str, user: dict = Depends(require_roles(*ADMIN_ROLES))):
+    doc = await db.rejected_profiles.find_one({"id": profile_id})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Rejected profile not found")
+
+    restored = clean(dict(doc))
+    restored.pop("_id", None)
+    restored.pop("rejected_by", None)
+    restored.pop("rejected_at", None)
+    restored["rejection_reason"] = None
+    restored["verification_status"] = "pending"
+    restored["updated_at"] = now_iso()
+
+    if await db.workers.find_one({"phone": restored.get("phone")}):
+        raise HTTPException(status_code=409, detail="A worker with this phone number is already registered")
+    if await db.workers.find_one({"id": restored["id"]}):
+        restored["id"] = new_id()
+
+    await db.workers.insert_one(restored)
+    await db.rejected_profiles.delete_one({"id": profile_id})
+    await _register_referral(restored)
+    return {"success": True, "worker_id": restored["id"]}
+
+
 @api_router.get("/admin/analytics")
 async def admin_analytics(user: dict = Depends(require_roles(*ADMIN_ROLES))):
     workers = await db.workers.find().to_list(10000)
