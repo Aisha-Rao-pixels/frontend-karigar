@@ -58,6 +58,18 @@ JWT_ALGORITHM = os.environ.get('JWT_ALGORITHM', 'HS256')
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.environ.get('ACCESS_TOKEN_EXPIRE_MINUTES', '43200'))
 USE_DEV_OTP = os.environ.get('USE_DEV_OTP', 'true').lower() == 'true'
 DEV_OTP_CODE = os.environ.get('DEV_OTP_CODE', '123456')
+
+# Comma-separated list of allowed frontend origins (no trailing slash).
+# Falls back to the known Vercel deployment + localhost for local dev if the
+# env var isn't set on Render yet.
+ALLOWED_ORIGINS = [
+    origin.strip()
+    for origin in os.environ.get(
+        'ALLOWED_ORIGINS',
+        'https://frontend-karigar-swart.vercel.app,http://localhost:8081,http://localhost:19006',
+    ).split(',')
+    if origin.strip()
+]
 OTP_SEND_COOLDOWN_SECONDS = int(os.environ.get('OTP_SEND_COOLDOWN_SECONDS', '30'))
 OTP_MAX_PER_HOUR = int(os.environ.get('OTP_MAX_PER_HOUR', '5'))
 
@@ -1389,7 +1401,7 @@ async def root():
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
-    allow_origins=["*"],
+    allow_origins=ALLOWED_ORIGINS,
     allow_methods=["*"],
     allow_headers=["*"],
 )
