@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from "react";
-import { View, StyleSheet, FlatList, RefreshControl } from "react-native";
+import { View, StyleSheet, FlatList, RefreshControl, Pressable } from "react-native";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
