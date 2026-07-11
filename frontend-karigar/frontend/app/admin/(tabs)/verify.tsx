@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { COLORS, SPACING, RADIUS, shadow } from "@/src/theme";
 import { AppText, Avatar, EmptyState, Loader } from "@/src/components/ui";
+import { Ionicons } from "@expo/vector-icons";
 import { apiFetch } from "@/src/api/client";
 import { useToast } from "@/src/components/Toast";
 import { Worker, timeAgo } from "@/src/utils/profile";
