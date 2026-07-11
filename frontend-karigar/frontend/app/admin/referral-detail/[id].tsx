@@ -112,7 +112,7 @@ export default function AdminReferralDetail() {
                 </View>
               );
               return canReview ? (
-                <Pressable key={i} onPress={() => router.push(`/admin/review/${p.worker_id}`)}>
+                <Pressable key={i} onPress={() => router.push(`/admin/review/${p.worker_id}?from=referral`)}>
                   {row}
                 </Pressable>
               ) : (
