@@ -65,22 +65,38 @@ const PortfolioImages = React.memo(function PortfolioImages({
 });
 
 // Shrinks an image to roughly targetKB by resizing + compressing.
-async function shrinkImage(uri: string, targetKB = 60): Promise<string> {
+// ImageManipulator can throw on some browsers/image formats (notably with
+// the blob: URIs the web file picker hands back) — if that happens we fall
+// back to the base64 the picker already gave us instead of losing the
+// photo and leaving the user with no feedback at all.
+async function shrinkImage(uri: string, targetKB = 60, fallbackBase64?: string | null): Promise<string> {
   let width = 900;
   let quality = 0.5;
 
-  for (let attempt = 0; attempt < 4; attempt++) {
-    const result = await ImageManipulator.manipulateAsync(
-      uri,
-      [{ resize: { width } }],
-      { compress: quality, format: ImageManipulator.SaveFormat.JPEG, base64: true }
-    );
-    const sizeKB = (result.base64!.length * 0.75) / 1024;
-    if (sizeKB <= targetKB || attempt === 3) {
-      return `data:image/jpeg;base64,${result.base64}`;
+  try {
+    for (let attempt = 0; attempt < 4; attempt++) {
+      const result = await ImageManipulator.manipulateAsync(
+        uri,
+        [{ resize: { width } }],
+        { compress: quality, format: ImageManipulator.SaveFormat.JPEG, base64: true }
+      );
+      if (result.base64) {
+        const sizeKB = (result.base64.length * 0.75) / 1024;
+        if (sizeKB <= targetKB || attempt === 3) {
+          return `data:image/jpeg;base64,${result.base64}`;
+        }
+      } else if (attempt === 3) {
+        break;
+      }
+      width = Math.round(width * 0.7);
+      quality = Math.max(0.3, quality - 0.1);
     }
-    width = Math.round(width * 0.7);
-    quality = Math.max(0.3, quality - 0.1);
+  } catch {
+    // fall through to the fallback below
+  }
+
+  if (fallbackBase64) {
+    return `data:image/jpeg;base64,${fallbackBase64}`;
   }
   return uri;
 }
@@ -308,11 +324,16 @@ export default function WorkerForm({
       base64: true,
     });
     if (!res.canceled) {
-      const uris = await Promise.all(
-        res.assets.filter((a) => a.uri).map((a) => shrinkImage(a.uri, 60))
+      const results = await Promise.allSettled(
+        res.assets.filter((a) => a.uri).map((a) => shrinkImage(a.uri, 60, a.base64))
       );
+      const uris = results
+        .filter((r): r is PromiseFulfilledResult<string> => r.status === "fulfilled")
+        .map((r) => r.value);
+      const failed = results.length - uris.length;
       const combined = [...v.portfolio_images, ...uris].slice(0, 5);
       if (uris.length) set("portfolio_images", combined);
+      if (failed > 0) show(`${failed} photo${failed > 1 ? "s" : ""} couldn't be added, please try again`, "error");
     }
   };
 
@@ -331,11 +352,16 @@ export default function WorkerForm({
       base64: true,
     });
    if (!res.canceled) {
-      const uris = await Promise.all(
-        res.assets.filter((a) => a.uri).map((a) => shrinkImage(a.uri, 100))
+      const results = await Promise.allSettled(
+        res.assets.filter((a) => a.uri).map((a) => shrinkImage(a.uri, 100, a.base64))
       );
+      const uris = results
+        .filter((r): r is PromiseFulfilledResult<string> => r.status === "fulfilled")
+        .map((r) => r.value);
+      const failed = results.length - uris.length;
       const combined = [...(v[field] as string[]), ...uris].slice(0, 3);
       if (uris.length) set(field, combined);
+      if (failed > 0) show(`${failed} photo${failed > 1 ? "s" : ""} couldn't be added, please try again`, "error");
     }
   };
 
