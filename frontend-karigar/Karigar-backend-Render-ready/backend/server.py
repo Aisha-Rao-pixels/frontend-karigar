@@ -786,6 +786,37 @@ async def admin_referrals_overview(user: dict = Depends(require_roles(*ADMIN_ROL
     return {"rows": rows}    
 
 
+@api_router.get("/admin/referrals/{worker_id}/detail")
+async def admin_referral_detail(worker_id: str, user: dict = Depends(require_roles(*ADMIN_ROLES))):
+    referrer = await db.workers.find_one({"id": worker_id})
+    if not referrer:
+        raise HTTPException(status_code=404, detail="Referrer not found")
+
+    refs = await db.referrals.find({"referrer_worker_id": worker_id}).sort("created_at", -1).to_list(10000)
+
+    people = []
+    for r in refs:
+        name = None
+        if r.get("referred_worker_id"):
+            w = await db.workers.find_one({"id": r["referred_worker_id"]})
+            if w:
+                name = w.get("full_name")
+        people.append({
+            "name": name or "Not registered yet",
+            "phone": r.get("referred_phone") or "—",
+            "status": r.get("status"),
+            "payout_amount_rs": r.get("payout_amount_rs", 0),
+            "created_at": r.get("created_at"),
+        })
+
+    return {
+        "referrer_name": referrer.get("full_name") or "Unknown",
+        "referrer_phone": referrer.get("phone"),
+        "referral_code": referrer.get("referral_code"),
+        "people": people,
+    }
+
+
 @api_router.get("/admin/metrics")
 async def admin_metrics(user: dict = Depends(require_roles(*ADMIN_ROLES))):
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
