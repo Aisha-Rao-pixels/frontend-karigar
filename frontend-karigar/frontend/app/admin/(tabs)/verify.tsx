@@ -55,7 +55,7 @@ export default function VerificationCenter() {
           contentContainerStyle={{ padding: SPACING.lg, gap: SPACING.sm, paddingBottom: SPACING["2xl"] }}
           ListEmptyComponent={<EmptyState icon="checkmark-done-circle-outline" title={t("allCaughtUp")} subtitle={t("noPending")} />}
           renderItem={({ item }) => (
-            <Pressable onPress={() => router.push(`/admin/review/${item.id}`)} style={[styles.card, shadow]} testID={`queue-item-${item.id}`}>
+            <Pressable onPress={() => router.push(`/admin/review/${item.id}?from=verify`)} style={[styles.card, shadow]} testID={`queue-item-${item.id}`}>
               {item.duplicate_flags && item.duplicate_flags.length > 0 && (
                 <View style={styles.dupBadge} testID={`dup-badge-${item.id}`}>
                   <AppText size="sm" weight="bold" color="#fff" style={{ fontSize: 10 }}>!</AppText>
