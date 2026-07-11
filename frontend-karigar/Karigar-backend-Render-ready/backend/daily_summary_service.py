@@ -266,7 +266,8 @@ def build_excel(workers: list[dict], week_start: datetime, today: datetime) -> b
 # ── Full database backup (separate from the weekly report above) ───────────
 # Unlike the Excel report (which resets every Monday), this backs up EVERY
 # collection, EVERY record, from day one — nothing is ever left out or reset.
-# Runs as a plain JSON export per collection, zipped into one file.
+# Delivered as a single Excel workbook — one readable sheet per data type,
+# same familiar format as the weekly report, no technical files involved.
 
 BACKUP_COLLECTIONS = [
     "users", "workers", "referrals", "referral_clicks",
@@ -274,19 +275,50 @@ BACKUP_COLLECTIONS = [
     "otp_requests", "skills", "meta",
 ]
 
+_BACKUP_HEADER_FILL = PatternFill("solid", fgColor=BRAND_DARK)
+_BACKUP_HEADER_FONT = Font(color=WHITE, bold=True)
 
-def _json_default(value):
-    # Handles Mongo's ObjectId / datetime objects that json.dumps can't serialize directly.
+
+def _flatten_cell(value):
+    # Excel cells can't hold dicts/lists directly — store them as readable text.
+    if isinstance(value, (dict, list)):
+        return json.dumps(value, default=str, ensure_ascii=False)
+    if value is None:
+        return ""
     return str(value)
 
 
-async def _build_full_backup_zip(db) -> bytes:
-    """Exports every document in every collection to one .zip of .json files."""
+async def _build_full_backup_excel(db) -> bytes:
+    """One Excel workbook, one sheet per collection, every record ever created."""
+    wb = openpyxl.Workbook()
+    wb.remove(wb.active)  # drop the default blank sheet
+
+    for name in BACKUP_COLLECTIONS:
+        docs = await db[name].find({}).to_list(None)
+        ws = wb.create_sheet(title=name[:31])  # Excel sheet-name limit
+
+        if not docs:
+            ws.append(["(no records)"])
+            continue
+
+        # Union of all keys across all docs, so no column gets missed.
+        columns = list(dict.fromkeys(k for doc in docs for k in doc.keys()))
+        ws.append(columns)
+        for cell in ws[1]:
+            cell.fill = _BACKUP_HEADER_FILL
+            cell.font = _BACKUP_HEADER_FONT
+
+        for doc in docs:
+            ws.append([_flatten_cell(doc.get(col)) for col in columns])
+
+        for col_idx, col_name in enumerate(columns, start=1):
+            ws.column_dimensions[get_column_letter(col_idx)].width = min(
+                max(len(col_name) + 2, 12), 40
+            )
+        ws.freeze_panes = "A2"
+
     buffer = io.BytesIO()
-    with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as zf:
-        for name in BACKUP_COLLECTIONS:
-            docs = await db[name].find({}).to_list(None)
-            zf.writestr(f"{name}.json", json.dumps(docs, default=_json_default, indent=2))
+    wb.save(buffer)
     buffer.seek(0)
     return buffer.read()
 
@@ -380,8 +412,8 @@ async def send_daily_summary(db) -> bool:
         """
 
         # Full backup — separate from the report above, never resets, always complete.
-        backup_bytes = await _build_full_backup_zip(db)
-        backup_filename = f"Karigar_FULL_BACKUP_{today_ist.strftime('%d%b%Y')}.zip"
+        backup_bytes = await _build_full_backup_excel(db)
+        backup_filename = f"Karigar_FULL_BACKUP_{today_ist.strftime('%d%b%Y')}.xlsx"
 
         payload = {
             "from": RESEND_FROM_EMAIL,
