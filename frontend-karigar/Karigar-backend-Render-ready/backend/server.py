@@ -287,10 +287,12 @@ async def create_admin(payload: CreateAdminPayload, current: dict = Depends(requ
     _validate_password(payload.password)
     if await db.users.find_one({"phone": phone}):
         raise HTTPException(status_code=400, detail="This mobile number is already registered")
-    user = {
+   user = {
         "id": new_id(),
         "phone": phone,
         "role": "admin",
+        "name": payload.name.strip(),
+        "admin_role": payload.admin_role.strip() or "Admin",
         "password_hash": hash_password(payload.password),
         "created_at": now_iso(),
         "created_by": current["id"],
