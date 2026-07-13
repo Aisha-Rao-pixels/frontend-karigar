@@ -44,6 +44,11 @@ export default {
   adminAdded: "అడ్మిన్ విజయవంతంగా జోడించబడ్డారు",
   existingAdmins: "ప్రస్తుత అడ్మిన్‌లు ({{count}})",
   you: "మీరు",
+  adminName: "పేరు",
+  adminNamePh: "పూర్తి పేరు నమోదు చేయండి",
+  adminRoleLabel: "పాత్ర",
+  adminRolePh: "ఉదా. మేనేజర్, వెరిఫైయర్",
+
 
   avail_now: "ఇప్పుడు అందుబాటులో",
   avail_from: "ఈ తేదీ నుండి అందుబాటులో",
