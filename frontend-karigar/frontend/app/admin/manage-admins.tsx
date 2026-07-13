@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from "react";
-import { View, StyleSheet, ScrollView, Pressable, ActivityIndicator } from "react-native";
+import { View, StyleSheet, ScrollView, Pressable, ActivityIndicator, Alert } from "react-native";
 import { useRouter } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { COLORS, SPACING, RADIUS, FONT, shadow } from "@/src/theme";
 import { AppText, Loader } from "@/src/components/ui";
 import { apiFetch } from "@/src/api/client";
+import { useToast } from "@/src/components/Toast";
 
 interface Admin {
   id: string;
@@ -27,8 +28,10 @@ function formatDate(iso?: string) {
 export default function ManageAdmins() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { show } = useToast();
   const [admins, setAdmins] = useState<Admin[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -41,6 +44,36 @@ export default function ManageAdmins() {
   }, []);
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
+
+  // The logged-in admin's own row tells us their admin_role.
+  const me = admins.find((a) => a.is_you);
+  const isManager = me?.admin_role === "Manager";
+
+  const handleDelete = (admin: Admin) => {
+    Alert.alert(
+      "Remove admin?",
+      `${admin.name || admin.phone} will lose access immediately. This cannot be undone.`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Remove",
+          style: "destructive",
+          onPress: async () => {
+            setDeletingId(admin.id);
+            try {
+              await apiFetch(`/auth/admins/${admin.id}`, { method: "DELETE" });
+              show("Admin removed", "success");
+              setAdmins((prev) => prev.filter((x) => x.id !== admin.id));
+            } catch (e: any) {
+              show(e.message || "Could not remove admin", "error");
+            } finally {
+              setDeletingId(null);
+            }
+          },
+        },
+      ]
+    );
+  };
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -61,9 +94,9 @@ export default function ManageAdmins() {
           onPress={() => router.push("/admin/add-admin")}
           testID="go-to-add-admin"
         >
-          <Ionicons name="pencil-outline" size={16} color={COLORS.brandPrimary} />
+          <Ionicons name="person-add-outline" size={16} color={COLORS.brandPrimary} />
           <AppText weight="semibold" size="sm" style={{ color: COLORS.brandPrimary, marginLeft: 6 }}>
-            Edit
+            Add Admin
           </AppText>
         </Pressable>
       </View>
@@ -93,6 +126,7 @@ export default function ManageAdmins() {
               <AppText weight="semibold" size="sm" style={[styles.col3, styles.headerText]}>Role</AppText>
               <AppText weight="semibold" size="sm" style={[styles.col4, styles.headerText]}>Mobile</AppText>
               <AppText weight="semibold" size="sm" style={[styles.col5, styles.headerText]}>Added On</AppText>
+              <AppText weight="semibold" size="sm" style={[styles.col6, styles.headerText]}> </AppText>
             </View>
 
             {/* Table Rows */}
@@ -146,13 +180,41 @@ export default function ManageAdmins() {
                 <AppText size="sm" style={[styles.col5, { color: COLORS.muted }]}>
                   {formatDate(item.created_at)}
                 </AppText>
+
+                {/* Row actions: edit (self only) + delete (Manager only, not self) */}
+                <View style={[styles.col6, { flexDirection: "row", gap: 10, justifyContent: "flex-end" }]}>
+                  {item.is_you && (
+                    <Pressable
+                      onPress={() => router.push("/admin/edit-admin-self")}
+                      hitSlop={8}
+                      testID={`edit-admin-${item.id}`}
+                    >
+                      <Ionicons name="pencil-outline" size={18} color={COLORS.brandPrimary} />
+                    </Pressable>
+                  )}
+                  {isManager && !item.is_you && (
+                    deletingId === item.id ? (
+                      <ActivityIndicator size="small" color={COLORS.error} />
+                    ) : (
+                      <Pressable
+                        onPress={() => handleDelete(item)}
+                        hitSlop={8}
+                        testID={`delete-admin-${item.id}`}
+                      >
+                        <Ionicons name="trash-outline" size={18} color={COLORS.error} />
+                      </Pressable>
+                    )
+                  )}
+                </View>
               </View>
             ))}
           </View>
 
           {/* Footer note */}
           <AppText size="sm" style={styles.footerNote}>
-            Only existing admins can add or remove other admins.
+            {isManager
+              ? "As a Manager, you can remove other admins. Deleting an admin is permanent."
+              : "Only Managers can remove admin accounts."}
           </AppText>
         </ScrollView>
       )}
@@ -160,7 +222,7 @@ export default function ManageAdmins() {
   );
 }
 
-const COL_WIDTHS = { c1: 32, c2: 140, c3: 100, c4: 120, c5: 90 };
+const COL_WIDTHS = { c1: 28, c2: 130, c3: 90, c4: 110, c5: 85, c6: 60 };
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.surface },
@@ -231,6 +293,7 @@ const styles = StyleSheet.create({
   col3: { width: COL_WIDTHS.c3 },
   col4: { width: COL_WIDTHS.c4 },
   col5: { width: COL_WIDTHS.c5 },
+  col6: { width: COL_WIDTHS.c6 },
 
   avatar: {
     width: 28, height: 28, borderRadius: 14,
