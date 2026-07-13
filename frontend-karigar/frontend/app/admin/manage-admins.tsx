@@ -131,10 +131,20 @@ export default function ManageAdmins() {
 
             {/* Table Rows */}
             {admins.map((item, index) => (
-              <View
+              <Pressable
                 key={item.id}
                 style={[styles.tableRow, index % 2 === 0 ? styles.rowEven : styles.rowOdd]}
                 testID={`admin-row-${item.id}`}
+                onPress={() => {
+                  if (item.is_you) {
+                    router.push("/admin/edit-admin-self");
+                  } else {
+                    router.push({
+                      pathname: "/admin/admin-restricted",
+                      params: { name: item.name || item.phone, role: item.admin_role || "Admin" },
+                    });
+                  }
+                }}
               >
                 {/* # */}
                 <AppText size="sm" style={[styles.col1, { color: COLORS.muted }]}>
