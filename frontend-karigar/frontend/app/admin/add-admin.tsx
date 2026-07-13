@@ -200,9 +200,9 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: SPACING.lg,
-    paddingVertical: SPACING.md,
-    gap: SPACING.md,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.sm,
+    gap: SPACING.sm,
     backgroundColor: COLORS.surfaceSecondary,
   },
   backBtn: {
@@ -213,7 +213,7 @@ const styles = StyleSheet.create({
   },
   divider: { height: 1, backgroundColor: COLORS.border },
 
-  body: { padding: SPACING.lg, gap: SPACING.lg, paddingBottom: SPACING["3xl"] },
+  body: { padding: SPACING.md, gap: SPACING.sm, paddingBottom: SPACING["2xl"] },
 
   card: {
     backgroundColor: COLORS.surfaceSecondary,
@@ -223,10 +223,10 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
 
-  fieldGroup: { paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md },
+  fieldGroup: { paddingHorizontal: SPACING.md, paddingVertical: SPACING.sm },
   fieldDivider: { height: 1, backgroundColor: COLORS.divider },
 
-  label: { color: COLORS.onSurface, marginBottom: SPACING.sm },
+  label: { color: COLORS.onSurface, marginBottom: 4 },
   required: { color: COLORS.error },
 
   inputWrap: {
@@ -236,20 +236,20 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
     borderRadius: RADIUS.md,
     backgroundColor: COLORS.surface,
-    height: 52,
+    height: 40,
   },
-  inputIcon: { paddingLeft: SPACING.md },
+  inputIcon: { paddingLeft: SPACING.sm },
   input: {
     flex: 1,
-    paddingHorizontal: SPACING.md,
+    paddingHorizontal: SPACING.sm,
     fontSize: FONT.base,
     color: COLORS.onSurface,
     height: "100%",
   },
-  eyeBtn: { position: "absolute", right: SPACING.md, height: 52, justifyContent: "center" },
+  eyeBtn: { position: "absolute", right: SPACING.sm, height: 40, justifyContent: "center" },
   ccBadge: {
-    height: 52,
-    paddingHorizontal: SPACING.md,
+    height: 40,
+    paddingHorizontal: SPACING.sm,
     justifyContent: "center",
     borderRightWidth: 1,
     borderRightColor: COLORS.border,
@@ -263,15 +263,15 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
     backgroundColor: COLORS.surfaceTertiary,
     borderRadius: RADIUS.md,
-    padding: SPACING.md,
+    padding: SPACING.sm,
     borderWidth: 1,
     borderColor: COLORS.border,
   },
 
-  actions: { flexDirection: "row", gap: SPACING.md },
+  actions: { flexDirection: "row", gap: SPACING.md, marginTop: SPACING.sm },
   cancelBtn: {
     flex: 1,
-    height: 52,
+    height: 44,
     borderRadius: RADIUS.md,
     borderWidth: 1,
     borderColor: COLORS.borderStrong,
@@ -281,7 +281,7 @@ const styles = StyleSheet.create({
   },
   saveBtn: {
     flex: 2,
-    height: 52,
+    height: 44,
     borderRadius: RADIUS.md,
     backgroundColor: COLORS.brandPrimary,
     flexDirection: "row",
