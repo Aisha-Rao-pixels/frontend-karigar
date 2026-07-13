@@ -1,198 +1,166 @@
-import React, { useState } from "react";
-import { View, StyleSheet, TextInput, Pressable, ScrollView, Alert } from "react-native";
+import React, { useCallback, useState } from "react";
+import { View, StyleSheet, ScrollView, Pressable, ActivityIndicator } from "react-native";
 import { useRouter } from "expo-router";
+import { useFocusEffect } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { COLORS, SPACING, RADIUS, FONT, shadow } from "@/src/theme";
-import { AppText } from "@/src/components/ui";
+import { AppText, Loader } from "@/src/components/ui";
 import { apiFetch } from "@/src/api/client";
-import { useToast } from "@/src/components/Toast";
 
-export default function AddAdmin() {
+interface Admin {
+  id: string;
+  phone: string;
+  name: string;
+  admin_role: string;
+  created_at?: string;
+  is_you: boolean;
+}
+
+function formatDate(iso?: string) {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  return d.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+}
+
+export default function ManageAdmins() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { show } = useToast();
+  const [admins, setAdmins] = useState<Admin[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const [name, setName] = useState("");
-  const [adminRole, setAdminRole] = useState("");
-  const [phone, setPhone] = useState("");
-  const [password, setPassword] = useState("");
-  const [showPwd, setShowPwd] = useState(false);
-  const [busy, setBusy] = useState(false);
-
-  const handleCancel = () => {
-    const hasData = name || adminRole || phone || password;
-    if (hasData) {
-      Alert.alert(
-        "Discard changes?",
-        "The details you entered will not be saved.",
-        [
-          { text: "Keep editing", style: "cancel" },
-          { text: "Discard", style: "destructive", onPress: () => router.back() },
-        ]
-      );
-    } else {
-      router.back();
-    }
-  };
-
-  const handleSave = async () => {
-    if (!name.trim()) { show("Name is required", "error"); return; }
-    if (!adminRole.trim()) { show("Role is required", "error"); return; }
-    if (phone.trim().length < 10) { show("Enter a valid 10-digit mobile number", "error"); return; }
-    if (password.length < 6) { show("Password must be at least 6 characters", "error"); return; }
-
-    setBusy(true);
+  const load = useCallback(async () => {
     try {
-      await apiFetch("/auth/admin/create", {
-        method: "POST",
-        body: {
-          phone: phone.trim(),
-          password,
-          name: name.trim(),
-          admin_role: adminRole.trim(),
-        },
-      });
-      show("Admin added successfully", "success");
-      router.back();
-    } catch (e: any) {
-      show(e.message || "Something went wrong. Please try again.", "error");
+      const a = await apiFetch<Admin[]>("/auth/admins");
+      setAdmins(a);
+    } catch {
     } finally {
-      setBusy(false);
+      setLoading(false);
     }
-  };
+  }, []);
+
+  useFocusEffect(useCallback(() => { load(); }, [load]));
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
 
       {/* ── Header ── */}
       <View style={styles.header}>
-        <Pressable onPress={handleCancel} style={styles.backBtn} hitSlop={10}>
+        <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={10}>
           <Ionicons name="arrow-back" size={22} color={COLORS.onSurface} />
         </Pressable>
         <View style={{ flex: 1 }}>
-          <AppText weight="semibold" size="xl" style={{ color: COLORS.onSurface }}>Add New Admin</AppText>
-          <AppText size="sm" style={{ color: COLORS.muted, marginTop: 2 }}>Fill in the details below</AppText>
-        </View>
-      </View>
-
-      <View style={styles.divider} />
-
-      <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
-
-        {/* ── Form Card ── */}
-        <View style={[styles.card, shadow]}>
-
-          {/* Name */}
-          <View style={styles.fieldGroup}>
-            <AppText weight="semibold" size="sm" style={styles.label}>Full Name <AppText style={styles.required}>*</AppText></AppText>
-            <View style={styles.inputWrap}>
-              <Ionicons name="person-outline" size={18} color={COLORS.muted} style={styles.inputIcon} />
-              <TextInput
-                value={name}
-                onChangeText={setName}
-                placeholder="e.g. Priya Sharma"
-                placeholderTextColor={COLORS.muted}
-                style={styles.input}
-                testID="add-admin-name"
-              />
-            </View>
-          </View>
-
-          <View style={styles.fieldDivider} />
-
-          {/* Role */}
-          <View style={styles.fieldGroup}>
-            <AppText weight="semibold" size="sm" style={styles.label}>Role <AppText style={styles.required}>*</AppText></AppText>
-            <View style={styles.inputWrap}>
-              <Ionicons name="briefcase-outline" size={18} color={COLORS.muted} style={styles.inputIcon} />
-              <TextInput
-                value={adminRole}
-                onChangeText={setAdminRole}
-                placeholder="e.g. Manager, Verifier"
-                placeholderTextColor={COLORS.muted}
-                style={styles.input}
-                testID="add-admin-role"
-              />
-            </View>
-          </View>
-
-          <View style={styles.fieldDivider} />
-
-          {/* Mobile */}
-          <View style={styles.fieldGroup}>
-            <AppText weight="semibold" size="sm" style={styles.label}>Mobile Number <AppText style={styles.required}>*</AppText></AppText>
-            <View style={styles.inputWrap}>
-              <View style={styles.ccBadge}>
-                <AppText weight="semibold" size="sm" style={{ color: COLORS.onSurface }}>+91</AppText>
-              </View>
-              <TextInput
-                value={phone}
-                onChangeText={(x) => setPhone(x.replace(/[^0-9]/g, ""))}
-                placeholder="10-digit mobile number"
-                placeholderTextColor={COLORS.muted}
-                keyboardType="phone-pad"
-                maxLength={10}
-                style={[styles.input, { paddingLeft: SPACING.sm }]}
-                testID="add-admin-phone"
-              />
-            </View>
-          </View>
-
-          <View style={styles.fieldDivider} />
-
-          {/* Password */}
-          <View style={styles.fieldGroup}>
-            <AppText weight="semibold" size="sm" style={styles.label}>Password <AppText style={styles.required}>*</AppText></AppText>
-            <View style={styles.inputWrap}>
-              <Ionicons name="lock-closed-outline" size={18} color={COLORS.muted} style={styles.inputIcon} />
-              <TextInput
-                value={password}
-                onChangeText={setPassword}
-                placeholder="Minimum 6 characters"
-                placeholderTextColor={COLORS.muted}
-                secureTextEntry={!showPwd}
-                style={[styles.input, { paddingRight: 44 }]}
-                testID="add-admin-password"
-              />
-              <Pressable onPress={() => setShowPwd((s) => !s)} hitSlop={10} style={styles.eyeBtn}>
-                <Ionicons name={showPwd ? "eye-off-outline" : "eye-outline"} size={20} color={COLORS.muted} />
-              </Pressable>
-            </View>
-          </View>
-        </View>
-
-        {/* ── Info note ── */}
-        <View style={styles.infoBox}>
-          <Ionicons name="information-circle-outline" size={16} color={COLORS.muted} />
-          <AppText size="sm" style={{ color: COLORS.muted, flex: 1, marginLeft: SPACING.sm }}>
-            The new admin will be able to log in immediately using these credentials.
+          <AppText weight="semibold" size="xl" style={{ color: COLORS.onSurface }}>Admin Management</AppText>
+          <AppText size="sm" style={{ color: COLORS.muted, marginTop: 2 }}>
+            {admins.length} {admins.length === 1 ? "account" : "accounts"} registered
           </AppText>
         </View>
+        <Pressable
+          style={styles.addBtn}
+          onPress={() => router.push("/admin/add-admin")}
+          testID="go-to-add-admin"
+        >
+          <Ionicons name="pencil-outline" size={16} color={COLORS.brandPrimary} />
+          <AppText weight="semibold" size="sm" style={{ color: COLORS.brandPrimary, marginLeft: 6 }}>
+            Edit
+          </AppText>
+        </Pressable>
+      </View>
 
-        {/* ── Action Buttons ── */}
-        <View style={styles.actions}>
-          <Pressable style={styles.cancelBtn} onPress={handleCancel} testID="cancel-add-admin">
-            <AppText weight="semibold" size="base" style={{ color: COLORS.onSurface }}>Cancel</AppText>
-          </Pressable>
-          <Pressable
-            style={[styles.saveBtn, busy && { opacity: 0.7 }]}
-            onPress={handleSave}
-            disabled={busy}
-            testID="save-add-admin"
-          >
-            <Ionicons name="checkmark" size={18} color={COLORS.onBrandPrimary} />
-            <AppText weight="semibold" size="base" style={{ color: COLORS.onBrandPrimary, marginLeft: 6 }}>
-              {busy ? "Saving..." : "Save Admin"}
-            </AppText>
-          </Pressable>
+      {/* ── Divider ── */}
+      <View style={styles.divider} />
+
+      {loading ? (
+        <View style={styles.loaderWrap}>
+          <ActivityIndicator color={COLORS.brandPrimary} />
         </View>
+      ) : admins.length === 0 ? (
+        <View style={styles.emptyWrap}>
+          <Ionicons name="people-outline" size={48} color={COLORS.muted} />
+          <AppText size="base" style={{ color: COLORS.muted, marginTop: SPACING.md }}>No admins found</AppText>
+        </View>
+      ) : (
+        <ScrollView contentContainerStyle={styles.tableWrap} showsVerticalScrollIndicator={false}>
 
-      </ScrollView>
+          {/* ── Table ── */}
+          <View style={[styles.table, shadow]}>
+
+            {/* Table Header */}
+            <View style={styles.tableHeader}>
+              <AppText weight="semibold" size="sm" style={[styles.col1, styles.headerText]}>#</AppText>
+              <AppText weight="semibold" size="sm" style={[styles.col2, styles.headerText]}>Name</AppText>
+              <AppText weight="semibold" size="sm" style={[styles.col3, styles.headerText]}>Role</AppText>
+              <AppText weight="semibold" size="sm" style={[styles.col4, styles.headerText]}>Mobile</AppText>
+              <AppText weight="semibold" size="sm" style={[styles.col5, styles.headerText]}>Added On</AppText>
+            </View>
+
+            {/* Table Rows */}
+            {admins.map((item, index) => (
+              <View
+                key={item.id}
+                style={[styles.tableRow, index % 2 === 0 ? styles.rowEven : styles.rowOdd]}
+                testID={`admin-row-${item.id}`}
+              >
+                {/* # */}
+                <AppText size="sm" style={[styles.col1, { color: COLORS.muted }]}>
+                  {index + 1}
+                </AppText>
+
+                {/* Name + YOU badge */}
+                <View style={[styles.col2, { flexDirection: "row", alignItems: "center", gap: 6 }]}>
+                  <View style={styles.avatar}>
+                    <AppText weight="semibold" size="sm" style={{ color: COLORS.onBrandPrimary }}>
+                      {(item.name || item.phone).charAt(0).toUpperCase()}
+                    </AppText>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <AppText weight="semibold" size="sm" style={{ color: COLORS.onSurface }} numberOfLines={1}>
+                      {item.name || "—"}
+                    </AppText>
+                    {item.is_you && (
+                      <View style={styles.youBadge}>
+                        <AppText size="sm" weight="semibold" style={{ color: COLORS.brandPrimary, fontSize: 10 }}>
+                          YOU
+                        </AppText>
+                      </View>
+                    )}
+                  </View>
+                </View>
+
+                {/* Role badge */}
+                <View style={styles.col3}>
+                  <View style={styles.roleBadge}>
+                    <AppText size="sm" style={{ color: COLORS.onSurface, fontSize: 11 }} numberOfLines={1}>
+                      {item.admin_role || "Admin"}
+                    </AppText>
+                  </View>
+                </View>
+
+                {/* Mobile */}
+                <AppText size="sm" style={[styles.col4, { color: COLORS.onSurface }]}>
+                  +91 {item.phone}
+                </AppText>
+
+                {/* Date */}
+                <AppText size="sm" style={[styles.col5, { color: COLORS.muted }]}>
+                  {formatDate(item.created_at)}
+                </AppText>
+              </View>
+            ))}
+          </View>
+
+          {/* Footer note */}
+          <AppText size="sm" style={styles.footerNote}>
+            Only existing admins can add or remove other admins.
+          </AppText>
+        </ScrollView>
+      )}
     </View>
   );
 }
+
+const COL_WIDTHS = { c1: 32, c2: 140, c3: 100, c4: 120, c5: 90 };
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.surface },
@@ -211,81 +179,83 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surfaceTertiary,
     alignItems: "center", justifyContent: "center",
   },
+  addBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: COLORS.surfaceSecondary,
+    borderWidth: 1,
+    borderColor: COLORS.brandPrimary,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.sm,
+    borderRadius: RADIUS.md,
+  },
   divider: { height: 1, backgroundColor: COLORS.border },
 
-  body: { padding: SPACING.lg, gap: SPACING.lg, paddingBottom: SPACING["3xl"] },
+  loaderWrap: { flex: 1, alignItems: "center", justifyContent: "center" },
+  emptyWrap: { flex: 1, alignItems: "center", justifyContent: "center", gap: SPACING.sm },
 
-  card: {
+  tableWrap: { padding: SPACING.lg, paddingBottom: SPACING["3xl"] },
+
+  table: {
     backgroundColor: COLORS.surfaceSecondary,
     borderRadius: RADIUS.md,
-    borderWidth: 1,
-    borderColor: COLORS.border,
     overflow: "hidden",
-  },
-
-  fieldGroup: { paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md },
-  fieldDivider: { height: 1, backgroundColor: COLORS.divider },
-
-  label: { color: COLORS.onSurface, marginBottom: SPACING.sm },
-  required: { color: COLORS.error },
-
-  inputWrap: {
-    flexDirection: "row",
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: RADIUS.md,
-    backgroundColor: COLORS.surface,
-    height: 52,
-  },
-  inputIcon: { paddingLeft: SPACING.md },
-  input: {
-    flex: 1,
-    paddingHorizontal: SPACING.md,
-    fontSize: FONT.base,
-    color: COLORS.onSurface,
-    height: "100%",
-  },
-  eyeBtn: { position: "absolute", right: SPACING.md, height: 52, justifyContent: "center" },
-  ccBadge: {
-    height: 52,
-    paddingHorizontal: SPACING.md,
-    justifyContent: "center",
-    borderRightWidth: 1,
-    borderRightColor: COLORS.border,
-    backgroundColor: COLORS.surfaceTertiary,
-    borderTopLeftRadius: RADIUS.md,
-    borderBottomLeftRadius: RADIUS.md,
-  },
-
-  infoBox: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    backgroundColor: COLORS.surfaceTertiary,
-    borderRadius: RADIUS.md,
-    padding: SPACING.md,
     borderWidth: 1,
     borderColor: COLORS.border,
   },
 
-  actions: { flexDirection: "row", gap: SPACING.md },
-  cancelBtn: {
-    flex: 1,
-    height: 52,
-    borderRadius: RADIUS.md,
-    borderWidth: 1,
-    borderColor: COLORS.borderStrong,
+  tableHeader: {
+    flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: COLORS.surfaceSecondary,
+    backgroundColor: COLORS.surfaceTertiary,
+    paddingVertical: SPACING.md,
+    paddingHorizontal: SPACING.md,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
   },
-  saveBtn: {
-    flex: 2,
-    height: 52,
-    borderRadius: RADIUS.md,
+  headerText: { color: COLORS.muted, textTransform: "uppercase", letterSpacing: 0.5, fontSize: 11 },
+
+  tableRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: SPACING.md,
+    paddingHorizontal: SPACING.md,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.divider,
+  },
+  rowEven: { backgroundColor: COLORS.surfaceSecondary },
+  rowOdd: { backgroundColor: "#FDFBF9" },
+
+  col1: { width: COL_WIDTHS.c1 },
+  col2: { width: COL_WIDTHS.c2 },
+  col3: { width: COL_WIDTHS.c3 },
+  col4: { width: COL_WIDTHS.c4 },
+  col5: { width: COL_WIDTHS.c5 },
+
+  avatar: {
+    width: 28, height: 28, borderRadius: 14,
     backgroundColor: COLORS.brandPrimary,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: "center", justifyContent: "center",
+  },
+  youBadge: {
+    marginTop: 2,
+    alignSelf: "flex-start",
+    paddingHorizontal: 5, paddingVertical: 1,
+    borderRadius: RADIUS.sm,
+    backgroundColor: COLORS.brandTertiary,
+    borderWidth: 1, borderColor: COLORS.brandSecondary,
+  },
+  roleBadge: {
+    alignSelf: "flex-start",
+    paddingHorizontal: SPACING.sm, paddingVertical: 3,
+    borderRadius: RADIUS.sm,
+    backgroundColor: COLORS.surfaceTertiary,
+    borderWidth: 1, borderColor: COLORS.border,
+  },
+  footerNote: {
+    color: COLORS.muted,
+    textAlign: "center",
+    marginTop: SPACING.xl,
+    paddingHorizontal: SPACING.lg,
   },
 });
