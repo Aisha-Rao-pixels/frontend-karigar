@@ -307,6 +307,28 @@ async def list_admins(current: dict = Depends(require_roles("admin"))):
     admins = await db.users.find({"role": "admin"}).sort("created_at", 1).to_list(200)
     return [{"id": a["id"], "phone": a["phone"], "name": a.get("name", ""), "admin_role": a.get("admin_role", "Admin"), "created_at": a.get("created_at"), "is_you": a["id"] == current["id"]} for a in admins]
 
+
+@api_router.patch("/auth/admin/me")
+async def update_self_admin(payload: UpdateSelfAdminPayload, current: dict = Depends(require_roles("admin"))):
+    name = payload.name.strip()
+    admin_role = payload.admin_role.strip()
+    if not name or not admin_role:
+        raise HTTPException(status_code=400, detail="Name and role are required")
+    await db.users.update_one({"id": current["id"]}, {"$set": {"name": name, "admin_role": admin_role}})
+    return {"success": True}
+
+
+@api_router.delete("/auth/admins/{admin_id}")
+async def delete_admin(admin_id: str, current: dict = Depends(require_roles("admin"))):
+    if current.get("admin_role") != "Manager":
+        raise HTTPException(status_code=403, detail="Only a Manager can remove an admin")
+    if admin_id == current["id"]:
+        raise HTTPException(status_code=400, detail="You cannot delete your own account")
+    target = await db.users.find_one({"id": admin_id, "role": "admin"})
+    if not target:
+        raise HTTPException(status_code=404, detail="Admin not found")
+    await db.users.delete_one({"id": admin_id})
+    return {"success": True}
 @api_router.get("/auth/me")
 async def auth_me(user: dict = Depends(get_current_user)):
     worker = await db.workers.find_one({"phone": user["phone"]})
