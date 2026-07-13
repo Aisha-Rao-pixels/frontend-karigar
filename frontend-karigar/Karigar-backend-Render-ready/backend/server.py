@@ -112,6 +112,8 @@ class LoginPayload(BaseModel):
 class CreateAdminPayload(BaseModel):
     phone: str
     password: str
+    name: str = ""
+    admin_role: str = "Admin"
 
 
 class WorkerProfilePayload(BaseModel):
