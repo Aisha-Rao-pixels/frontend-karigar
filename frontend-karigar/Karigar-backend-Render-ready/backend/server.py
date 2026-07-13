@@ -302,11 +302,7 @@ async def create_admin(payload: CreateAdminPayload, current: dict = Depends(requ
 @api_router.get("/auth/admins")
 async def list_admins(current: dict = Depends(require_roles("admin"))):
     admins = await db.users.find({"role": "admin"}).sort("created_at", 1).to_list(200)
-   return [{"id": a["id"], "phone": a["phone"], "name": a.get("name", ""),
-             "admin_role": a.get("admin_role", "Admin"),
-             "created_at": a.get("created_at"),
-             "is_you": a["id"] == current["id"]} for a in admins]
-
+    return [{"id": a["id"], "phone": a["phone"], "name": a.get("name", ""), "admin_role": a.get("admin_role", "Admin"), "created_at": a.get("created_at"), "is_you": a["id"] == current["id"]} for a in admins]
 
 @api_router.get("/auth/me")
 async def auth_me(user: dict = Depends(get_current_user)):
