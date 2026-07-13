@@ -71,7 +71,14 @@ export default function AdminReferrals() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
+      // replace:
       <ScreenHeader title="Referral Dashboard" onBack={() => router.back()} />
+      
+      // with:
+      <ScreenHeader
+        title="Referral Dashboard"
+        onBack={() => (router.canGoBack() ? router.back() : router.replace("/admin/(tabs)/dashboard"))}
+      />
 
       {loading ? (
         <Loader />
