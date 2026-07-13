@@ -181,23 +181,14 @@ export default function ManageAdmins() {
                   {formatDate(item.created_at)}
                 </AppText>
 
-                {/* Row actions: edit (self only) + delete (Manager only, not self) */}
-                <View style={[styles.col6, { flexDirection: "row", gap: 10, justifyContent: "flex-end" }]}>
-                  {item.is_you && (
-                    <Pressable
-                      onPress={() => router.push("/admin/edit-admin-self")}
-                      hitSlop={8}
-                      testID={`edit-admin-${item.id}`}
-                    >
-                      <Ionicons name="pencil-outline" size={18} color={COLORS.brandPrimary} />
-                    </Pressable>
-                  )}
+                {/* Row actions: chevron (whole row is tappable) + delete (Manager only, not self) */}
+                <View style={[styles.col6, { flexDirection: "row", gap: 10, justifyContent: "flex-end", alignItems: "center" }]}>
                   {isManager && !item.is_you && (
                     deletingId === item.id ? (
                       <ActivityIndicator size="small" color={COLORS.error} />
                     ) : (
                       <Pressable
-                        onPress={() => handleDelete(item)}
+                        onPress={(e) => { e.stopPropagation?.(); handleDelete(item); }}
                         hitSlop={8}
                         testID={`delete-admin-${item.id}`}
                       >
@@ -205,9 +196,10 @@ export default function ManageAdmins() {
                       </Pressable>
                     )
                   )}
+                  <Ionicons name="chevron-forward" size={16} color={COLORS.muted} />
                 </View>
-              </View>
-            ))}
+              </Pressable>
+            ))}            ))}
           </View>
 
           {/* Footer note */}
