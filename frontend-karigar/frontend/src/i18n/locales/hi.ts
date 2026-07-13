@@ -44,6 +44,10 @@ export default {
   adminAdded: "एडमिन सफलतापूर्वक जोड़ा गया",
   existingAdmins: "मौजूदा एडमिन ({{count}})",
   you: "आप",
+  adminName: "नाम",
+  adminNamePh: "पूरा नाम दर्ज करें",
+  adminRoleLabel: "भूमिका",
+  adminRolePh: "जैसे मैनेजर, वेरिफायर",
 
   avail_now: "अभी उपलब्ध",
   avail_from: "इस तारीख से उपलब्ध",
