@@ -209,7 +209,7 @@ export default function ManageAdmins() {
                   <Ionicons name="chevron-forward" size={16} color={COLORS.muted} />
                 </View>
               </Pressable>
-            ))}            ))}
+            ))}            
           </View>
 
           {/* Footer note */}
