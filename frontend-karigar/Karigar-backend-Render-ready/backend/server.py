@@ -116,6 +116,10 @@ class CreateAdminPayload(BaseModel):
     admin_role: str = "Admin"
 
 
+class UpdateSelfAdminPayload(BaseModel):
+    name: str
+    admin_role: str
+
 class WorkerProfilePayload(BaseModel):
     full_name: str
     gender: str
