@@ -14,6 +14,8 @@ import { useToast } from "@/src/components/Toast";
 interface Admin {
   id: string;
   phone: string;
+  name: string;
+  admin_role: string;
   created_at?: string;
   is_you: boolean;
 }
@@ -26,6 +28,8 @@ export default function ManageAdmins() {
   const [admins, setAdmins] = useState<Admin[]>([]);
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
+  const [name, setName] = useState("");
+  const [adminRole, setAdminRole] = useState("");
   const [showPwd, setShowPwd] = useState(false);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -55,10 +59,12 @@ export default function ManageAdmins() {
     try {
       await apiFetch("/auth/admin/create", {
         method: "POST",
-        body: { phone: phone.trim(), password },
+        body: { phone: phone.trim(), password, name: name.trim(), admin_role: adminRole.trim() || "Admin" },
       });
       setPhone("");
       setPassword("");
+      setName("");
+      setAdminRole("");
       show(t("adminAdded"), "success");
       load();
     } catch (e: any) {
@@ -76,6 +82,22 @@ export default function ManageAdmins() {
         <AppText weight="semibold" size="base" style={{ marginBottom: SPACING.sm }}>
           {t("addNewAdmin")}
         </AppText>
+        <TextInput
+          value={name}
+          onChangeText={setName}
+          placeholder={t("adminNamePh")}
+          placeholderTextColor={COLORS.muted}
+          style={[styles.input, { marginBottom: SPACING.sm }]}
+          testID="new-admin-name-input"
+        />
+        <TextInput
+          value={adminRole}
+          onChangeText={setAdminRole}
+          placeholder={t("adminRolePh")}
+          placeholderTextColor={COLORS.muted}
+          style={[styles.input, { marginBottom: SPACING.sm }]}
+          testID="new-admin-role-input"
+        />
         <View style={styles.phoneRow}>
           <View style={styles.cc}><AppText weight="semibold">+91</AppText></View>
           <TextInput
@@ -126,8 +148,8 @@ export default function ManageAdmins() {
                 <Ionicons name="shield-checkmark" size={18} color={COLORS.brandPrimary} />
               </View>
               <View style={{ flex: 1 }}>
-                <AppText weight="semibold">+91 {item.phone}</AppText>
-                <AppText size="sm" color={COLORS.muted}>{t("administrator")}</AppText>
+                <AppText weight="semibold">{item.name || "+91 " + item.phone}</AppText>
+                <AppText size="sm" color={COLORS.muted}>{item.admin_role || t("administrator")} · +91 {item.phone}</AppText>
               </View>
               {item.is_you && (
                 <View style={styles.youBadge}>
