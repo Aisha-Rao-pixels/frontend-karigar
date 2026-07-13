@@ -120,6 +120,7 @@ class UpdateSelfAdminPayload(BaseModel):
     name: str
     admin_role: str
 
+
 class WorkerProfilePayload(BaseModel):
     full_name: str
     gender: str
@@ -288,7 +289,7 @@ async def create_admin(payload: CreateAdminPayload, current: dict = Depends(requ
     _validate_password(payload.password)
     if await db.users.find_one({"phone": phone}):
         raise HTTPException(status_code=400, detail="This mobile number is already registered")
-   user = {
+    user = {
         "id": new_id(),
         "phone": phone,
         "role": "admin",
@@ -329,6 +330,8 @@ async def delete_admin(admin_id: str, current: dict = Depends(require_roles("adm
         raise HTTPException(status_code=404, detail="Admin not found")
     await db.users.delete_one({"id": admin_id})
     return {"success": True}
+
+
 @api_router.get("/auth/me")
 async def auth_me(user: dict = Depends(get_current_user)):
     worker = await db.workers.find_one({"phone": user["phone"]})
@@ -812,7 +815,7 @@ async def admin_referrals_overview(user: dict = Depends(require_roles(*ADMIN_ROL
         })
 
     rows.sort(key=lambda r: r["total_referred"], reverse=True)
-    return {"rows": rows}    
+    return {"rows": rows}
 
 
 @api_router.get("/admin/referrals/{worker_id}/detail")
@@ -1067,7 +1070,7 @@ async def admin_worker_detail(worker_id: str, user: dict = Depends(require_roles
             hydrated_history.append(snap)
         result["history"] = hydrated_history
     code = worker.get("referred_by_code")
-   
+
     if code:
         referrer = await db.workers.find_one({"referral_code": code})
         if referrer:
@@ -1111,6 +1114,8 @@ async def admin_delete_worker(worker_id: str, user: dict = Depends(require_roles
     ]})
     await db.notifications.delete_many({"recipient_worker_id": worker_id})
     return {"success": True, "deleted": True, "archived": True}
+
+
 @api_router.post("/admin/maintenance/cleanup-orphaned-images")
 async def cleanup_orphaned_images(
     user: dict = Depends(require_roles("admin")),
@@ -1154,7 +1159,8 @@ async def cleanup_orphaned_images(
 
     return {"dry_run": False, "deleted": deleted, "attempted": len(orphans),
             "freed_mb": round(orphan_bytes / 1_000_000, 2)}
-    
+
+
 @api_router.post("/admin/workers")
 async def admin_register_worker(payload: AdminRegisterWorkerPayload, user: dict = Depends(require_roles(*ADMIN_ROLES))):
     phone = payload.mobile.strip()
