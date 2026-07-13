@@ -256,10 +256,14 @@ async def register(payload: RegisterPayload):
     user = {
         "id": new_id(),
         "phone": phone,
-        "role": role,
+        "role": "admin",
+        "name": payload.name.strip(),          # ← add this
+        "admin_role": payload.admin_role.strip() or "Admin",  # ← add this
         "password_hash": hash_password(payload.password),
         "created_at": now_iso(),
+        "created_by": current["id"],
     }
+    
     await db.users.insert_one(dict(user))
     await _register_referral_account(user["id"], phone, payload.referred_by_code)
     worker = await db.workers.find_one({"phone": phone})
