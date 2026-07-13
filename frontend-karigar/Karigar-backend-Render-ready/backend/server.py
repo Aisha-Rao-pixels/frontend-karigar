@@ -257,14 +257,14 @@ async def register(payload: RegisterPayload):
     if await db.users.find_one({"phone": phone}):
         raise HTTPException(status_code=400, detail="This mobile number is already registered. Please log in.")
 
-   user = {
+    user = {
         "id": new_id(),
         "phone": phone,
         "role": role,
         "password_hash": hash_password(payload.password),
         "created_at": now_iso(),
     }
-    
+
     await db.users.insert_one(dict(user))
     await _register_referral_account(user["id"], phone, payload.referred_by_code)
     worker = await db.workers.find_one({"phone": phone})
