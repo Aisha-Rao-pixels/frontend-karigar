@@ -48,6 +48,10 @@ export default {
   adminAdded: "Admin added successfully",
   existingAdmins: "Existing admins ({{count}})",
   you: "You",
+  adminName: "Name",
+  adminNamePh: "Enter full name",
+  adminRoleLabel: "Role",
+  adminRolePh: "e.g. Manager, Verifier",
 
   // availability
   avail_now: "Available Now",
@@ -56,6 +60,7 @@ export default {
   pickAvailableDate: "Select the date you'll be available from",
   availableFromOn: "Available from",
   chooseDate: "Choose a date",
+
   // documents & proof
   aadhaarCard: "Aadhaar Card",
   uploadAadhaar: "Upload a clear photo of your Aadhaar card",
@@ -98,7 +103,7 @@ export default {
   createProfile: "Create Your Profile",
   editProfile: "Edit Profile",
   fullName: "Full Name",
-  fullNamePh: "e.g. Rahim Khan",  
+  fullNamePh: "e.g. Rahim Khan",
   gender: "Gender",
   languagesSpoken: "Languages Spoken",
   area: "Area / Neighbourhood",
