@@ -55,6 +55,10 @@ export default function AdminReferrals() {
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
+  const openBreakdown = (category: string, label: string) => {
+    router.push({ pathname: "/admin/referral-breakdown", params: { category, label } });
+  };
+
   const totals = useMemo(() => {
     return rows.reduce(
       (acc, r) => ({
@@ -85,15 +89,19 @@ export default function AdminReferrals() {
             <RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(); }} tintColor={COLORS.brandPrimary} />
           }
         >
-          {/* Summary KPI strip */}
+          {/* Summary KPI strip — every card is tappable and opens a table of
+              exactly the rows behind its number, except "Total Referrers"
+              (that's just the table below) and "Not Registered" (link
+              clicks store no name/phone, so there's nothing to list — see
+              the explainer on that screen instead). */}
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: SPACING.sm, marginBottom: SPACING.lg }}>
             <Kpi label="Total Referrers" value={rows.length} />
-            <Kpi label="Total Referred" value={totals.referred} />
-            <Kpi label="Registered" value={totals.registered} color={COLORS.success} />
-            <Kpi label="Logged In Only" value={totals.loggedIn} color={COLORS.warning} />
-            <Kpi label="Not Registered" value={totals.notRegistered} color={COLORS.error} />
-            <Kpi label="Total Paid" value={`₹${totals.paid}`} color={COLORS.success} />
-            <Kpi label="Total Pending" value={`₹${totals.pending}`} color={COLORS.warning} />
+            <Kpi label="Total Referred" value={totals.referred} onPress={() => openBreakdown("referred", "Total Referred")} />
+            <Kpi label="Registered" value={totals.registered} color={COLORS.success} onPress={() => openBreakdown("registered", "Registered")} />
+            <Kpi label="Logged In Only" value={totals.loggedIn} color={COLORS.warning} onPress={() => openBreakdown("logged_in", "Logged In Only")} />
+            <Kpi label="Not Registered" value={totals.notRegistered} color={COLORS.error} onPress={() => openBreakdown("not_registered", "Not Registered")} />
+            <Kpi label="Total Paid" value={`₹${totals.paid}`} color={COLORS.success} onPress={() => openBreakdown("paid", "Total Paid")} />
+            <Kpi label="Total Pending" value={`₹${totals.pending}`} color={COLORS.warning} onPress={() => openBreakdown("pending", "Total Pending")} />
           </ScrollView>
 
           {/* Data table */}
@@ -152,13 +160,14 @@ function Cell({ width, children }: { width: number; children: React.ReactNode })
   );
 }
 
-function Kpi({ label, value, color = COLORS.onSurface }: { label: string; value: number | string; color?: string }) {
-  return (
+function Kpi({ label, value, color = COLORS.onSurface, onPress }: { label: string; value: number | string; color?: string; onPress?: () => void }) {
+  const content = (
     <View style={[styles.kpi, shadow]}>
       <AppText weight="bold" size="xl" color={color}>{value}</AppText>
       <AppText size="sm" color={COLORS.muted} style={{ marginTop: 2 }}>{label}</AppText>
     </View>
   );
+  return onPress ? <Pressable onPress={onPress}>{content}</Pressable> : content;
 }
 
 const styles = StyleSheet.create({
