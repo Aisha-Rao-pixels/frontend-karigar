@@ -8,6 +8,7 @@ import io
 import asyncio
 import csv
 import random
+import re
 import string
 import logging
 from pathlib import Path
