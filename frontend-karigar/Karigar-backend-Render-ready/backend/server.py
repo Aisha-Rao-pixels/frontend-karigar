@@ -164,6 +164,10 @@ class SkillPayload(BaseModel):
 class ReferralClickPayload(BaseModel):
     referral_code: str
 
+class BulkMarkPaidPayload(BaseModel):
+    referral_ids: list[str]
+    amount_per_referral_rs: Optional[int] = None
+
 
 class AdminRegisterWorkerPayload(WorkerProfilePayload):
     mobile: str
