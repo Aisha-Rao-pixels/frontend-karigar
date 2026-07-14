@@ -11,6 +11,7 @@ import { AppText, Loader, Button } from "@/src/components/ui";
 import { Panel, StatTile, BarList, ColumnChart, SegmentBar, SERIES } from "@/src/components/charts";
 import { apiFetch } from "@/src/api/client";
 import { useAuth } from "@/src/context/AuthContext";
+import { useToast } from "@/src/components/Toast";
 
 interface Analytics {
   kpis: {
@@ -38,6 +39,7 @@ export default function AdminDashboard() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { logout } = useAuth();
+  const { show } = useToast();
   const [a, setA] = useState<Analytics | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -207,6 +209,21 @@ export default function AdminDashboard() {
             data={a.registration_trend.map((d) => ({ label: d.date.slice(5).replace("-", "/"), value: d.count }))}
             tint={SERIES[1]}
             testID="trend-chart"
+            onBarPress={(_bar, i) => {
+              const day = a.registration_trend[i];
+              if (!day) return;
+              const prettyDate = new Date(day.date + "T00:00:00").toLocaleDateString(undefined, {
+                weekday: "short",
+                month: "short",
+                day: "numeric",
+              });
+              show(
+                day.count > 0
+                  ? `${day.count} worker${day.count !== 1 ? "s" : ""} registered on ${prettyDate}`
+                  : `No registrations on ${prettyDate}`,
+                day.count > 0 ? "info" : "info"
+              );
+            }}
           />
         </Panel>
 
