@@ -881,12 +881,6 @@ async def admin_referral_detail(worker_id: str, user: dict = Depends(require_rol
 
 @api_router.post("/admin/referrals/{referral_id}/mark-paid")
 async def mark_referral_paid(referral_id: str, user: dict = Depends(require_roles(*ADMIN_ROLES))):
-    # This is the ONLY place a referral's status becomes "paid". There is no
-    # live payment-gateway integration, so this must be called by an admin
-    # only AFTER they have actually sent the ₹50 to the referrer themselves
-    # (e.g. via UPI outside the app). It intentionally will not fire unless
-    # the referrer has a payout number on file, so we don't mark something
-    # "paid" with nowhere for the money to have gone.
     ref = await db.referrals.find_one({"id": referral_id})
     if not ref:
         raise HTTPException(status_code=404, detail="Referral not found")
@@ -897,15 +891,80 @@ async def mark_referral_paid(referral_id: str, user: dict = Depends(require_role
     referrer = await db.workers.find_one({"id": ref.get("referrer_worker_id")})
     if not referrer or not referrer.get("upi_id"):
         raise HTTPException(status_code=400, detail="Referrer has no PhonePe/Google Pay number on file yet")
+    amount = ref.get("payout_amount_rs", 50)
     await db.referrals.update_one({"id": referral_id}, {"$set": {
         "status": "paid", "paid_by": user["id"], "paid_at": now_iso(),
+        "payout_amount_rs": amount,
     }})
     await _notify_worker(referrer, "referral_reward",
-        "Referral Reward Paid ₹50", "रेफ़रल इनाम ₹50 भेजा गया", "రెఫరల్ రివార్డ్ ₹50 చెల్లించబడింది",
-        "₹50 has been sent to your PhonePe/Google Pay number for a successful referral.",
-        "एक सफल रेफ़रल के लिए ₹50 आपके PhonePe/Google Pay नंबर पर भेजे गए हैं।",
-        "విజయవంతమైన రెఫరల్ కోసం ₹50 మీ PhonePe/Google Pay నంబర్‌కు పంపబడ్డాయి.")
-    return {"success": True}
+        "Referral Reward Paid ₹" + str(amount), "रेफ़रल इनाम ₹" + str(amount) + " भेजा गया",
+        "రెఫరల్ రివార్డ్ ₹" + str(amount) + " చెల్లించబడింది",
+        f"₹{amount} has been sent to your PhonePe/Google Pay number for a successful referral.",
+        f"एक सफल रेफ़रल के लिए ₹{amount} आपके PhonePe/Google Pay नंबर पर भेजे गए हैं।",
+        f"విజయవంతమైన రెఫరల్ కోసం ₹{amount} మీ PhonePe/Google Pay నంబర్‌కు పంపబడ్డాయి.")
+    return {"success": True, "amount_paid_rs": amount}
+
+
+@api_router.post("/admin/referrals/bulk-mark-paid")
+async def bulk_mark_referrals_paid(payload: BulkMarkPaidPayload, user: dict = Depends(require_roles(*ADMIN_ROLES))):
+    if not payload.referral_ids:
+        raise HTTPException(status_code=400, detail="No referral IDs provided")
+    if len(payload.referral_ids) > 200:
+        raise HTTPException(status_code=400, detail="Cannot bulk-pay more than 200 at once")
+    succeeded = []
+    skipped = []
+    for ref_id in payload.referral_ids:
+        ref = await db.referrals.find_one({"id": ref_id})
+        if not ref:
+            skipped.append({"id": ref_id, "reason": "not_found"}); continue
+        if ref.get("status") == "paid":
+            skipped.append({"id": ref_id, "reason": "already_paid"}); continue
+        if ref.get("status") not in ("pending", "reward_triggered"):
+            skipped.append({"id": ref_id, "reason": "not_eligible"}); continue
+        referrer = await db.workers.find_one({"id": ref.get("referrer_worker_id")})
+        if not referrer or not referrer.get("upi_id"):
+            skipped.append({"id": ref_id, "reason": "no_payout_number"}); continue
+        amount = payload.amount_per_referral_rs if payload.amount_per_referral_rs is not None \
+                 else ref.get("payout_amount_rs", 50)
+        await db.referrals.update_one({"id": ref_id}, {"$set": {
+            "status": "paid", "paid_by": user["id"], "paid_at": now_iso(),
+            "payout_amount_rs": amount,
+        }})
+        try:
+            await _notify_worker(referrer, "referral_reward",
+                "Referral Reward Paid ₹" + str(amount), "रेफ़रल इनाम ₹" + str(amount) + " भेजा गया",
+                "రెఫరల్ రివార్డ్ ₹" + str(amount) + " చెల్లించబడింది",
+                f"₹{amount} has been sent to your PhonePe/Google Pay number for a successful referral.",
+                f"एक सफल रेफ़रल के लिए ₹{amount} आपके PhonePe/Google Pay नंबर पर भेजे गए हैं।",
+                f"విజయవంతమైన రెఫరల్ కోసం ₹{amount} మీ PhonePe/Google Pay నంబర్‌కు పంపబడ్డాయి.")
+        except Exception:
+            pass
+        succeeded.append({"id": ref_id, "amount_rs": amount})
+    return {
+        "success": True,
+        "paid_count": len(succeeded),
+        "skipped_count": len(skipped),
+        "total_amount_rs": sum(s["amount_rs"] for s in succeeded),
+        "succeeded": succeeded,
+        "skipped": skipped,
+    }
+
+
+@api_router.get("/admin/referrals/{worker_id}/pending-summary")
+async def referrer_pending_summary(worker_id: str, user: dict = Depends(require_roles(*ADMIN_ROLES))):
+    refs = await db.referrals.find({
+        "referrer_worker_id": worker_id,
+        "status": {"$in": ["pending", "reward_triggered"]},
+    }).to_list(1000)
+    referrer = await db.workers.find_one({"id": worker_id})
+    return {
+        "worker_id": worker_id,
+        "referrer_name": referrer.get("full_name") if referrer else "Unknown",
+        "upi_id": referrer.get("upi_id") if referrer else None,
+        "pending_count": len(refs),
+        "total_pending_rs": sum(r.get("payout_amount_rs", 50) for r in refs),
+        "pending_referral_ids": [r["id"] for r in refs],
+    }
 
 
 @api_router.get("/admin/referrals/list")
