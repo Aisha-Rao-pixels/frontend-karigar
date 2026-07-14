@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   View, StyleSheet, FlatList, Pressable, TextInput,
-  Platform, Share, ScrollView, Modal, Image,
+  Platform, Modal, Image,
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
@@ -12,7 +12,8 @@ import BottomSheet, { BottomSheetScrollView } from "@gorhom/bottom-sheet";
 
 import { COLORS, SPACING, RADIUS, FONT, shadow } from "@/src/theme";
 import { AppText, Avatar, Chip, EmptyState, Loader, Button } from "@/src/components/ui";
-import { apiFetch, getToken, BASE } from "@/src/api/client";
+import { ResizableTable, ResizableTableColumn } from "@/src/components/ResizableTable";
+import { apiFetch } from "@/src/api/client";
 import { storage } from "@/src/utils/storage";
 import { Worker, availabilityColor, verificationColor } from "@/src/utils/profile";
 import { AVAILABILITY_OPTIONS } from "@/src/constants/app";
@@ -95,79 +96,6 @@ const tooltipStyles = StyleSheet.create({
   },
 });
 
-// ── Resizable table columns ─────────────────────────────────────────────────
-const DEFAULT_COL_WIDTHS: Record<string, number> = {
-  sno: 56,
-  name: 160,
-  phone: 130,
-  skill: 220,
-  city: 120,
-  status: 140,
-  exp: 80,
-};
-
-const TABLE_COLUMNS: { key: keyof typeof DEFAULT_COL_WIDTHS; label: string; resizable: boolean }[] = [
-  { key: "sno", label: "S.No", resizable: false },
-  { key: "name", label: "Name", resizable: true },
-  { key: "phone", label: "Phone", resizable: true },
-  { key: "skill", label: "Skill", resizable: true },
-  { key: "city", label: "City", resizable: true },
-  { key: "status", label: "Status", resizable: true },
-  { key: "exp", label: "Exp", resizable: true },
-];
-
-const MIN_COL_WIDTH = 56;
-
-// Drag-to-resize handle. Web only (mouse-driven); native table stays at
-// the default/persisted widths since a touch-drag column resizer isn't
-// worth the added complexity on a phone screen.
-function ResizeHandle({ onResize }: { onResize: (deltaX: number) => void }) {
-  const dragging = useRef(false);
-
-  if (Platform.OS !== "web") return null;
-
-  const onMouseDown = (e: any) => {
-    e.preventDefault();
-    e.stopPropagation();
-    dragging.current = true;
-    let lastX = e.clientX;
-
-    const onMouseMove = (moveEvent: MouseEvent) => {
-      if (!dragging.current) return;
-      const delta = moveEvent.clientX - lastX;
-      lastX = moveEvent.clientX;
-      onResize(delta);
-    };
-    const onMouseUp = () => {
-      dragging.current = false;
-      window.removeEventListener("mousemove", onMouseMove);
-      window.removeEventListener("mouseup", onMouseUp);
-    };
-    window.addEventListener("mousemove", onMouseMove);
-    window.addEventListener("mouseup", onMouseUp);
-  };
-
-  return (
-    <View
-      // @ts-ignore - web-only pointer handler + cursor style
-      onMouseDown={onMouseDown}
-      // @ts-ignore
-      style={[tableResizeStyles.handle, Platform.OS === "web" ? { cursor: "col-resize" } : null]}
-    />
-  );
-}
-
-const tableResizeStyles = StyleSheet.create({
-  handle: {
-    position: "absolute",
-    right: -4,
-    top: 0,
-    bottom: 0,
-    width: 8,
-    zIndex: 2,
-  },
-});
-
 export default function WorkerSearch() {
   const router = useRouter();
   const { t } = useTranslation();
@@ -186,12 +114,10 @@ export default function WorkerSearch() {
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewModeState] = useState<"card" | "table">("card");
   const [viewModeLoaded, setViewModeLoaded] = useState(false);
-  const [colWidths, setColWidths] = useState<Record<string, number>>(DEFAULT_COL_WIDTHS);
   const [gallerySkill, setGallerySkill] = useState<string | null>(null);
   const [galleryWorkers, setGalleryWorkers] = useState<Worker[]>([]);
   const [galleryLoading, setGalleryLoading] = useState(false);
   const [galleryVisible, setGalleryVisible] = useState(false);
-  const [exportingFull, setExportingFull] = useState(false);
 
   const snapPoints = useMemo(() => ["65%"], []);
 
@@ -203,30 +129,9 @@ export default function WorkerSearch() {
     });
   }, []);
 
-  // Restore last-used table column widths on mount
-  useEffect(() => {
-    storage.getItem<string | null>("admin_search_col_widths", null).then((v) => {
-      if (!v) return;
-      try {
-        const parsed = JSON.parse(v);
-        setColWidths((w) => ({ ...w, ...parsed }));
-      } catch {
-        // ignore corrupt/old value
-      }
-    });
-  }, []);
-
   const setViewMode = useCallback((mode: "card" | "table") => {
     setViewModeState(mode);
     storage.setItem("admin_search_view_mode", mode);
-  }, []);
-
-  const resizeColumn = useCallback((key: string, delta: number) => {
-    setColWidths((w) => {
-      const next = { ...w, [key]: Math.max(MIN_COL_WIDTH, (w[key] ?? DEFAULT_COL_WIDTHS[key]) + delta) };
-      storage.setItem("admin_search_col_widths", JSON.stringify(next));
-      return next;
-    });
   }, []);
 
   const buildQuery = useCallback(
@@ -281,57 +186,6 @@ export default function WorkerSearch() {
     }
   }, []);
 
-  const onExport = async () => {
-    try {
-      const token = await getToken();
-      const q = buildQuery();
-      const res = await fetch(`${BASE}/admin/export?${q}`, { headers: { Authorization: `Bearer ${token}` } });
-      const csv = await res.text();
-      if (Platform.OS === "web") {
-        const blob = new Blob([csv], { type: "text/csv" });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = "workers.csv";
-        a.click();
-        URL.revokeObjectURL(url);
-      } else {
-        await Share.share({ message: csv });
-      }
-      show(`Exported ${total} workers`, "success");
-    } catch (e: any) {
-      show(e.message || t("genericError"), "error");
-    }
-  };
-
-  const onExportFull = async (limit?: number) => {
-    setExportingFull(true);
-    try {
-      const token = await getToken();
-      const q = buildQuery();
-      const exportQ = q.replace(/&?page_size=\d+/, "");
-      const limitParam = limit ? `&limit=${limit}` : "";
-      const res = await fetch(`${BASE}/admin/export/full?${exportQ}${limitParam}`, { headers: { Authorization: `Bearer ${token}` } });
-      if (!res.ok) throw new Error("Export failed");
-      const blob = await res.blob();
-      if (Platform.OS === "web") {
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = "karigar_worker_report.pdf";
-        a.click();
-        URL.revokeObjectURL(url);
-        show(`PDF report downloaded!`, "success");
-      } else {
-        show(t("fullExportWebOnly"), "info");
-      }
-    } catch (e: any) {
-      show(e.message || t("genericError"), "error");
-    } finally {
-      setExportingFull(false);
-    }
-  };
-
   const clearFilters = () => {
     setSkill("all");
     setAvailability("all");
@@ -349,34 +203,47 @@ export default function WorkerSearch() {
   const activeFilterCount =
     (availability !== "all" ? 1 : 0) + (verification !== "all" ? 1 : 0) + (city ? 1 : 0);
 
-  const TableRow = ({ item, index }: { item: Worker; index: number }) => {
-    const skillsText = (item.skills || []).join(", ") || "—";
-    return (
-      <Pressable
-        onPress={() => router.push(`/admin/worker/${item.id}?from=search`)}
-        style={[styles.tableRow, { backgroundColor: index % 2 === 0 ? COLORS.surfaceSecondary : COLORS.surface }]}
-        testID={`table-row-${item.id}`}
-      >
-        <AppText size="sm" numberOfLines={1} style={[styles.tableCell, { width: colWidths.sno }]} color={COLORS.muted}>
-          {index + 1}
-        </AppText>
-        <AppText size="sm" numberOfLines={1} style={[styles.tableCell, { width: colWidths.name }]}>{item.full_name}</AppText>
-        <AppText size="sm" numberOfLines={1} style={[styles.tableCell, { width: colWidths.phone }]} color={COLORS.muted}>
-          {item.phone || "—"}
-        </AppText>
-        <Tooltip text={skillsText}>
-          <AppText size="sm" numberOfLines={2} style={[styles.tableCell, { width: colWidths.skill }]}>
-            {skillsText}
-          </AppText>
-        </Tooltip>
-        <AppText size="sm" numberOfLines={1} style={[styles.tableCell, { width: colWidths.city }]}>{item.city || "—"}</AppText>
-        <AppText size="sm" numberOfLines={1} style={[styles.tableCell, { width: colWidths.status, color: verificationColor(item.verification_status) }]}>
+  const tableColumns: ResizableTableColumn<Worker>[] = [
+    {
+      key: "sno", label: "S.No", width: 56, resizable: false,
+      render: (_item, index) => <AppText size="sm" color={COLORS.muted}>{index + 1}</AppText>,
+    },
+    {
+      key: "name", label: "Name", width: 160,
+      render: (item) => <AppText size="sm" numberOfLines={1}>{item.full_name}</AppText>,
+    },
+    {
+      key: "phone", label: "Phone", width: 130,
+      render: (item) => <AppText size="sm" numberOfLines={1} color={COLORS.muted}>{item.phone || "—"}</AppText>,
+    },
+    {
+      key: "skill", label: "Skill", width: 220,
+      render: (item) => {
+        const skillsText = (item.skills || []).join(", ") || "—";
+        return (
+          <Tooltip text={skillsText}>
+            <AppText size="sm" numberOfLines={2}>{skillsText}</AppText>
+          </Tooltip>
+        );
+      },
+    },
+    {
+      key: "city", label: "City", width: 120,
+      render: (item) => <AppText size="sm" numberOfLines={1}>{item.city || "—"}</AppText>,
+    },
+    {
+      key: "status", label: "Status", width: 140,
+      render: (item) => (
+        <AppText size="sm" numberOfLines={1} color={verificationColor(item.verification_status)}>
           {item.verification_status === "approved" ? "✅ Verified" : item.verification_status === "pending" ? "⏳ Pending" : "❌ Rejected"}
         </AppText>
-        <AppText size="sm" style={[styles.tableCell, { width: colWidths.exp }]}>{item.years_experience || 0} yrs</AppText>
-      </Pressable>
-    );
-  };
+      ),
+    },
+    {
+      key: "exp", label: "Exp", width: 80,
+      render: (item) => <AppText size="sm">{item.years_experience || 0} yrs</AppText>,
+    },
+  ];
 
   const GalleryModal = () => (
     <Modal visible={galleryVisible} animationType="slide" onRequestClose={() => setGalleryVisible(false)}>
@@ -533,30 +400,6 @@ export default function WorkerSearch() {
 
       <View style={styles.resultsBar}>
         <AppText size="sm" color={COLORS.muted}>{t("resultsCount", { count: total })}</AppText>
-        <View style={{ flexDirection: "row", gap: SPACING.md }}>
-          <Tooltip text="Download worker list as CSV file">
-            <Pressable onPress={onExport} style={styles.exportBtn} testID="export-csv-btn">
-              <Ionicons name="download-outline" size={16} color={COLORS.brandPrimary} />
-              <AppText size="sm" color={COLORS.brandPrimary} weight="semibold">{t("exportCsv")}</AppText>
-            </Pressable>
-          </Tooltip>
-          <Tooltip text="Download a quick 5-worker sample PDF (safe on free hosting tier)">
-            <Pressable onPress={() => onExportFull(5)} disabled={exportingFull} style={[styles.exportBtn, exportingFull && { opacity: 0.5 }]} testID="export-sample-btn">
-              <Ionicons name="document-text-outline" size={16} color={COLORS.brandSecondary} />
-              <AppText size="sm" color={COLORS.brandSecondary} weight="semibold">
-                {exportingFull ? t("exporting") : "Export Sample (5)"}
-              </AppText>
-            </Pressable>
-          </Tooltip>
-          <Tooltip text="Download professional PDF report with worker photos">
-            <Pressable onPress={() => onExportFull()} disabled={exportingFull} style={[styles.exportBtn, exportingFull && { opacity: 0.5 }]} testID="export-full-btn">
-              <Ionicons name="document-text-outline" size={16} color={COLORS.brandSecondary} />
-              <AppText size="sm" color={COLORS.brandSecondary} weight="semibold">
-                {exportingFull ? t("exporting") : "Export PDF Report"}
-              </AppText>
-            </Pressable>
-          </Tooltip>
-        </View>
       </View>
 
       {loading ? <Loader /> : viewMode === "card" ? (
@@ -585,33 +428,15 @@ export default function WorkerSearch() {
           )}
         />
       ) : (
-        <ScrollView style={{ flex: 1, width: "100%" }} showsVerticalScrollIndicator={true}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={true} style={{ width: "100%" }} contentContainerStyle={{ minWidth: "100%" }}>
-            <View style={{ minWidth: "100%" }}>
-              <View style={styles.tableHeader}>
-                {TABLE_COLUMNS.map((col) => (
-                  <View key={col.key} style={[styles.tableHeaderCell, { width: colWidths[col.key] }]}>
-                    <AppText weight="bold" size="sm" numberOfLines={1} color={COLORS.onBrandPrimary}>
-                      {col.label}
-                    </AppText>
-                    {col.resizable && (
-                      <ResizeHandle onResize={(delta) => resizeColumn(col.key, delta)} />
-                    )}
-                  </View>
-                ))}
-              </View>
-              {items.length === 0 ? (
-                <View style={{ padding: SPACING.xl }}>
-                  <AppText color={COLORS.muted}>{t("noWorkers")}</AppText>
-                </View>
-              ) : (
-                items.map((item, index) => (
-                  <TableRow key={item.id} item={item} index={index} />
-                ))
-              )}
-            </View>
-          </ScrollView>
-        </ScrollView>
+        <ResizableTable
+          columns={tableColumns}
+          data={items}
+          keyExtractor={(w) => w.id}
+          onRowPress={(w) => router.push(`/admin/worker/${w.id}?from=search`)}
+          testIDPrefix="table"
+          storageKey="admin_search_table"
+          emptyText={t("noWorkers")}
+        />
       )}
 
       <BottomSheet ref={sheetRef} index={-1} snapPoints={snapPoints} enablePanDownToClose backgroundStyle={{ backgroundColor: COLORS.surfaceSecondary }}>
@@ -649,27 +474,22 @@ export default function WorkerSearch() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.surface },
   header: { paddingHorizontal: SPACING.lg, paddingTop: SPACING.md },
-  titleRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: SPACING.sm },
+  titleRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: SPACING.md, zIndex: 10 },
   viewToggle: { flexDirection: "row", gap: 4, backgroundColor: COLORS.surfaceSecondary, borderRadius: RADIUS.md, padding: 4 },
   toggleBtn: { width: 36, height: 36, borderRadius: RADIUS.sm, alignItems: "center", justifyContent: "center" },
   toggleBtnActive: { backgroundColor: COLORS.brandPrimary },
-  searchRow: { flexDirection: "row", gap: SPACING.sm, marginTop: SPACING.sm },
-  searchBox: { flex: 1, flexDirection: "row", alignItems: "center", gap: SPACING.sm, backgroundColor: COLORS.surfaceSecondary, borderRadius: RADIUS.md, paddingHorizontal: SPACING.md, height: 48, borderWidth: 1, borderColor: COLORS.border },
+  searchRow: { flexDirection: "row", gap: SPACING.sm, marginTop: SPACING.md, zIndex: 1 },
+  searchBox: { flex: 1, maxWidth: 420, flexDirection: "row", alignItems: "center", gap: SPACING.sm, backgroundColor: COLORS.surfaceSecondary, borderRadius: RADIUS.md, paddingHorizontal: SPACING.md, height: 48, borderWidth: 1, borderColor: COLORS.border },
   searchInput: { flex: 1, fontSize: FONT.base, color: COLORS.onSurface },
   filterBtn: { width: 48, height: 48, borderRadius: RADIUS.md, backgroundColor: COLORS.brandPrimary, alignItems: "center", justifyContent: "center" },
   filterBadge: { position: "absolute", top: 4, right: 4, minWidth: 16, height: 16, borderRadius: 8, backgroundColor: COLORS.error, alignItems: "center", justifyContent: "center", paddingHorizontal: 3 },
   chipRowWrap: { height: 56, justifyContent: "center", marginTop: SPACING.sm },
   galleryHint: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: SPACING.lg, paddingVertical: SPACING.sm },
   resultsBar: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: SPACING.lg, paddingVertical: SPACING.sm },
-  exportBtn: { flexDirection: "row", alignItems: "center", gap: 4 },
   workerCard: { flexDirection: "row", alignItems: "center", gap: SPACING.md, backgroundColor: COLORS.surfaceSecondary, borderRadius: RADIUS.lg, padding: SPACING.md },
   miniDot: { width: 10, height: 10, borderRadius: 5 },
   wrap: { flexDirection: "row", flexWrap: "wrap", gap: SPACING.sm },
   sheetInput: { height: 48, borderWidth: 1, borderColor: COLORS.border, borderRadius: RADIUS.md, paddingHorizontal: SPACING.md, fontSize: FONT.base, color: COLORS.onSurface, backgroundColor: COLORS.surface },
-  tableHeader: { flexDirection: "row", backgroundColor: COLORS.brandPrimary, paddingVertical: SPACING.sm, paddingHorizontal: SPACING.md },
-  tableHeaderCell: { position: "relative", paddingHorizontal: 6 },
-  tableRow: { flexDirection: "row", paddingVertical: SPACING.sm, paddingHorizontal: SPACING.md, borderBottomWidth: 1, borderBottomColor: COLORS.border },
-  tableCell: { paddingHorizontal: 6 },
   galleryContainer: { flex: 1, backgroundColor: COLORS.surface },
   galleryHeader: { flexDirection: "row", alignItems: "center", padding: SPACING.lg, borderBottomWidth: 1, borderBottomColor: COLORS.border, paddingTop: SPACING["2xl"] },
   galleryBack: { width: 40, height: 40, alignItems: "center", justifyContent: "center", marginRight: SPACING.sm },
