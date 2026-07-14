@@ -95,19 +95,16 @@ function ResizableHeader({
             Platform.OS === "web"
               ? (e: MouseEvent) => {
                   e.preventDefault();
-                  const sx = e.clientX;
-                  const onMove = (me: MouseEvent) => onResize(me.clientX - sx);
+                  let lastX = e.clientX;
+                  const onMove = (me: MouseEvent) => {
+                    onResize(me.clientX - lastX);
+                    lastX = me.clientX;
+                  };
                   const onUp = () => {
                     window.removeEventListener("mousemove", onMove);
                     window.removeEventListener("mouseup", onUp);
                   };
-                  // Re-capture startX correctly with a closure-based approach
-                  let last = sx;
-                  const onMoveCorrect = (me: MouseEvent) => {
-                    onResize(me.clientX - last);
-                    last = me.clientX;
-                  };
-                  window.addEventListener("mousemove", onMoveCorrect);
+                  window.addEventListener("mousemove", onMove);
                   window.addEventListener("mouseup", onUp);
                 }
               : undefined
