@@ -1157,7 +1157,7 @@ async def admin_analytics(user: dict = Depends(require_roles(*ADMIN_ROLES))):
     }
 
 
-def _apply_filters(search, skill, availability, verification, city, area, min_exp, max_exp):
+def _apply_filters(search, skill, availability, verification, city, area, min_exp, max_exp, registered_date=None):
     query = {}
     if search:
         query["$or"] = [
