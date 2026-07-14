@@ -1182,12 +1182,14 @@ def _apply_filters(search, skill, availability, verification, city, area, min_ex
         query["years_experience"] = exp
     return query
 
+
 _AVAIL_IST = timezone(timedelta(hours=5, minutes=30))
 
 
 async def _refresh_availability_statuses() -> int:
     """Flip any worker whose `available_from` date has arrived (today or
-    earlier) from 'available_from' -> 'available_now'."""
+    earlier) from 'available_from' -> 'available_now'. Returns the number
+    of workers updated. Cheap no-op query when nothing needs flipping."""
     today_str = datetime.now(_AVAIL_IST).strftime("%Y-%m-%d")
     result = await db.workers.update_many(
         {
@@ -1203,6 +1205,7 @@ async def _refresh_availability_statuses() -> int:
         )
     return result.modified_count
 
+
 @api_router.get("/admin/workers")
 async def admin_search_workers(
     user: dict = Depends(require_roles(*ADMIN_ROLES)),
@@ -1217,6 +1220,9 @@ async def admin_search_workers(
     page: int = 1,
     page_size: int = 100,
 ):
+    # Keep availability_status live: any worker whose available_from date
+    # has passed gets flipped to available_now before we query/filter.
+    await _refresh_availability_statuses()
     query = _apply_filters(search, skill, availability, verification, city, area, min_exp, max_exp)
     total = await db.workers.count_documents(query)
     cursor = db.workers.find(
@@ -1582,6 +1588,9 @@ async def seed_data():
 
         await _ensure_indexes()
 
+        # ── Flip any workers whose available_from date has already passed ──
+        await _refresh_availability_statuses()
+
         # ── Start daily summary scheduler ────────────────────────────────────
         asyncio.create_task(_daily_summary_loop())
         logger.info("Daily summary scheduler started.")
@@ -1607,6 +1616,9 @@ async def _daily_summary_loop():
             await asyncio.sleep(30 * 60)          # check every 30 minutes
             now_ist  = datetime.now(_IST)
             today_str = now_ist.strftime("%Y-%m-%d")
+
+            # Keep availability_status live even when no admin is browsing
+            await _refresh_availability_statuses()
 
             # Send only once per day, at or after 17:30 IST
             if (
