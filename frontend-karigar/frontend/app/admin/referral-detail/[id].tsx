@@ -13,6 +13,8 @@ interface ReferredPerson {
   name: string;
   phone: string;
   status: string;
+  verification_status?: string | null;
+  verified: boolean;
   payout_amount_rs: number;
   created_at: string;
 }
@@ -32,12 +34,13 @@ const STATUS_LABELS: Record<string, { label: string; color: string }> = {
 };
 
 const COLS = [
-  { key: "sino",   label: "S.No",   width: 50 },
-  { key: "name",   label: "Name",   width: 160 },
-  { key: "phone",  label: "Phone",  width: 120 },
-  { key: "status", label: "Status", width: 130 },
-  { key: "paid",   label: "Paid (₹)", width: 100 },
-  { key: "date",   label: "Date",   width: 110 },
+  { key: "sino",     label: "S.No",     width: 50 },
+  { key: "name",     label: "Name",     width: 160 },
+  { key: "phone",    label: "Phone",    width: 120 },
+  { key: "status",   label: "Status",   width: 130 },
+  { key: "verified", label: "Verified", width: 100 },
+  { key: "paid",     label: "Paid (₹)", width: 100 },
+  { key: "date",     label: "Date",     width: 110 },
 ];
 const TABLE_WIDTH = COLS.reduce((s, c) => s + c.width, 0);
 
@@ -103,8 +106,17 @@ export default function AdminReferralDetail() {
                   <Cell width={COLS[1].width}><AppText size="sm" weight="semibold">{p.name}</AppText></Cell>
                   <Cell width={COLS[2].width}><AppText size="sm" color={COLORS.muted}>{p.phone}</AppText></Cell>
                   <Cell width={COLS[3].width}><AppText size="sm" weight="semibold" color={statusInfo.color}>{statusInfo.label}</AppText></Cell>
-                  <Cell width={COLS[4].width}><AppText size="sm" color={COLORS.success}>₹{p.payout_amount_rs}</AppText></Cell>
-                  <Cell width={COLS[5].width}>
+                  <Cell width={COLS[4].width}>
+                    {canReview ? (
+                      <AppText size="sm" weight="semibold" color={p.verified ? COLORS.success : COLORS.warning}>
+                        {p.verified ? "Verified" : "Not Verified"}
+                      </AppText>
+                    ) : (
+                      <AppText size="sm" color={COLORS.muted}>—</AppText>
+                    )}
+                  </Cell>
+                  <Cell width={COLS[5].width}><AppText size="sm" color={COLORS.success}>₹{p.payout_amount_rs}</AppText></Cell>
+                  <Cell width={COLS[6].width}>
                     <AppText size="sm" color={COLORS.muted}>
                       {new Date(p.created_at).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
                     </AppText>
