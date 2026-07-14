@@ -1133,10 +1133,14 @@ async def admin_delete_worker(worker_id: str, user: dict = Depends(require_roles
     archived["rejected_at"] = now_iso()
     await db.rejected_profiles.insert_one(archived)
 
+   # REPLACE WITH:
     await db.workers.delete_one({"id": worker_id})
-    await db.referrals.delete_many({"$or": [
-        {"referred_worker_id": worker_id}, {"referrer_worker_id": worker_id},
-    ]})
+    # Only clean up referral rows where THIS worker was the one being
+    # referred (their own onboarding link). Rows where this worker was the
+    # REFERRER are intentionally kept — those belong to the people they
+    # referred, and deleting them would wipe out those referred users'
+    # status/payout history even though their own profiles are untouched.
+    await db.referrals.delete_many({"referred_worker_id": worker_id})
     await db.notifications.delete_many({"recipient_worker_id": worker_id})
     return {"success": True, "deleted": True, "archived": True}
 
