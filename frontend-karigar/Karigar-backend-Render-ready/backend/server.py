@@ -1282,12 +1282,12 @@ async def reject_worker(worker_id: str, payload: RejectPayload, user: dict = Dep
     archived["rejected_at"] = now_iso()
     await db.rejected_profiles.insert_one(archived)
 
-    # Note: images are intentionally kept in storage (not deleted) so the
-    # archived record above remains fully viewable for future reference.
+   # REPLACE WITH:
     await db.workers.delete_one({"id": worker_id})
-    await db.referrals.delete_many({"$or": [
-        {"referred_worker_id": worker_id}, {"referrer_worker_id": worker_id},
-    ]})
+    # Same reasoning as admin_delete_worker: only remove the referral row
+    # for this worker's own onboarding link, not the ones where this
+    # worker was the referrer for someone else.
+    await db.referrals.delete_many({"referred_worker_id": worker_id})
     await db.notifications.delete_many({"recipient_worker_id": worker_id})
     return {"success": True, "deleted": True, "archived": True}
 
