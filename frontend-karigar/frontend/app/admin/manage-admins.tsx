@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from "react";
-import { View, StyleSheet, ScrollView, Pressable, ActivityIndicator, Alert } from "react-native";
+import { View, StyleSheet, ScrollView, Pressable, ActivityIndicator, Alert, Modal, TextInput } from "react-native";
 import { useRouter } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
@@ -32,6 +32,9 @@ export default function ManageAdmins() {
   const [admins, setAdmins] = useState<Admin[]>([]);
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [confirmTarget, setConfirmTarget] = useState<Admin | null>(null);
+  const [confirmPhone, setConfirmPhone] = useState("");
+  const [confirmError, setConfirmError] = useState("");
 
   const load = useCallback(async () => {
     try {
@@ -58,21 +61,46 @@ export default function ManageAdmins() {
         {
           text: "Remove",
           style: "destructive",
-          onPress: async () => {
-            setDeletingId(admin.id);
-            try {
-              await apiFetch(`/auth/admins/${admin.id}`, { method: "DELETE" });
-              show("Admin removed", "success");
-              setAdmins((prev) => prev.filter((x) => x.id !== admin.id));
-            } catch (e: any) {
-              show(e.message || "Could not remove admin", "error");
-            } finally {
-              setDeletingId(null);
-            }
+          onPress: () => {
+            // Role alone isn't enough to prove who is asking for this —
+            // the acting Manager must also re-enter their own registered
+            // mobile number before the deletion is actually sent.
+            setConfirmPhone("");
+            setConfirmError("");
+            setConfirmTarget(admin);
           },
         },
       ]
     );
+  };
+
+  const closeConfirm = () => {
+    setConfirmTarget(null);
+    setConfirmPhone("");
+    setConfirmError("");
+  };
+
+  const submitDelete = async () => {
+    if (!confirmTarget) return;
+    if (confirmPhone.trim().length !== 10 || !/^\d{10}$/.test(confirmPhone.trim())) {
+      setConfirmError("Enter your own 10-digit mobile number to confirm");
+      return;
+    }
+    const admin = confirmTarget;
+    setDeletingId(admin.id);
+    try {
+      await apiFetch(`/auth/admins/${admin.id}`, {
+        method: "DELETE",
+        body: { confirm_phone: confirmPhone.trim() },
+      });
+      show("Admin removed", "success");
+      setAdmins((prev) => prev.filter((x) => x.id !== admin.id));
+      closeConfirm();
+    } catch (e: any) {
+      setConfirmError(e.message || "Could not remove admin");
+    } finally {
+      setDeletingId(null);
+    }
   };
 
   return (
@@ -220,6 +248,57 @@ export default function ManageAdmins() {
           </AppText>
         </ScrollView>
       )}
+
+      {/* ── Delete confirmation: verify role (already checked) + own mobile number ── */}
+      <Modal visible={!!confirmTarget} transparent animationType="fade" onRequestClose={closeConfirm}>
+        <View style={styles.modalBackdrop}>
+          <View style={[styles.modalCard, shadow]}>
+            <AppText weight="semibold" size="lg" style={{ color: COLORS.onSurface }}>
+              Confirm removal
+            </AppText>
+            <AppText size="sm" style={{ color: COLORS.muted, marginTop: 4, marginBottom: SPACING.md }}>
+              For security, enter your own registered mobile number to confirm you want to remove{" "}
+              {confirmTarget?.name || confirmTarget?.phone}.
+            </AppText>
+            <View style={styles.modalInputWrap}>
+              <View style={styles.ccBadge}>
+                <AppText weight="semibold" size="sm" style={{ color: COLORS.onSurface }}>+91</AppText>
+              </View>
+              <TextInput
+                value={confirmPhone}
+                onChangeText={(t) => { setConfirmPhone(t.replace(/[^0-9]/g, "")); setConfirmError(""); }}
+                placeholder="Your mobile number"
+                placeholderTextColor={COLORS.muted}
+                keyboardType="phone-pad"
+                maxLength={10}
+                style={styles.modalInput}
+                testID="confirm-delete-phone"
+                autoFocus
+              />
+            </View>
+            {!!confirmError && (
+              <AppText size="sm" style={{ color: COLORS.error, marginTop: 6 }}>{confirmError}</AppText>
+            )}
+            <View style={{ flexDirection: "row", gap: SPACING.md, marginTop: SPACING.lg }}>
+              <Pressable style={styles.modalCancelBtn} onPress={closeConfirm} testID="cancel-confirm-delete">
+                <AppText weight="semibold" size="base" style={{ color: COLORS.onSurface }}>Cancel</AppText>
+              </Pressable>
+              <Pressable
+                style={[styles.modalDeleteBtn, deletingId === confirmTarget?.id && { opacity: 0.7 }]}
+                onPress={submitDelete}
+                disabled={deletingId === confirmTarget?.id}
+                testID="confirm-delete-admin"
+              >
+                {deletingId === confirmTarget?.id ? (
+                  <ActivityIndicator size="small" color={COLORS.onBrandPrimary ?? "#fff"} />
+                ) : (
+                  <AppText weight="semibold" size="base" style={{ color: "#fff" }}>Remove</AppText>
+                )}
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -322,5 +401,66 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginTop: SPACING.xl,
     paddingHorizontal: SPACING.lg,
+  },
+
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.45)",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: SPACING.lg,
+  },
+  modalCard: {
+    width: "100%",
+    maxWidth: 380,
+    backgroundColor: COLORS.surfaceSecondary,
+    borderRadius: RADIUS.md,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    padding: SPACING.lg,
+  },
+  modalInputWrap: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: RADIUS.md,
+    backgroundColor: COLORS.surface,
+    height: 44,
+  },
+  ccBadge: {
+    height: 44,
+    paddingHorizontal: SPACING.sm,
+    justifyContent: "center",
+    borderRightWidth: 1,
+    borderRightColor: COLORS.border,
+    backgroundColor: COLORS.surfaceTertiary,
+    borderTopLeftRadius: RADIUS.md,
+    borderBottomLeftRadius: RADIUS.md,
+  },
+  modalInput: {
+    flex: 1,
+    paddingHorizontal: SPACING.sm,
+    fontSize: FONT.base,
+    color: COLORS.onSurface,
+    height: "100%",
+  },
+  modalCancelBtn: {
+    flex: 1,
+    height: 44,
+    borderRadius: RADIUS.md,
+    borderWidth: 1,
+    borderColor: COLORS.borderStrong,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: COLORS.surfaceSecondary,
+  },
+  modalDeleteBtn: {
+    flex: 1,
+    height: 44,
+    borderRadius: RADIUS.md,
+    backgroundColor: COLORS.error,
+    alignItems: "center",
+    justifyContent: "center",
   },
 });
