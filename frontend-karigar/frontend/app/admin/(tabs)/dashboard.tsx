@@ -212,6 +212,8 @@ export default function AdminDashboard() {
             onBarPress={(_bar, i) => {
               const day = a.registration_trend[i];
               if (!day) return;
+              router.push(`/admin/registrations/${day.date}`);
+              return;
               const prettyDate = new Date(day.date + "T00:00:00").toLocaleDateString(undefined, {
                 weekday: "short",
                 month: "short",
