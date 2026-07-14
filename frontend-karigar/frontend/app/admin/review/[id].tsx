@@ -128,7 +128,14 @@ export default function ReviewScreen() {
       <Loader />
       )}
 
-      {worker && (
+      {worker && worker.verification_status === "approved" ? (
+        <View style={[styles.footer, styles.verifiedFooter, { paddingBottom: insets.bottom + SPACING.md }]}>
+          <Ionicons name="checkmark-circle" size={20} color={COLORS.success} />
+          <AppText weight="semibold" size="base" style={{ color: COLORS.success, marginLeft: 8 }}>
+            This profile is already verified
+          </AppText>
+        </View>
+      ) : worker ? (
         <View style={[styles.footer, { paddingBottom: insets.bottom + SPACING.md }]}>
           <View style={{ flex: 1 }}>
             <Button title={t("reject")} variant="danger" onPress={() => sheetRef.current?.expand()} icon="trash" testID="reject-btn" />
@@ -137,7 +144,7 @@ export default function ReviewScreen() {
             <Button title={t("approve")} variant="success" onPress={approve} loading={busy} icon="checkmark" testID="approve-btn" />
           </View>
         </View>
-      )}
+      ) : null}
 
       <BottomSheet ref={sheetRef} index={-1} snapPoints={["48%"]} enablePanDownToClose keyboardBehavior="interactive" backgroundStyle={{ backgroundColor: COLORS.surfaceSecondary }}>
         <BottomSheetView style={{ padding: SPACING.lg }}>
@@ -172,6 +179,12 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surface,
     borderTopWidth: 1,
     borderTopColor: COLORS.divider,
+  },
+  verifiedFooter: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: SPACING.md,
   },
   input: {
     minHeight: 90,
