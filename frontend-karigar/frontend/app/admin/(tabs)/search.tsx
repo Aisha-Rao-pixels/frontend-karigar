@@ -95,6 +95,79 @@ const tooltipStyles = StyleSheet.create({
   },
 });
 
+// ── Resizable table columns ─────────────────────────────────────────────────
+const DEFAULT_COL_WIDTHS: Record<string, number> = {
+  sno: 56,
+  name: 160,
+  phone: 130,
+  skill: 220,
+  city: 120,
+  status: 140,
+  exp: 80,
+};
+
+const TABLE_COLUMNS: { key: keyof typeof DEFAULT_COL_WIDTHS; label: string; resizable: boolean }[] = [
+  { key: "sno", label: "S.No", resizable: false },
+  { key: "name", label: "Name", resizable: true },
+  { key: "phone", label: "Phone", resizable: true },
+  { key: "skill", label: "Skill", resizable: true },
+  { key: "city", label: "City", resizable: true },
+  { key: "status", label: "Status", resizable: true },
+  { key: "exp", label: "Exp", resizable: true },
+];
+
+const MIN_COL_WIDTH = 56;
+
+// Drag-to-resize handle. Web only (mouse-driven); native table stays at
+// the default/persisted widths since a touch-drag column resizer isn't
+// worth the added complexity on a phone screen.
+function ResizeHandle({ onResize }: { onResize: (deltaX: number) => void }) {
+  const dragging = useRef(false);
+
+  if (Platform.OS !== "web") return null;
+
+  const onMouseDown = (e: any) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragging.current = true;
+    let lastX = e.clientX;
+
+    const onMouseMove = (moveEvent: MouseEvent) => {
+      if (!dragging.current) return;
+      const delta = moveEvent.clientX - lastX;
+      lastX = moveEvent.clientX;
+      onResize(delta);
+    };
+    const onMouseUp = () => {
+      dragging.current = false;
+      window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("mouseup", onMouseUp);
+    };
+    window.addEventListener("mousemove", onMouseMove);
+    window.addEventListener("mouseup", onMouseUp);
+  };
+
+  return (
+    <View
+      // @ts-ignore - web-only pointer handler + cursor style
+      onMouseDown={onMouseDown}
+      // @ts-ignore
+      style={[tableResizeStyles.handle, Platform.OS === "web" ? { cursor: "col-resize" } : null]}
+    />
+  );
+}
+
+const tableResizeStyles = StyleSheet.create({
+  handle: {
+    position: "absolute",
+    right: -4,
+    top: 0,
+    bottom: 0,
+    width: 8,
+    zIndex: 2,
+  },
+});
+
 export default function WorkerSearch() {
   const router = useRouter();
   const { t } = useTranslation();
@@ -113,6 +186,7 @@ export default function WorkerSearch() {
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewModeState] = useState<"card" | "table">("card");
   const [viewModeLoaded, setViewModeLoaded] = useState(false);
+  const [colWidths, setColWidths] = useState<Record<string, number>>(DEFAULT_COL_WIDTHS);
   const [gallerySkill, setGallerySkill] = useState<string | null>(null);
   const [galleryWorkers, setGalleryWorkers] = useState<Worker[]>([]);
   const [galleryLoading, setGalleryLoading] = useState(false);
@@ -129,9 +203,30 @@ export default function WorkerSearch() {
     });
   }, []);
 
+  // Restore last-used table column widths on mount
+  useEffect(() => {
+    storage.getItem<string | null>("admin_search_col_widths", null).then((v) => {
+      if (!v) return;
+      try {
+        const parsed = JSON.parse(v);
+        setColWidths((w) => ({ ...w, ...parsed }));
+      } catch {
+        // ignore corrupt/old value
+      }
+    });
+  }, []);
+
   const setViewMode = useCallback((mode: "card" | "table") => {
     setViewModeState(mode);
     storage.setItem("admin_search_view_mode", mode);
+  }, []);
+
+  const resizeColumn = useCallback((key: string, delta: number) => {
+    setColWidths((w) => {
+      const next = { ...w, [key]: Math.max(MIN_COL_WIDTH, (w[key] ?? DEFAULT_COL_WIDTHS[key]) + delta) };
+      storage.setItem("admin_search_col_widths", JSON.stringify(next));
+      return next;
+    });
   }, []);
 
   const buildQuery = useCallback(
@@ -254,24 +349,34 @@ export default function WorkerSearch() {
   const activeFilterCount =
     (availability !== "all" ? 1 : 0) + (verification !== "all" ? 1 : 0) + (city ? 1 : 0);
 
-  const TableRow = ({ item, index }: { item: Worker; index: number }) => (
-    <Pressable
-      onPress={() => router.push(`/admin/worker/${item.id}?from=search`)}
-      style={[styles.tableRow, { backgroundColor: index % 2 === 0 ? COLORS.surfaceSecondary : COLORS.surface }]}
-      testID={`table-row-${item.id}`}
-    >
-      <AppText size="sm" numberOfLines={1} style={styles.tableCell}>{item.full_name}</AppText>
-      <AppText size="sm" numberOfLines={1} style={styles.tableCell} color={COLORS.muted}>
-        {item.phone || "—"}
-      </AppText>
-      <AppText size="sm" numberOfLines={1} style={styles.tableCell}>{item.skills?.[0] || "—"}</AppText>
-      <AppText size="sm" numberOfLines={1} style={styles.tableCell}>{item.city || "—"}</AppText>
-      <AppText size="sm" numberOfLines={1} style={[styles.tableCell, { color: verificationColor(item.verification_status) }]}>
-        {item.verification_status === "approved" ? "✅ Verified" : item.verification_status === "pending" ? "⏳ Pending" : "❌ Rejected"}
-      </AppText>
-      <AppText size="sm" style={styles.tableCell}>{item.years_experience || 0} yrs</AppText>
-    </Pressable>
-  );
+  const TableRow = ({ item, index }: { item: Worker; index: number }) => {
+    const skillsText = (item.skills || []).join(", ") || "—";
+    return (
+      <Pressable
+        onPress={() => router.push(`/admin/worker/${item.id}?from=search`)}
+        style={[styles.tableRow, { backgroundColor: index % 2 === 0 ? COLORS.surfaceSecondary : COLORS.surface }]}
+        testID={`table-row-${item.id}`}
+      >
+        <AppText size="sm" numberOfLines={1} style={[styles.tableCell, { width: colWidths.sno }]} color={COLORS.muted}>
+          {index + 1}
+        </AppText>
+        <AppText size="sm" numberOfLines={1} style={[styles.tableCell, { width: colWidths.name }]}>{item.full_name}</AppText>
+        <AppText size="sm" numberOfLines={1} style={[styles.tableCell, { width: colWidths.phone }]} color={COLORS.muted}>
+          {item.phone || "—"}
+        </AppText>
+        <Tooltip text={skillsText}>
+          <AppText size="sm" numberOfLines={2} style={[styles.tableCell, { width: colWidths.skill }]}>
+            {skillsText}
+          </AppText>
+        </Tooltip>
+        <AppText size="sm" numberOfLines={1} style={[styles.tableCell, { width: colWidths.city }]}>{item.city || "—"}</AppText>
+        <AppText size="sm" numberOfLines={1} style={[styles.tableCell, { width: colWidths.status, color: verificationColor(item.verification_status) }]}>
+          {item.verification_status === "approved" ? "✅ Verified" : item.verification_status === "pending" ? "⏳ Pending" : "❌ Rejected"}
+        </AppText>
+        <AppText size="sm" style={[styles.tableCell, { width: colWidths.exp }]}>{item.years_experience || 0} yrs</AppText>
+      </Pressable>
+    );
+  };
 
   const GalleryModal = () => (
     <Modal visible={galleryVisible} animationType="slide" onRequestClose={() => setGalleryVisible(false)}>
@@ -467,7 +572,7 @@ export default function WorkerSearch() {
                 <View style={{ flex: 1 }}>
                   <AppText weight="bold" size="base" numberOfLines={1}>{item.full_name}</AppText>
                   <AppText size="sm" color={COLORS.muted} numberOfLines={1}>
-                    {item.skills[0]} · {item.years_experience} {t("yearsShort")} · {item.city}
+                    {(item.skills || []).join(", ") || "—"} · {item.years_experience} {t("yearsShort")} · {item.city}
                   </AppText>
                   <View style={{ flexDirection: "row", gap: SPACING.sm, marginTop: 6 }}>
                     <View style={[styles.miniDot, { backgroundColor: availabilityColor(item.availability_status) }]} />
@@ -484,8 +589,15 @@ export default function WorkerSearch() {
           <ScrollView horizontal showsHorizontalScrollIndicator={true} style={{ width: "100%" }} contentContainerStyle={{ minWidth: "100%" }}>
             <View style={{ minWidth: "100%" }}>
               <View style={styles.tableHeader}>
-                {["Name", "Phone", "Skill", "City", "Status", "Exp"].map((h) => (
-                  <AppText key={h} weight="bold" size="sm" style={styles.tableCell} color={COLORS.onBrandPrimary}>{h}</AppText>
+                {TABLE_COLUMNS.map((col) => (
+                  <View key={col.key} style={[styles.tableHeaderCell, { width: colWidths[col.key] }]}>
+                    <AppText weight="bold" size="sm" numberOfLines={1} color={COLORS.onBrandPrimary}>
+                      {col.label}
+                    </AppText>
+                    {col.resizable && (
+                      <ResizeHandle onResize={(delta) => resizeColumn(col.key, delta)} />
+                    )}
+                  </View>
                 ))}
               </View>
               {items.length === 0 ? (
@@ -554,9 +666,10 @@ const styles = StyleSheet.create({
   miniDot: { width: 10, height: 10, borderRadius: 5 },
   wrap: { flexDirection: "row", flexWrap: "wrap", gap: SPACING.sm },
   sheetInput: { height: 48, borderWidth: 1, borderColor: COLORS.border, borderRadius: RADIUS.md, paddingHorizontal: SPACING.md, fontSize: FONT.base, color: COLORS.onSurface, backgroundColor: COLORS.surface },
-  tableHeader: { flexDirection: "row", backgroundColor: COLORS.brandPrimary, paddingVertical: SPACING.sm, paddingHorizontal: SPACING.md, width: "100%" },
-  tableRow: { flexDirection: "row", paddingVertical: SPACING.sm, paddingHorizontal: SPACING.md, borderBottomWidth: 1, borderBottomColor: COLORS.border, width: "100%" },
-  tableCell: { flex: 1, minWidth: 110, paddingHorizontal: 6 },
+  tableHeader: { flexDirection: "row", backgroundColor: COLORS.brandPrimary, paddingVertical: SPACING.sm, paddingHorizontal: SPACING.md },
+  tableHeaderCell: { position: "relative", paddingHorizontal: 6 },
+  tableRow: { flexDirection: "row", paddingVertical: SPACING.sm, paddingHorizontal: SPACING.md, borderBottomWidth: 1, borderBottomColor: COLORS.border },
+  tableCell: { paddingHorizontal: 6 },
   galleryContainer: { flex: 1, backgroundColor: COLORS.surface },
   galleryHeader: { flexDirection: "row", alignItems: "center", padding: SPACING.lg, borderBottomWidth: 1, borderBottomColor: COLORS.border, paddingTop: SPACING["2xl"] },
   galleryBack: { width: 40, height: 40, alignItems: "center", justifyContent: "center", marginRight: SPACING.sm },
