@@ -125,8 +125,11 @@ function ResizableHeader({
             Platform.OS === "web"
               ? (e: MouseEvent) => {
                   e.preventDefault();
-                  const startXW = e.clientX;
-                  const onMove = (me: MouseEvent) => onResize(me.clientX - startXW);
+                  let lastX = e.clientX;
+                  const onMove = (me: MouseEvent) => {
+                    onResize(me.clientX - lastX);
+                    lastX = me.clientX;
+                  };
                   const onUp = () => {
                     window.removeEventListener("mousemove", onMove);
                     window.removeEventListener("mouseup", onUp);
