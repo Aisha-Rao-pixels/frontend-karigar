@@ -875,6 +875,80 @@ async def admin_referral_detail(worker_id: str, user: dict = Depends(require_rol
     }
 
 
+@api_router.post("/admin/referrals/{referral_id}/mark-paid")
+async def mark_referral_paid(referral_id: str, user: dict = Depends(require_roles(*ADMIN_ROLES))):
+    # This is the ONLY place a referral's status becomes "paid". There is no
+    # live payment-gateway integration, so this must be called by an admin
+    # only AFTER they have actually sent the ₹50 to the referrer themselves
+    # (e.g. via UPI outside the app). It intentionally will not fire unless
+    # the referrer has a payout number on file, so we don't mark something
+    # "paid" with nowhere for the money to have gone.
+    ref = await db.referrals.find_one({"id": referral_id})
+    if not ref:
+        raise HTTPException(status_code=404, detail="Referral not found")
+    if ref.get("status") == "paid":
+        raise HTTPException(status_code=400, detail="This referral is already marked as paid")
+    if ref.get("status") not in ("pending", "reward_triggered"):
+        raise HTTPException(status_code=400, detail="This referral has no reward pending yet")
+    referrer = await db.workers.find_one({"id": ref.get("referrer_worker_id")})
+    if not referrer or not referrer.get("upi_id"):
+        raise HTTPException(status_code=400, detail="Referrer has no PhonePe/Google Pay number on file yet")
+    await db.referrals.update_one({"id": referral_id}, {"$set": {
+        "status": "paid", "paid_by": user["id"], "paid_at": now_iso(),
+    }})
+    await _notify_worker(referrer, "referral_reward",
+        "Referral Reward Paid ₹50", "रेफ़रल इनाम ₹50 भेजा गया", "రెఫరల్ రివార్డ్ ₹50 చెల్లించబడింది",
+        "₹50 has been sent to your PhonePe/Google Pay number for a successful referral.",
+        "एक सफल रेफ़रल के लिए ₹50 आपके PhonePe/Google Pay नंबर पर भेजे गए हैं।",
+        "విజయవంతమైన రెఫరల్ కోసం ₹50 మీ PhonePe/Google Pay నంబర్‌కు పంపబడ్డాయి.")
+    return {"success": True}
+
+
+@api_router.get("/admin/referrals/list")
+async def admin_referrals_list(category: str, user: dict = Depends(require_roles(*ADMIN_ROLES))):
+    # Backs the clickable KPI cards on the Referral Dashboard — each card
+    # opens this same endpoint filtered to its own category, so the number
+    # on the card and the rows on the following page always match.
+    status_filter = {
+        "referred":   None,
+        "registered": {"$in": ["pending", "reward_triggered", "paid"]},
+        "logged_in":  "account_created",
+        "paid":       "paid",
+        "pending":    {"$in": ["pending", "reward_triggered"]},
+    }
+    if category not in status_filter:
+        raise HTTPException(status_code=400, detail="Unknown category")
+
+    query: dict = {}
+    if status_filter[category] is not None:
+        query["status"] = status_filter[category]
+
+    refs = await db.referrals.find(query).sort("created_at", -1).to_list(10000)
+
+    rows = []
+    for r in refs:
+        referrer = await db.workers.find_one({"id": r.get("referrer_worker_id")})
+        name = "Not registered yet"
+        if r.get("referred_worker_id"):
+            w = await db.workers.find_one({"id": r["referred_worker_id"]})
+            if w:
+                name = w.get("full_name") or name
+        rows.append({
+            "referral_id": r["id"],
+            "referrer_name": referrer.get("full_name") if referrer else "Unknown",
+            "referrer_phone": referrer.get("phone") if referrer else "—",
+            "referrer_worker_id": r.get("referrer_worker_id"),
+            "referrer_has_payout_number": bool(referrer and referrer.get("upi_id")),
+            "name": name,
+            "phone": r.get("referred_phone") or "—",
+            "worker_id": r.get("referred_worker_id"),
+            "status": r.get("status"),
+            "payout_amount_rs": r.get("payout_amount_rs", 0),
+            "created_at": r.get("created_at"),
+        })
+    return {"category": category, "rows": rows}
+
+
 @api_router.get("/admin/metrics")
 async def admin_metrics(user: dict = Depends(require_roles(*ADMIN_ROLES))):
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
@@ -1133,14 +1207,10 @@ async def admin_delete_worker(worker_id: str, user: dict = Depends(require_roles
     archived["rejected_at"] = now_iso()
     await db.rejected_profiles.insert_one(archived)
 
-   # REPLACE WITH:
     await db.workers.delete_one({"id": worker_id})
-    # Only clean up referral rows where THIS worker was the one being
-    # referred (their own onboarding link). Rows where this worker was the
-    # REFERRER are intentionally kept — those belong to the people they
-    # referred, and deleting them would wipe out those referred users'
-    # status/payout history even though their own profiles are untouched.
-    await db.referrals.delete_many({"referred_worker_id": worker_id})
+    await db.referrals.delete_many({"$or": [
+        {"referred_worker_id": worker_id}, {"referrer_worker_id": worker_id},
+    ]})
     await db.notifications.delete_many({"recipient_worker_id": worker_id})
     return {"success": True, "deleted": True, "archived": True}
 
@@ -1242,21 +1312,30 @@ async def approve_worker(worker_id: str, background_tasks: BackgroundTasks, user
     ref = await db.referrals.find_one({"referred_worker_id": worker_id, "status": "pending"})
     if ref:
         referrer = await db.workers.find_one({"id": ref["referrer_worker_id"]})
-        if referrer and referrer.get("upi_id"):
-            await db.referrals.update_one({"id": ref["id"]}, {"$set": {
-                "status": "paid", "razorpay_payout_id": "MOCK_" + new_id()[:8]}})
-            await _notify_worker(referrer, "referral_reward",
-                "Referral Reward Paid ₹50", "रेफ़रल इनाम ₹50 भेजा गया", "రెఫరల్ రివార్డ్ ₹50 చెల్లించబడింది",
-                "₹50 has been sent to your PhonePe/Google Pay number for a successful referral.",
-                "एक सफल रेफ़रल के लिए ₹50 आपके PhonePe/Google Pay नंबर पर भेजे गए हैं।",
-                "విజయవంతమైన రెఫరల్ కోసం ₹50 మీ PhonePe/Google Pay నంబర్‌కు పంపబడ్డాయి.")
-        elif referrer:
+        if referrer:
+            # IMPORTANT: there is no real payment-gateway integration in this
+            # app (no live Razorpay/UPI payout call anywhere). Approving a
+            # worker only means the referral REWARD HAS BEEN EARNED — it must
+            # never be auto-marked "paid" here, because that previously told
+            # referrers (and the admin dashboard) that ₹50 had already been
+            # sent when nothing had actually happened. Status is now always
+            # set to "reward_triggered" (earned, awaiting payout); the ONLY
+            # place status becomes "paid" is POST
+            # /admin/referrals/{id}/mark-paid, which an admin calls after
+            # they have actually sent the money themselves.
             await db.referrals.update_one({"id": ref["id"]}, {"$set": {"status": "reward_triggered"}})
-            await _notify_worker(referrer, "referral_reward",
-                "Add PhonePe/Google Pay to claim ₹50", "₹50 पाने के लिए PhonePe/Google Pay जोड़ें", "₹50 పొందడానికి PhonePe/Google Pay జోడించండి",
-                "You earned ₹50! Add your PhonePe/Google Pay number to claim the reward.",
-                "आपने ₹50 कमाए! इनाम पाने के लिए अपना PhonePe/Google Pay नंबर जोड़ें।",
-                "మీరు ₹50 సంపాదించారు! రివార్డ్ పొందడానికి మీ PhonePe/Google Pay నంబర్‌ను జోడించండి.")
+            if referrer.get("upi_id"):
+                await _notify_worker(referrer, "referral_reward",
+                    "You earned ₹50 — reward on its way", "आपने ₹50 कमाए — इनाम जल्द भेजा जाएगा", "మీరు ₹50 సంపాదించారు — రివార్డ్ త్వరలో పంపబడుతుంది",
+                    "You earned ₹50 for a successful referral! It will be sent to your PhonePe/Google Pay number shortly.",
+                    "एक सफल रेफ़रल के लिए आपने ₹50 कमाए! यह जल्द ही आपके PhonePe/Google Pay नंबर पर भेजा जाएगा।",
+                    "విజయవంతమైన రెఫరల్ కోసం మీరు ₹50 సంపాదించారు! ఇది త్వరలో మీ PhonePe/Google Pay నంబర్‌కు పంపబడుతుంది.")
+            else:
+                await _notify_worker(referrer, "referral_reward",
+                    "Add PhonePe/Google Pay to claim ₹50", "₹50 पाने के लिए PhonePe/Google Pay जोड़ें", "₹50 పొందడానికి PhonePe/Google Pay జోడించండి",
+                    "You earned ₹50! Add your PhonePe/Google Pay number to claim the reward.",
+                    "आपने ₹50 कमाए! इनाम पाने के लिए अपना PhonePe/Google Pay नंबर जोड़ें।",
+                    "మీరు ₹50 సంపాదించారు! రివార్డ్ పొందడానికి మీ PhonePe/Google Pay నంబర్‌ను జోడించండి.")
     updated = await db.workers.find_one({"id": worker_id})
     updated_hydrated = await gridfs_images.hydrate_worker(image_bucket, clean(updated))
     referred_by = None
@@ -1282,12 +1361,12 @@ async def reject_worker(worker_id: str, payload: RejectPayload, user: dict = Dep
     archived["rejected_at"] = now_iso()
     await db.rejected_profiles.insert_one(archived)
 
-   # REPLACE WITH:
+    # Note: images are intentionally kept in storage (not deleted) so the
+    # archived record above remains fully viewable for future reference.
     await db.workers.delete_one({"id": worker_id})
-    # Same reasoning as admin_delete_worker: only remove the referral row
-    # for this worker's own onboarding link, not the ones where this
-    # worker was the referrer for someone else.
-    await db.referrals.delete_many({"referred_worker_id": worker_id})
+    await db.referrals.delete_many({"$or": [
+        {"referred_worker_id": worker_id}, {"referrer_worker_id": worker_id},
+    ]})
     await db.notifications.delete_many({"recipient_worker_id": worker_id})
     return {"success": True, "deleted": True, "archived": True}
 
