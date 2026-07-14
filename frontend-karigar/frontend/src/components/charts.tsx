@@ -162,26 +162,48 @@ export function ColumnChart({
   height = 120,
   tint = COLORS.brandPrimary,
   testID,
+  onBarPress,
 }: {
   data: { label: string; value: number }[];
   height?: number;
   tint?: string;
   testID?: string;
+  onBarPress?: (item: { label: string; value: number }, index: number) => void;
 }) {
   const top = Math.max(1, ...data.map((d) => d.value));
   return (
     <View testID={testID}>
       <View style={[styles.colWrap, { height }]}>
         {data.map((d, i) => {
-          const h = Math.max(2, (d.value / top) * (height - 18));
-          return (
-            <View key={i} style={styles.colItem}>
-              {d.value > 0 && (
-                <AppText size="sm" weight="bold" color={COLORS.muted} style={{ fontSize: 10 }}>
-                  {d.value}
-                </AppText>
-              )}
-              <View style={[styles.colBar, { height: h, backgroundColor: tint }]} />
+          const isZero = d.value <= 0;
+          // Zero days still get a small visible stub (not just 2px) so the
+          // column reads as "checked, nothing happened" rather than absent.
+          const h = isZero ? 6 : Math.max(4, (d.value / top) * (height - 18));
+          const barContent = (
+            <>
+              <AppText size="sm" weight="bold" color={COLORS.muted} style={{ fontSize: 10 }}>
+                {d.value}
+              </AppText>
+              <View
+                style={[
+                  styles.colBar,
+                  { height: h, backgroundColor: isZero ? COLORS.border : tint },
+                ]}
+              />
+            </>
+          );
+          return onBarPress ? (
+            <Pressable
+              key={i}
+              testID={`${testID || "col"}-bar-${i}`}
+              onPress={() => onBarPress(d, i)}
+              style={({ pressed }) => [styles.colItem, pressed ? { opacity: 0.6 } : null]}
+            >
+              {barContent}
+            </Pressable>
+          ) : (
+            <View key={i} testID={`${testID || "col"}-bar-${i}`} style={styles.colItem}>
+              {barContent}
             </View>
           );
         })}
