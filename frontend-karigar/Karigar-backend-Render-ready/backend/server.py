@@ -121,6 +121,10 @@ class UpdateSelfAdminPayload(BaseModel):
     admin_role: str
 
 
+class DeleteAdminPayload(BaseModel):
+    confirm_phone: str
+
+
 class WorkerProfilePayload(BaseModel):
     full_name: str
     gender: str
@@ -315,14 +319,31 @@ async def update_self_admin(payload: UpdateSelfAdminPayload, current: dict = Dep
     admin_role = payload.admin_role.strip()
     if not name or not admin_role:
         raise HTTPException(status_code=400, detail="Name and role are required")
+    # An admin must not be able to grant themselves the "Manager" title (and
+    # the delete-admin powers that come with it) just by editing their own
+    # profile. Only someone who is already a Manager may keep/set that role;
+    # everyone else can rename their designation to anything except "Manager".
+    if admin_role.lower() == "manager" and current.get("admin_role") != "Manager":
+        raise HTTPException(status_code=403, detail="Only an existing Manager can assign the Manager role. Ask a Manager to update this for you.")
     await db.users.update_one({"id": current["id"]}, {"$set": {"name": name, "admin_role": admin_role}})
     return {"success": True}
 
 
 @api_router.delete("/auth/admins/{admin_id}")
-async def delete_admin(admin_id: str, current: dict = Depends(require_roles("admin"))):
+async def delete_admin(admin_id: str, payload: DeleteAdminPayload, current: dict = Depends(require_roles("admin"))):
+    # Defense in depth: deleting an admin requires BOTH the acting admin's
+    # role to be "Manager" AND the acting admin to re-confirm their own
+    # registered mobile number. Checking role alone is not enough, since a
+    # role name is just a mutable profile field — requiring the admin to
+    # also prove who they are (their own phone on file) ensures the person
+    # performing this destructive action is really the account it appears
+    # to be, and keeps a clear, deliberate confirmation step for something
+    # that permanently affects admin data.
     if current.get("admin_role") != "Manager":
         raise HTTPException(status_code=403, detail="Only a Manager can remove an admin")
+    confirm_phone = (payload.confirm_phone or "").strip()
+    if confirm_phone != current.get("phone"):
+        raise HTTPException(status_code=403, detail="Mobile number does not match your account. Enter your own registered mobile number to confirm.")
     if admin_id == current["id"]:
         raise HTTPException(status_code=400, detail="You cannot delete your own account")
     target = await db.users.find_one({"id": admin_id, "role": "admin"})
@@ -829,15 +850,19 @@ async def admin_referral_detail(worker_id: str, user: dict = Depends(require_rol
     people = []
     for r in refs:
         name = None
+        verification_status = None
         if r.get("referred_worker_id"):
             w = await db.workers.find_one({"id": r["referred_worker_id"]})
             if w:
                 name = w.get("full_name")
+                verification_status = w.get("verification_status")
         people.append({
             "worker_id": r.get("referred_worker_id"),
             "name": name or "Not registered yet",
             "phone": r.get("referred_phone") or "—",
             "status": r.get("status"),
+            "verification_status": verification_status,
+            "verified": verification_status == "approved",
             "payout_amount_rs": r.get("payout_amount_rs", 0),
             "created_at": r.get("created_at"),
         })
