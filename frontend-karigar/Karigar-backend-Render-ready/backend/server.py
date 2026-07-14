@@ -1181,6 +1181,8 @@ def _apply_filters(search, skill, availability, verification, city, area, min_ex
         exp["$lte"] = max_exp
     if exp:
         query["years_experience"] = exp
+    if registered_date:
+        query["created_at"] = {"$regex": f"^{registered_date}"}
     return query
 
 
