@@ -1218,15 +1218,15 @@ async def admin_search_workers(
     verification: Optional[str] = None,
     city: Optional[str] = None,
     area: Optional[str] = None,
-    min_exp: Optional[int] = None,
+   min_exp: Optional[int] = None,
     max_exp: Optional[int] = None,
+    registered_date: Optional[str] = None,
     page: int = 1,
     page_size: int = 100,
 ):
-    # Keep availability_status live: any worker whose available_from date
-    # has passed gets flipped to available_now before we query/filter.
-    await _refresh_availability_statuses()
-    query = _apply_filters(search, skill, availability, verification, city, area, min_exp, max_exp)
+    if registered_date and not re.fullmatch(r"\d{4}-\d{2}-\d{2}", registered_date):
+        raise HTTPException(status_code=400, detail="registered_date must be YYYY-MM-DD")
+    query = _apply_filters(search, skill, availability, verification, city, area, min_exp, max_exp, registered_date)
     total = await db.workers.count_documents(query)
     cursor = db.workers.find(
         query,
