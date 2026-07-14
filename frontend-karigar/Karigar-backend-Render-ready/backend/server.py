@@ -1182,6 +1182,26 @@ def _apply_filters(search, skill, availability, verification, city, area, min_ex
         query["years_experience"] = exp
     return query
 
+_AVAIL_IST = timezone(timedelta(hours=5, minutes=30))
+
+
+async def _refresh_availability_statuses() -> int:
+    """Flip any worker whose `available_from` date has arrived (today or
+    earlier) from 'available_from' -> 'available_now'."""
+    today_str = datetime.now(_AVAIL_IST).strftime("%Y-%m-%d")
+    result = await db.workers.update_many(
+        {
+            "availability_status": "available_from",
+            "available_from": {"$ne": None, "$lte": today_str},
+        },
+        {"$set": {"availability_status": "available_now", "available_from": None}},
+    )
+    if result.modified_count:
+        logger.info(
+            "Availability auto-update: flipped %d worker(s) to available_now",
+            result.modified_count,
+        )
+    return result.modified_count
 
 @api_router.get("/admin/workers")
 async def admin_search_workers(
