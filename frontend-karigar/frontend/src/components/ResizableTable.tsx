@@ -15,7 +15,7 @@
 //     onRowPress={(w) => router.push(`/admin/worker/${w.id}`)}
 //   />
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { View, StyleSheet, FlatList, Pressable, Platform, ScrollView } from "react-native";
+import { View, StyleSheet, FlatList, Pressable, Platform, ScrollView, RefreshControl } from "react-native";
 import { COLORS, SPACING } from "@/src/theme";
 import { AppText } from "@/src/components/ui";
 import { storage } from "@/src/utils/storage";
@@ -42,6 +42,9 @@ type Props<T> = {
   emptyText?: string;
   /** Optional zebra-striping / custom row background. */
   rowBackground?: (item: T, index: number) => string | undefined;
+  /** Optional pull-to-refresh support. */
+  refreshing?: boolean;
+  onRefresh?: () => void;
 };
 
 const DEFAULT_MIN_WIDTH = 56;
@@ -93,6 +96,8 @@ export function ResizableTable<T>({
   storageKey,
   emptyText = "No data",
   rowBackground,
+  refreshing,
+  onRefresh,
 }: Props<T>) {
   const defaultWidths = React.useMemo(() => {
     const w: Record<string, number> = {};
@@ -155,6 +160,11 @@ export function ResizableTable<T>({
           stickyHeaderIndices={[0]}
           ListHeaderComponent={() => Header}
           style={{ minWidth: totalWidth }}
+          refreshControl={
+            onRefresh ? (
+              <RefreshControl refreshing={!!refreshing} onRefresh={onRefresh} tintColor={COLORS.brandPrimary} />
+            ) : undefined
+          }
           ListEmptyComponent={
             <View style={{ padding: SPACING.xl, minWidth: totalWidth }}>
               <AppText color={COLORS.muted}>{emptyText}</AppText>
