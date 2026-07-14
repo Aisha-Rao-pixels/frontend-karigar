@@ -306,7 +306,9 @@ export default function WorkerForm({
   const toggle = (k: "languages" | "skills", item: string) =>
     setV((p) => {
       const arr = p[k];
-      return { ...p, [k]: arr.includes(item) ? arr.filter((x) => x !== item) : [...arr, item] };
+      const updated = { ...p, [k]: arr.includes(item) ? arr.filter((x) => x !== item) : [...arr, item] };
+      scheduleDraftSave(updated);
+      return updated;
     });
 
   const pickImage = async () => {
