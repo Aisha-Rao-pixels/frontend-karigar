@@ -31,11 +31,18 @@ function prettyDate(dateStr: string) {
   });
 }
 
+function prettyRange(from: string, to: string) {
+  const f = new Date(from + "T00:00:00").toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  const t = new Date(to + "T00:00:00").toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+  return `${f} – ${t}`;
+}
+
 export default function AdminRegistrationsByDate() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { show } = useToast();
-  const { date } = useLocalSearchParams<{ date: string }>();
+  const { date, to, label } = useLocalSearchParams<{ date: string; to?: string; label?: string }>();
+  const isRange = !!to && to !== date;
   const [items, setItems] = useState<Worker[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -45,7 +52,12 @@ export default function AdminRegistrationsByDate() {
     if (!date) return;
     try {
       const q = new URLSearchParams();
-      q.set("registered_date", date);
+      if (isRange) {
+        q.set("date_from", date);
+        q.set("date_to", to as string);
+      } else {
+        q.set("registered_date", date);
+      }
       q.set("page_size", "200");
       const res = await apiFetch<{ items: Worker[]; total: number }>(`/admin/workers?${q.toString()}`);
       setItems(res.items);
@@ -56,7 +68,7 @@ export default function AdminRegistrationsByDate() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [date]);
+  }, [date, to, isRange]);
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
@@ -64,7 +76,7 @@ export default function AdminRegistrationsByDate() {
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <ScreenHeader
         title="Registrations"
-        subtitle={date ? prettyDate(date) : undefined}
+        subtitle={isRange ? (label ? `${label} (${prettyRange(date, to as string)})` : prettyRange(date, to as string)) : date ? prettyDate(date) : undefined}
         onBack={() => router.back()}
       />
 
@@ -78,7 +90,7 @@ export default function AdminRegistrationsByDate() {
           }
         >
           <AppText size="sm" color={COLORS.muted} style={{ marginBottom: SPACING.lg }}>
-            {total} worker{total !== 1 ? "s" : ""} registered on this day
+            {total} worker{total !== 1 ? "s" : ""} registered {isRange ? "in this period" : "on this day"}
           </AppText>
 
           {items.length === 0 ? (
