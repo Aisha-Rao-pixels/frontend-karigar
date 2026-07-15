@@ -102,6 +102,47 @@ function ResizeHandle({ onResize }: { onResize: (deltaX: number) => void }) {
   );
 }
 
+function TableRow<T>({
+  item,
+  index,
+  columns,
+  colWidths,
+  totalWidth,
+  baseBackground,
+  onPress,
+  testID,
+}: {
+  item: T;
+  index: number;
+  columns: ResizableTableColumn<T>[];
+  colWidths: Record<string, number>;
+  totalWidth: number;
+  baseBackground?: string;
+  onPress?: () => void;
+  testID?: string;
+}) {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <Pressable
+      onPress={onPress}
+      onHoverIn={() => setHovered(true)}
+      onHoverOut={() => setHovered(false)}
+      style={[
+        styles.row,
+        { minWidth: totalWidth },
+        { backgroundColor: hovered ? COLORS.brandTertiary : baseBackground },
+      ]}
+      testID={testID}
+    >
+      {columns.map((col) => (
+        <View key={col.key} style={[styles.cell, { width: colWidths[col.key] ?? col.width }]}>
+          {col.render(item, index)}
+        </View>
+      ))}
+    </Pressable>
+  );
+}
+
 export function ResizableTable<T>({
   columns,
   data,
@@ -197,22 +238,17 @@ export function ResizableTable<T>({
               </View>
             ) : (
               data.map((item, index) => (
-                <Pressable
+                <TableRow
                   key={keyExtractor(item)}
-                  onPress={() => onRowPress?.(item)}
-                  style={[
-                    styles.row,
-                    { minWidth: totalWidth },
-                    { backgroundColor: rowBackground?.(item, index) ?? (index % 2 === 0 ? COLORS.surfaceSecondary : COLORS.surface) },
-                  ]}
+                  item={item}
+                  index={index}
+                  columns={columns}
+                  colWidths={colWidths}
+                  totalWidth={totalWidth}
+                  baseBackground={rowBackground?.(item, index) ?? (index % 2 === 0 ? COLORS.surfaceSecondary : COLORS.surface)}
+                  onPress={onRowPress ? () => onRowPress(item) : undefined}
                   testID={`${testIDPrefix}-row-${keyExtractor(item)}`}
-                >
-                  {columns.map((col) => (
-                    <View key={col.key} style={[styles.cell, { width: colWidths[col.key] ?? col.width }]}>
-                      {col.render(item, index)}
-                    </View>
-                  ))}
-                </Pressable>
+                />
               ))
             )}
           </ScrollView>
