@@ -1,7 +1,22 @@
 // ── Generic resizable data table ────────────────────────────────────────────
-// Reusable for ANY table in the app: full-width, sticky header, vertical +
-// horizontal scrollbars, drag-to-resize columns (web), and column widths
-// persisted per-table via `storageKey`.
+// The ONE table component for the whole app. Any new table should use this,
+// not a one-off ScrollView/FlatList — that's how we guarantee every table
+// gets full-space layout + both scrollbars + resizable columns for free.
+//
+// Layout (important — this is why both scrollbars are reliable):
+//   <View flex:1>                                  full available space
+//     <ScrollView horizontal flex:1>                 <- horizontal scrollbar
+//       <View minWidth:{totalColumnWidth} flex:1>     stretches to fill OR
+//                                                      overflows to scroll
+//         <ScrollView flex:1 stickyHeaderIndices=[0]> <- vertical scrollbar
+//           header row (sticky)
+//           data rows
+//
+// We deliberately do NOT nest a FlatList inside a horizontal ScrollView —
+// that combo (VirtualizedList inside a plain ScrollView) is unreliable for
+// width measurement on web and is the reason horizontal scrolling/full-width
+// filling was flaky before. Plain ScrollView + map() is fine for admin
+// tables (hundreds of rows, not tens of thousands).
 //
 // Usage:
 //   <ResizableTable
@@ -15,7 +30,7 @@
 //     onRowPress={(w) => router.push(`/admin/worker/${w.id}`)}
 //   />
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { View, StyleSheet, FlatList, Pressable, Platform, ScrollView, RefreshControl } from "react-native";
+import { View, StyleSheet, ScrollView, Pressable, Platform, RefreshControl } from "react-native";
 import { COLORS, SPACING } from "@/src/theme";
 import { AppText } from "@/src/components/ui";
 import { storage } from "@/src/utils/storage";
@@ -134,83 +149,83 @@ export function ResizableTable<T>({
 
   const totalWidth = columns.reduce((sum, c) => sum + (colWidths[c.key] ?? c.width), 0);
 
-  const Header = (
-    <View style={[styles.headerRow, { minWidth: totalWidth }]}>
-      {columns.map((col) => (
-        <View key={col.key} style={[styles.headerCell, { width: colWidths[col.key] ?? col.width }]}>
-          <AppText weight="bold" size="sm" numberOfLines={1} color={COLORS.onBrandPrimary}>
-            {col.label}
-          </AppText>
-          {col.resizable !== false && (
-            <ResizeHandle
-              onResize={(delta) => resizeColumn(col.key, delta, col.minWidth ?? DEFAULT_MIN_WIDTH)}
-            />
-          )}
-        </View>
-      ))}
-    </View>
-  );
-
   return (
-    <View style={styles.container}>
-      <FlatListHorizontalWrapper minWidth={totalWidth}>
-        <FlatList
-          data={data}
-          keyExtractor={keyExtractor}
-          stickyHeaderIndices={[0]}
-          ListHeaderComponent={() => Header}
-          style={{ minWidth: totalWidth }}
-          refreshControl={
-            onRefresh ? (
-              <RefreshControl refreshing={!!refreshing} onRefresh={onRefresh} tintColor={COLORS.brandPrimary} />
-            ) : undefined
-          }
-          ListEmptyComponent={
-            <View style={{ padding: SPACING.xl, minWidth: totalWidth }}>
-              <AppText color={COLORS.muted}>{emptyText}</AppText>
-            </View>
-          }
-          renderItem={({ item, index }) => (
-            <Pressable
-              onPress={() => onRowPress?.(item)}
-              style={[
-                styles.row,
-                { minWidth: totalWidth },
-                { backgroundColor: rowBackground?.(item, index) ?? (index % 2 === 0 ? COLORS.surfaceSecondary : COLORS.surface) },
-              ]}
-              testID={`${testIDPrefix}-row-${keyExtractor(item)}`}
-            >
+    <View style={styles.container} testID={`${testIDPrefix}-container`}>
+      {/* Outer horizontal scroll — this is what gives the horizontal scrollbar.
+          minWidth:"100%" on contentContainerStyle lets the inner column fill
+          the full screen width when the table is narrower than the viewport,
+          and overflow (triggering the scrollbar) when it's wider. */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator
+        style={styles.hScroll}
+        contentContainerStyle={{ minWidth: "100%", flexGrow: 1 }}
+      >
+        <View style={{ flex: 1, minWidth: totalWidth }}>
+          {/* Inner vertical scroll — native stickyHeaderIndices keeps the
+              header pinned while rows scroll underneath it. */}
+          <ScrollView
+            style={styles.vScroll}
+            stickyHeaderIndices={[0]}
+            showsVerticalScrollIndicator
+            refreshControl={
+              onRefresh ? (
+                <RefreshControl refreshing={!!refreshing} onRefresh={onRefresh} tintColor={COLORS.brandPrimary} />
+              ) : undefined
+            }
+          >
+            {/* Header (sticky, index 0) */}
+            <View style={[styles.headerRow, { minWidth: totalWidth }]}>
               {columns.map((col) => (
-                <View key={col.key} style={[styles.cell, { width: colWidths[col.key] ?? col.width }]}>
-                  {col.render(item, index)}
+                <View key={col.key} style={[styles.headerCell, { width: colWidths[col.key] ?? col.width }]}>
+                  <AppText weight="bold" size="sm" numberOfLines={1} color={COLORS.onBrandPrimary}>
+                    {col.label}
+                  </AppText>
+                  {col.resizable !== false && (
+                    <ResizeHandle
+                      onResize={(delta) => resizeColumn(col.key, delta, col.minWidth ?? DEFAULT_MIN_WIDTH)}
+                    />
+                  )}
                 </View>
               ))}
-            </Pressable>
-          )}
-        />
-      </FlatListHorizontalWrapper>
-    </View>
-  );
-}
+            </View>
 
-// Wraps the vertical FlatList in a horizontal ScrollView so the header and
-// every row scroll sideways together (dual scrollbar table).
-function FlatListHorizontalWrapper({ children, minWidth }: { children: React.ReactNode; minWidth: number }) {
-  return (
-    <ScrollView
-      horizontal
-      showsHorizontalScrollIndicator
-      style={styles.hScroll}
-      contentContainerStyle={{ minWidth: "100%", flexGrow: 1 }}
-    >
-      <View style={{ flex: 1, minWidth }}>{children}</View>
-    </ScrollView>
+            {/* Rows */}
+            {data.length === 0 ? (
+              <View style={{ padding: SPACING.xl, minWidth: totalWidth }}>
+                <AppText color={COLORS.muted}>{emptyText}</AppText>
+              </View>
+            ) : (
+              data.map((item, index) => (
+                <Pressable
+                  key={keyExtractor(item)}
+                  onPress={() => onRowPress?.(item)}
+                  style={[
+                    styles.row,
+                    { minWidth: totalWidth },
+                    { backgroundColor: rowBackground?.(item, index) ?? (index % 2 === 0 ? COLORS.surfaceSecondary : COLORS.surface) },
+                  ]}
+                  testID={`${testIDPrefix}-row-${keyExtractor(item)}`}
+                >
+                  {columns.map((col) => (
+                    <View key={col.key} style={[styles.cell, { width: colWidths[col.key] ?? col.width }]}>
+                      {col.render(item, index)}
+                    </View>
+                  ))}
+                </Pressable>
+              ))
+            )}
+          </ScrollView>
+        </View>
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, width: "100%" },
+  container: { flex: 1, width: "100%", alignSelf: "stretch" },
   hScroll: { flex: 1, width: "100%" },
+  vScroll: { flex: 1, width: "100%" },
   headerRow: { flexDirection: "row", backgroundColor: COLORS.brandPrimary, paddingVertical: SPACING.sm, paddingHorizontal: SPACING.md },
   headerCell: { position: "relative", paddingHorizontal: 6, justifyContent: "center" },
   resizeHandle: { position: "absolute", right: -4, top: 0, bottom: 0, width: 8, zIndex: 2 },
