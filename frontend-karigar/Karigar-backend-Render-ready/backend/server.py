@@ -1072,8 +1072,58 @@ async def restore_rejected_profile(profile_id: str, user: dict = Depends(require
     return {"success": True, "worker_id": restored["id"]}
 
 
+def _build_registration_trend(workers: list, period: str) -> list:
+    """Builds registration_trend buckets for the requested granularity.
+    Every bucket carries date_from/date_to (inclusive, YYYY-MM-DD) so the
+    frontend can drill into that exact range, plus a display-ready label.
+    Day buckets also keep a `date` field for backward compatibility."""
+    now = datetime.now(timezone.utc)
+    trend = []
+
+    if period == "week":
+        today = now.date()
+        this_monday = today - timedelta(days=today.weekday())
+        for i in range(11, -1, -1):
+            start = this_monday - timedelta(weeks=i)
+            end = start + timedelta(days=6)
+            start_s, end_s = start.strftime("%Y-%m-%d"), end.strftime("%Y-%m-%d")
+            c = sum(1 for w in workers if start_s <= (w.get("created_at") or "")[:10] <= end_s)
+            trend.append({
+                "label": f"{start.strftime('%b %d')}",
+                "date_from": start_s, "date_to": end_s, "count": c,
+            })
+    elif period == "month":
+        y, m = now.year, now.month
+        for i in range(11, -1, -1):
+            mm, yy = m - i, y
+            while mm <= 0:
+                mm += 12
+                yy -= 1
+            start = date(yy, mm, 1)
+            next_month = date(yy + 1, 1, 1) if mm == 12 else date(yy, mm + 1, 1)
+            end = next_month - timedelta(days=1)
+            start_s, end_s = start.strftime("%Y-%m-%d"), end.strftime("%Y-%m-%d")
+            c = sum(1 for w in workers if start_s <= (w.get("created_at") or "")[:10] <= end_s)
+            trend.append({
+                "label": start.strftime("%b %Y"),
+                "date_from": start_s, "date_to": end_s, "count": c,
+            })
+    else:  # day
+        for i in range(13, -1, -1):
+            d = (now - timedelta(days=i)).strftime("%Y-%m-%d")
+            c = sum(1 for w in workers if (w.get("created_at") or "")[:10] == d)
+            trend.append({
+                "label": d[5:].replace("-", "/"),
+                "date_from": d, "date_to": d, "date": d, "count": c,
+            })
+    return trend
+
+
 @api_router.get("/admin/analytics")
-async def admin_analytics(user: dict = Depends(require_roles(*ADMIN_ROLES))):
+async def admin_analytics(user: dict = Depends(require_roles(*ADMIN_ROLES)), period: str = "day"):
+    if period not in ("day", "week", "month"):
+        period = "day"
+    await _refresh_availability_statuses()
     workers = await db.workers.find().to_list(10000)
     total = len(workers)
     verified = sum(1 for w in workers if w.get("verification_status") == "approved")
@@ -1124,11 +1174,7 @@ async def admin_analytics(user: dict = Depends(require_roles(*ADMIN_ROLES))):
     for w in workers:
         g = w.get("gender") or "other"
         gender[g] = gender.get(g, 0) + 1
-    trend = []
-    for i in range(13, -1, -1):
-        d = (datetime.now(timezone.utc) - timedelta(days=i)).strftime("%Y-%m-%d")
-        c = sum(1 for w in workers if (w.get("created_at") or "")[:10] == d)
-        trend.append({"date": d, "count": c})
+    trend = _build_registration_trend(workers, period)
     rejected_profiles_count = await db.rejected_profiles.count_documents({})
     total_referrals = await db.referrals.count_documents({"status": {"$in": ["pending", "reward_triggered", "paid"]}})
     return {
@@ -1154,10 +1200,11 @@ async def admin_analytics(user: dict = Depends(require_roles(*ADMIN_ROLES))):
         "experience_buckets": buckets,
         "gender_distribution": gender,
         "registration_trend": trend,
+        "trend_period": period,
     }
 
 
-def _apply_filters(search, skill, availability, verification, city, area, min_exp, max_exp, registered_date=None):
+def _apply_filters(search, skill, availability, verification, city, area, min_exp, max_exp, registered_date=None, date_from=None, date_to=None):
     query = {}
     if search:
         query["$or"] = [
@@ -1183,6 +1230,13 @@ def _apply_filters(search, skill, availability, verification, city, area, min_ex
         query["years_experience"] = exp
     if registered_date:
         query["created_at"] = {"$regex": f"^{registered_date}"}
+    elif date_from or date_to:
+        rng = {}
+        if date_from:
+            rng["$gte"] = date_from
+        if date_to:
+            rng["$lte"] = date_to + "T23:59:59"
+        query["created_at"] = rng
     return query
 
 
@@ -1218,15 +1272,24 @@ async def admin_search_workers(
     verification: Optional[str] = None,
     city: Optional[str] = None,
     area: Optional[str] = None,
-   min_exp: Optional[int] = None,
+    min_exp: Optional[int] = None,
     max_exp: Optional[int] = None,
     registered_date: Optional[str] = None,
+    date_from: Optional[str] = None,
+    date_to: Optional[str] = None,
     page: int = 1,
     page_size: int = 100,
 ):
     if registered_date and not re.fullmatch(r"\d{4}-\d{2}-\d{2}", registered_date):
         raise HTTPException(status_code=400, detail="registered_date must be YYYY-MM-DD")
-    query = _apply_filters(search, skill, availability, verification, city, area, min_exp, max_exp, registered_date)
+    if date_from and not re.fullmatch(r"\d{4}-\d{2}-\d{2}", date_from):
+        raise HTTPException(status_code=400, detail="date_from must be YYYY-MM-DD")
+    if date_to and not re.fullmatch(r"\d{4}-\d{2}-\d{2}", date_to):
+        raise HTTPException(status_code=400, detail="date_to must be YYYY-MM-DD")
+    # Keep availability_status accurate the moment an admin looks at it,
+    # rather than waiting for the 30-min background loop.
+    await _refresh_availability_statuses()
+    query = _apply_filters(search, skill, availability, verification, city, area, min_exp, max_exp, registered_date, date_from, date_to)
     total = await db.workers.count_documents(query)
     cursor = db.workers.find(
         query,
