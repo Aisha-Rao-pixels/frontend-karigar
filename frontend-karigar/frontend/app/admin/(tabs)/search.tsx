@@ -102,17 +102,27 @@ export default function WorkerSearch() {
   const { show } = useToast();
   const insets = useSafeAreaInsets();
   const sheetRef = useRef<BottomSheet>(null);
-  const params = useLocalSearchParams<{ verification?: string; availability?: string }>();
+  const params = useLocalSearchParams<{
+    verification?: string;
+    availability?: string;
+    min_exp?: string;
+    max_exp?: string;
+    area?: string;
+    view?: string;
+  }>();
 
   const [search, setSearch] = useState("");
   const [skill, setSkill] = useState("all");
   const [availability, setAvailability] = useState(params.availability || "all");
   const [verification, setVerification] = useState(params.verification || "all");
   const [city, setCity] = useState("");
+  const [area, setArea] = useState(params.area || "");
+  const [minExp, setMinExp] = useState(params.min_exp || "");
+  const [maxExp, setMaxExp] = useState(params.max_exp || "");
   const [items, setItems] = useState<Worker[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [viewMode, setViewModeState] = useState<"card" | "table">("card");
+  const [viewMode, setViewModeState] = useState<"card" | "table">(params.view === "table" ? "table" : "card");
   const [viewModeLoaded, setViewModeLoaded] = useState(false);
   const [gallerySkill, setGallerySkill] = useState<string | null>(null);
   const [galleryWorkers, setGalleryWorkers] = useState<Worker[]>([]);
@@ -121,8 +131,10 @@ export default function WorkerSearch() {
 
   const snapPoints = useMemo(() => ["65%"], []);
 
-  // Restore last-used view mode (card/table) on mount
+  // Restore last-used view mode (card/table) on mount — unless a drill-down
+  // link explicitly requested a view (?view=table), which takes priority.
   useEffect(() => {
+    if (params.view === "table") { setViewModeLoaded(true); return; }
     storage.getItem("admin_search_view_mode", "card").then((v) => {
       if (v === "table" || v === "card") setViewModeState(v as "card" | "table");
       setViewModeLoaded(true);
@@ -135,18 +147,21 @@ export default function WorkerSearch() {
   }, []);
 
   const buildQuery = useCallback(
-    (overrides?: Partial<{ skill: string; availability: string; verification: string; city: string; search: string }>) => {
-      const s = { skill, availability, verification, city, search, ...overrides };
+    (overrides?: Partial<{ skill: string; availability: string; verification: string; city: string; area: string; minExp: string; maxExp: string; search: string }>) => {
+      const s = { skill, availability, verification, city, area, minExp, maxExp, search, ...overrides };
       const p = new URLSearchParams();
       if (s.search) p.set("search", s.search);
       if (s.skill && s.skill !== "all") p.set("skill", s.skill);
       if (s.availability && s.availability !== "all") p.set("availability", s.availability);
       if (s.verification && s.verification !== "all") p.set("verification", s.verification);
       if (s.city) p.set("city", s.city);
+      if (s.area) p.set("area", s.area);
+      if (s.minExp) p.set("min_exp", s.minExp);
+      if (s.maxExp) p.set("max_exp", s.maxExp);
       p.set("page_size", "100");
       return p.toString();
     },
-    [skill, availability, verification, city, search]
+    [skill, availability, verification, city, area, minExp, maxExp, search]
   );
 
   const load = useCallback(
@@ -191,7 +206,10 @@ export default function WorkerSearch() {
     setAvailability("all");
     setVerification("all");
     setCity("");
-    load({ skill: "all", availability: "all", verification: "all", city: "" });
+    setArea("");
+    setMinExp("");
+    setMaxExp("");
+    load({ skill: "all", availability: "all", verification: "all", city: "", area: "", minExp: "", maxExp: "" });
     sheetRef.current?.close();
   };
 
@@ -201,7 +219,20 @@ export default function WorkerSearch() {
   };
 
   const activeFilterCount =
-    (availability !== "all" ? 1 : 0) + (verification !== "all" ? 1 : 0) + (city ? 1 : 0);
+    (availability !== "all" ? 1 : 0) + (verification !== "all" ? 1 : 0) + (city ? 1 : 0) + (area ? 1 : 0) + (minExp || maxExp ? 1 : 0);
+
+  const drillDownLabel = area
+    ? `Location: ${area}`
+    : (minExp || maxExp)
+    ? `Experience: ${minExp || "0"}${maxExp ? `–${maxExp}` : "+"} yrs`
+    : null;
+
+  const clearDrillDown = () => {
+    setArea("");
+    setMinExp("");
+    setMaxExp("");
+    load({ area: "", minExp: "", maxExp: "" });
+  };
 
   const tableColumns: ResizableTableColumn<Worker>[] = [
     {
@@ -398,6 +429,19 @@ export default function WorkerSearch() {
         </Pressable>
       )}
 
+      {/* Drill-down filter banner (from dashboard Location / Experience Mix clicks) */}
+      {drillDownLabel && (
+        <View style={styles.drillDownBanner} testID="drilldown-banner">
+          <Ionicons name="filter" size={16} color={COLORS.brandPrimary} />
+          <AppText size="sm" color={COLORS.brandPrimary} weight="semibold" style={{ flex: 1 }}>
+            {drillDownLabel}
+          </AppText>
+          <Pressable onPress={clearDrillDown} testID="clear-drilldown-btn" hitSlop={8}>
+            <Ionicons name="close-circle" size={18} color={COLORS.brandPrimary} />
+          </Pressable>
+        </View>
+      )}
+
       <View style={styles.resultsBar}>
         <AppText size="sm" color={COLORS.muted}>{t("resultsCount", { count: total })}</AppText>
       </View>
@@ -487,6 +531,17 @@ const styles = StyleSheet.create({
   filterBadge: { position: "absolute", top: 4, right: 4, minWidth: 16, height: 16, borderRadius: 8, backgroundColor: COLORS.error, alignItems: "center", justifyContent: "center", paddingHorizontal: 3 },
   chipRowWrap: { height: 56, justifyContent: "center", marginTop: SPACING.sm },
   galleryHint: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: SPACING.lg, paddingVertical: SPACING.sm },
+  drillDownBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: SPACING.sm,
+    marginHorizontal: SPACING.lg,
+    marginTop: SPACING.sm,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.sm,
+    backgroundColor: COLORS.brandTertiary,
+    borderRadius: RADIUS.md,
+  },
   resultsBar: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: SPACING.lg, paddingVertical: SPACING.sm },
   workerCard: { flexDirection: "row", alignItems: "center", gap: SPACING.md, backgroundColor: COLORS.surfaceSecondary, borderRadius: RADIUS.lg, padding: SPACING.md },
   miniDot: { width: 10, height: 10, borderRadius: 5 },
