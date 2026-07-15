@@ -171,23 +171,12 @@ export default function LoginScreen() {
           </AppText>
         )}
 
-        {isRegister && (
-          <>
-            <View style={{ height: SPACING.lg }} />
-            <AppText weight="semibold" style={{ marginBottom: SPACING.sm }}>
-              {t("referredBy")}
-            </AppText>
-            <TextInput
-              testID="referral-code-input"
-              value={referralCode}
-              onChangeText={(x) => setReferralCode(x.toUpperCase())}
-              placeholder={t("referredByPh")}
-              placeholderTextColor={COLORS.muted}
-              autoCapitalize="none"
-              style={styles.phoneInput}
-            />
-          </>
-        )}
+        {/* Referral code is captured silently from a shared link's ?ref=
+            param (see `referralCode` state above) and sent along at signup —
+            it is intentionally NOT shown as a field here. First-time users
+            registering with just phone + password should not see an extra
+            box; someone who arrives via a referral link never needs to type
+            anything, it's already filled in behind the scenes. */}
 
         {/* Forgot Password — only show on login mode, not register */}
         {!isRegister && (
