@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   View, StyleSheet, FlatList, Pressable, TextInput,
-  Platform, Modal, Image,
+  Modal, Image,
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
@@ -11,7 +11,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import BottomSheet, { BottomSheetScrollView } from "@gorhom/bottom-sheet";
 
 import { COLORS, SPACING, RADIUS, FONT, shadow } from "@/src/theme";
-import { AppText, Avatar, Chip, EmptyState, Loader, Button } from "@/src/components/ui";
+import { AppText, Avatar, Chip, EmptyState, Loader, Button, Tooltip } from "@/src/components/ui";
 import { ResizableTable, ResizableTableColumn } from "@/src/components/ResizableTable";
 import { apiFetch } from "@/src/api/client";
 import { storage } from "@/src/utils/storage";
@@ -26,75 +26,6 @@ const VERIF_OPTIONS = [
   { value: "approved", key: "verified" },
   { value: "rejected", key: "rejected" },
 ];
-
-// ── Tooltip component for web hover ─────────────────────────────────────────
-function Tooltip({ text, children }: { text: string; children: React.ReactNode }) {
-  const [visible, setVisible] = useState(false);
-  const [vPos, setVPos] = useState<"top" | "bottom">("bottom");
-  const [hAlign, setHAlign] = useState<"center" | "left" | "right">("center");
-  const wrapRef = useRef<View>(null);
-
-  if (Platform.OS !== "web") return <>{children}</>;
-
-  const handleEnter = () => {
-    // @ts-ignore - getBoundingClientRect exists on web
-    const rect = wrapRef.current?.getBoundingClientRect?.();
-    if (rect) {
-      setVPos(rect.top < 160 ? "bottom" : "top");
-      const halfW = 70; // half of the 140px tooltip width
-      if (rect.left - halfW < 8) setHAlign("left");
-      else if (rect.right + halfW > window.innerWidth - 8) setHAlign("right");
-      else setHAlign("center");
-    }
-    setVisible(true);
-  };
-
-  const hStyle =
-    hAlign === "left"
-      ? { left: 0, right: undefined, transform: [] as any }
-      : hAlign === "right"
-      ? { left: undefined, right: 0, transform: [] as any }
-      : { left: "50%", right: undefined, transform: [{ translateX: -70 }] };
-
-  return (
-    <View
-      ref={wrapRef}
-      style={{ position: "relative" }}
-      // @ts-ignore
-      onMouseEnter={handleEnter}
-      onMouseLeave={() => setVisible(false)}
-    >
-      {children}
-      {visible && (
-        <View
-          style={[
-            tooltipStyles.box,
-            vPos === "bottom" ? { top: "110%", bottom: undefined } : { bottom: "110%" },
-            hStyle,
-          ]}
-          pointerEvents="none"
-        >
-          <AppText size="sm" color="#fff" style={{ textAlign: "center" }}>{text}</AppText>
-        </View>
-      )}
-    </View>
-  );
-}
-
-const tooltipStyles = StyleSheet.create({
-  box: {
-    position: "absolute",
-    width: 140,
-    backgroundColor: "rgba(0,0,0,0.9)",
-    borderRadius: 6,
-    padding: 8,
-    zIndex: 9999,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-  },
-});
 
 export default function WorkerSearch() {
   const router = useRouter();
@@ -181,7 +112,50 @@ export default function WorkerSearch() {
     [buildQuery]
   );
 
-  useFocusEffect(useCallback(() => { load(); }, []));
+  // Re-sync local filter state whenever the incoming route params change —
+  // not just on first mount. Expo Router keeps this tab screen mounted
+  // across navigations, so without this, a second drill-down click from the
+  // Dashboard (e.g. a different Experience Mix bar, or "Not Available"
+  // after already having opened the directory once) would land on the same
+  // screen instance but be silently ignored, because the filter state was
+  // only ever initialized once via useState's initial value.
+  const paramsKey = [
+    params.availability ?? "",
+    params.verification ?? "",
+    params.min_exp ?? "",
+    params.max_exp ?? "",
+    params.area ?? "",
+    params.view ?? "",
+  ].join("|");
+
+  useEffect(() => {
+    const nextAvailability = params.availability || "all";
+    const nextVerification = params.verification || "all";
+    const nextMinExp = params.min_exp || "";
+    const nextMaxExp = params.max_exp || "";
+    const nextArea = params.area || "";
+
+    setAvailability(nextAvailability);
+    setVerification(nextVerification);
+    setMinExp(nextMinExp);
+    setMaxExp(nextMaxExp);
+    setArea(nextArea);
+    if (params.view === "table") setViewMode("table");
+
+    load({
+      availability: nextAvailability,
+      verification: nextVerification,
+      minExp: nextMinExp,
+      maxExp: nextMaxExp,
+      area: nextArea,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [paramsKey]);
+
+  // Refresh the current results whenever this tab regains focus (e.g. after
+  // verifying a worker and coming back), using whatever filters are
+  // currently active — does not reset them.
+  useFocusEffect(useCallback(() => { load(); }, [load]));
 
   const openGallery = useCallback(async (selectedSkill: string) => {
     if (selectedSkill === "all") return;
@@ -219,7 +193,7 @@ export default function WorkerSearch() {
   };
 
   const activeFilterCount =
-    (availability !== "all" ? 1 : 0) + (verification !== "all" ? 1 : 0) + (city ? 1 : 0) + (area ? 1 : 0) + (minExp || maxExp ? 1 : 0);
+    (skill !== "all" ? 1 : 0) + (availability !== "all" ? 1 : 0) + (verification !== "all" ? 1 : 0) + (city ? 1 : 0) + (area ? 1 : 0) + (minExp || maxExp ? 1 : 0);
 
   const drillDownLabel = area
     ? `Location: ${area}`
@@ -249,14 +223,9 @@ export default function WorkerSearch() {
     },
     {
       key: "skill", label: "Skill", width: 220,
-      render: (item) => {
-        const skillsText = (item.skills || []).join(", ") || "—";
-        return (
-          <Tooltip text={skillsText}>
-            <AppText size="sm" numberOfLines={2}>{skillsText}</AppText>
-          </Tooltip>
-        );
-      },
+      render: (item) => (
+        <AppText size="sm" numberOfLines={2}>{(item.skills || []).join(", ") || "—"}</AppText>
+      ),
     },
     {
       key: "city", label: "City", width: 120,
@@ -478,6 +447,7 @@ export default function WorkerSearch() {
             data={items}
             keyExtractor={(w) => w.id}
             onRowPress={(w) => router.push(`/admin/worker/${w.id}?from=search`)}
+            getRowTooltip={(w) => `View ${w.full_name}'s profile`}
             testIDPrefix="table"
             storageKey="admin_search_table"
             emptyText={t("noWorkers")}
@@ -503,6 +473,38 @@ export default function WorkerSearch() {
           </View>
           <AppText weight="semibold" style={{ marginTop: SPACING.lg, marginBottom: SPACING.sm }}>{t("filterCity")}</AppText>
           <TextInput value={city} onChangeText={setCity} placeholder="Hyderabad" placeholderTextColor={COLORS.muted} style={styles.sheetInput} />
+
+          <AppText weight="semibold" style={{ marginTop: SPACING.lg, marginBottom: SPACING.sm }}>Area / Locality</AppText>
+          <TextInput value={area} onChangeText={setArea} placeholder="e.g. Charminar" placeholderTextColor={COLORS.muted} style={styles.sheetInput} />
+
+          <AppText weight="semibold" style={{ marginTop: SPACING.lg, marginBottom: SPACING.sm }}>Experience (years)</AppText>
+          <View style={{ flexDirection: "row", gap: SPACING.md }}>
+            <TextInput
+              value={minExp}
+              onChangeText={(v) => setMinExp(v.replace(/[^0-9]/g, ""))}
+              placeholder="Min"
+              placeholderTextColor={COLORS.muted}
+              keyboardType="number-pad"
+              style={[styles.sheetInput, { flex: 1 }]}
+            />
+            <TextInput
+              value={maxExp}
+              onChangeText={(v) => setMaxExp(v.replace(/[^0-9]/g, ""))}
+              placeholder="Max"
+              placeholderTextColor={COLORS.muted}
+              keyboardType="number-pad"
+              style={[styles.sheetInput, { flex: 1 }]}
+            />
+          </View>
+
+          <AppText weight="semibold" style={{ marginTop: SPACING.lg, marginBottom: SPACING.sm }}>{t("filterSkill")}</AppText>
+          <View style={styles.wrap}>
+            <Chip label={t("all")} selected={skill === "all"} onPress={() => setSkill("all")} />
+            {ALL_SKILLS.map((s) => (
+              <Chip key={s} label={s} selected={skill === s} onPress={() => setSkill(s)} />
+            ))}
+          </View>
+
           <View style={{ flexDirection: "row", gap: SPACING.md, marginTop: SPACING.xl }}>
             <View style={{ flex: 1 }}>
               <Button title={t("clearFilters")} variant="secondary" onPress={clearFilters} testID="clear-filters-btn" />
@@ -519,7 +521,13 @@ export default function WorkerSearch() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.surface },
-  header: { paddingHorizontal: SPACING.lg, paddingTop: SPACING.md },
+  // zIndex here matters: this header wraps the Filter/Search/View-toggle
+  // tooltips, which are absolutely-positioned children that need to render
+  // above the skill chip row below them. A child's zIndex only lifts it
+  // above unrelated *later* siblings if its own positioned ancestor also
+  // out-ranks those siblings — so the header itself needs a zIndex higher
+  // than chipRowWrap's, not just the tooltip box.
+  header: { paddingHorizontal: SPACING.lg, paddingTop: SPACING.md, zIndex: 20, position: "relative" },
   titleRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: SPACING.md, zIndex: 10 },
   viewToggle: { flexDirection: "row", gap: 4, backgroundColor: COLORS.surfaceSecondary, borderRadius: RADIUS.md, padding: 4 },
   toggleBtn: { width: 36, height: 36, borderRadius: RADIUS.sm, alignItems: "center", justifyContent: "center" },
@@ -529,7 +537,7 @@ const styles = StyleSheet.create({
   searchInput: { flex: 1, fontSize: FONT.base, color: COLORS.onSurface },
   filterBtn: { width: 48, height: 48, borderRadius: RADIUS.md, backgroundColor: COLORS.brandPrimary, alignItems: "center", justifyContent: "center" },
   filterBadge: { position: "absolute", top: 4, right: 4, minWidth: 16, height: 16, borderRadius: 8, backgroundColor: COLORS.error, alignItems: "center", justifyContent: "center", paddingHorizontal: 3 },
-  chipRowWrap: { height: 56, justifyContent: "center", marginTop: SPACING.sm },
+  chipRowWrap: { height: 56, justifyContent: "center", marginTop: SPACING.sm, zIndex: 1, position: "relative" },
   galleryHint: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: SPACING.lg, paddingVertical: SPACING.sm },
   drillDownBanner: {
     flexDirection: "row",
