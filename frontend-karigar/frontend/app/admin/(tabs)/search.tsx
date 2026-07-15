@@ -60,7 +60,7 @@ export default function WorkerSearch() {
   const [galleryLoading, setGalleryLoading] = useState(false);
   const [galleryVisible, setGalleryVisible] = useState(false);
 
-  const snapPoints = useMemo(() => ["65%"], []);
+  const snapPoints = useMemo(() => ["50%", "92%"], []);
 
   // Restore last-used view mode (card/table) on mount — unless a drill-down
   // link explicitly requested a view (?view=table), which takes priority.
