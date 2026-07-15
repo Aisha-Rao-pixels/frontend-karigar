@@ -32,7 +32,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { View, StyleSheet, ScrollView, Pressable, Platform, RefreshControl } from "react-native";
 import { COLORS, SPACING } from "@/src/theme";
-import { AppText } from "@/src/components/ui";
+import { AppText, Tooltip } from "@/src/components/ui";
 import { storage } from "@/src/utils/storage";
 
 export type ResizableTableColumn<T> = {
@@ -60,6 +60,9 @@ type Props<T> = {
   /** Optional pull-to-refresh support. */
   refreshing?: boolean;
   onRefresh?: () => void;
+  /** When provided, hovering anywhere on a row (web) shows a single tooltip
+   *  with this text, instead of any per-column tooltips. */
+  getRowTooltip?: (item: T) => string | null | undefined;
 };
 
 const DEFAULT_MIN_WIDTH = 56;
@@ -111,6 +114,7 @@ function TableRow<T>({
   baseBackground,
   onPress,
   testID,
+  tooltipText,
 }: {
   item: T;
   index: number;
@@ -120,9 +124,10 @@ function TableRow<T>({
   baseBackground?: string;
   onPress?: () => void;
   testID?: string;
+  tooltipText?: string | null;
 }) {
   const [hovered, setHovered] = useState(false);
-  return (
+  const row = (
     <Pressable
       onPress={onPress}
       onHoverIn={() => setHovered(true)}
@@ -149,6 +154,13 @@ function TableRow<T>({
       ))}
     </Pressable>
   );
+
+  // A single tooltip wrapping the whole row, rather than one tooltip per
+  // column — hovering anywhere on the row shows the same message once.
+  if (tooltipText) {
+    return <Tooltip text={tooltipText}>{row}</Tooltip>;
+  }
+  return row;
 }
 
 export function ResizableTable<T>({
@@ -162,6 +174,7 @@ export function ResizableTable<T>({
   rowBackground,
   refreshing,
   onRefresh,
+  getRowTooltip,
 }: Props<T>) {
   const defaultWidths = React.useMemo(() => {
     const w: Record<string, number> = {};
@@ -256,6 +269,7 @@ export function ResizableTable<T>({
                   baseBackground={rowBackground?.(item, index) ?? (index % 2 === 0 ? COLORS.surfaceSecondary : COLORS.surface)}
                   onPress={onRowPress ? () => onRowPress(item) : undefined}
                   testID={`${testIDPrefix}-row-${keyExtractor(item)}`}
+                  tooltipText={getRowTooltip?.(item)}
                 />
               ))
             )}
