@@ -1,14 +1,13 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   View, StyleSheet, FlatList, Pressable, TextInput,
-  Modal, Image,
+  Modal, Image, ScrollView,
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
 import { useTranslation } from "react-i18next";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import BottomSheet, { BottomSheetScrollView } from "@gorhom/bottom-sheet";
 
 import { COLORS, SPACING, RADIUS, FONT, shadow } from "@/src/theme";
 import { AppText, Avatar, Chip, EmptyState, Loader, Button, Tooltip } from "@/src/components/ui";
@@ -17,7 +16,7 @@ import { apiFetch } from "@/src/api/client";
 import { storage } from "@/src/utils/storage";
 import { Worker, availabilityColor, verificationColor } from "@/src/utils/profile";
 import { AVAILABILITY_OPTIONS } from "@/src/constants/app";
-import { ALL_SKILLS } from "@/src/constants/skills";
+import { SKILL_CATEGORIES, ALL_SKILLS } from "@/src/constants/skills";
 import { useToast } from "@/src/components/Toast";
 
 const VERIF_OPTIONS = [
@@ -32,7 +31,8 @@ export default function WorkerSearch() {
   const { t } = useTranslation();
   const { show } = useToast();
   const insets = useSafeAreaInsets();
-  const sheetRef = useRef<BottomSheet>(null);
+  const [filtersVisible, setFiltersVisible] = useState(false);
+  const [expandedCat, setExpandedCat] = useState<string | null>(null);
   const params = useLocalSearchParams<{
     verification?: string;
     availability?: string;
@@ -59,8 +59,6 @@ export default function WorkerSearch() {
   const [galleryWorkers, setGalleryWorkers] = useState<Worker[]>([]);
   const [galleryLoading, setGalleryLoading] = useState(false);
   const [galleryVisible, setGalleryVisible] = useState(false);
-
-  const snapPoints = useMemo(() => ["50%", "92%"], []);
 
   // Restore last-used view mode (card/table) on mount — unless a drill-down
   // link explicitly requested a view (?view=table), which takes priority.
@@ -183,13 +181,14 @@ export default function WorkerSearch() {
     setArea("");
     setMinExp("");
     setMaxExp("");
+    setExpandedCat(null);
     load({ skill: "all", availability: "all", verification: "all", city: "", area: "", minExp: "", maxExp: "" });
-    sheetRef.current?.close();
+    setFiltersVisible(false);
   };
 
   const applyFilters = () => {
     load();
-    sheetRef.current?.close();
+    setFiltersVisible(false);
   };
 
   const activeFilterCount =
@@ -354,7 +353,7 @@ export default function WorkerSearch() {
             )}
           </View>
           <Tooltip text="Filter Workers">
-            <Pressable style={styles.filterBtn} onPress={() => sheetRef.current?.expand()} testID="open-filters-btn">
+            <Pressable style={styles.filterBtn} onPress={() => setFiltersVisible(true)} testID="open-filters-btn">
               <Ionicons name="options" size={20} color={COLORS.onBrandPrimary} />
               {activeFilterCount > 0 && (
                 <View style={styles.filterBadge}>
@@ -455,57 +454,115 @@ export default function WorkerSearch() {
         )}
       </View>
 
-      <BottomSheet ref={sheetRef} index={-1} snapPoints={snapPoints} enablePanDownToClose backgroundStyle={{ backgroundColor: COLORS.surfaceSecondary }}>
-        <BottomSheetScrollView contentContainerStyle={{ padding: SPACING.lg, paddingBottom: SPACING["2xl"] }}>
-          <AppText weight="bold" size="xl" style={{ marginBottom: SPACING.lg }}>{t("filters")}</AppText>
-          <AppText weight="semibold" style={{ marginBottom: SPACING.sm }}>{t("filterAvailability")}</AppText>
-          <View style={styles.wrap}>
-            <Chip label={t("all")} selected={availability === "all"} onPress={() => setAvailability("all")} />
-            {AVAILABILITY_OPTIONS.map((o) => (
-              <Chip key={o.value} label={t(o.key)} selected={availability === o.value} onPress={() => setAvailability(o.value)} />
-            ))}
-          </View>
-          <AppText weight="semibold" style={{ marginTop: SPACING.lg, marginBottom: SPACING.sm }}>{t("filterVerification")}</AppText>
-          <View style={styles.wrap}>
-            {VERIF_OPTIONS.map((o) => (
-              <Chip key={o.value} label={t(o.key)} selected={verification === o.value} onPress={() => setVerification(o.value)} />
-            ))}
-          </View>
-          <AppText weight="semibold" style={{ marginTop: SPACING.lg, marginBottom: SPACING.sm }}>{t("filterCity")}</AppText>
-          <TextInput value={city} onChangeText={setCity} placeholder="Hyderabad" placeholderTextColor={COLORS.muted} style={styles.sheetInput} />
-
-          <AppText weight="semibold" style={{ marginTop: SPACING.lg, marginBottom: SPACING.sm }}>Area / Locality</AppText>
-          <TextInput value={area} onChangeText={setArea} placeholder="e.g. Charminar" placeholderTextColor={COLORS.muted} style={styles.sheetInput} />
-
-          <AppText weight="semibold" style={{ marginTop: SPACING.lg, marginBottom: SPACING.sm }}>Experience (years)</AppText>
-          <View style={{ flexDirection: "row", gap: SPACING.md }}>
-            <TextInput
-              value={minExp}
-              onChangeText={(v) => setMinExp(v.replace(/[^0-9]/g, ""))}
-              placeholder="Min"
-              placeholderTextColor={COLORS.muted}
-              keyboardType="number-pad"
-              style={[styles.sheetInput, { flex: 1 }]}
-            />
-            <TextInput
-              value={maxExp}
-              onChangeText={(v) => setMaxExp(v.replace(/[^0-9]/g, ""))}
-              placeholder="Max"
-              placeholderTextColor={COLORS.muted}
-              keyboardType="number-pad"
-              style={[styles.sheetInput, { flex: 1 }]}
-            />
+      <Modal
+        visible={filtersVisible}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setFiltersVisible(false)}
+      >
+        <View style={[styles.filterDialog, { paddingTop: insets.top }]}>
+          <View style={styles.filterDialogHeader}>
+            <AppText weight="bold" size="xl">{t("filters")}</AppText>
+            <Pressable onPress={() => setFiltersVisible(false)} testID="close-filters-btn" hitSlop={10}>
+              <Ionicons name="close" size={26} color={COLORS.onSurface} />
+            </Pressable>
           </View>
 
-          <AppText weight="semibold" style={{ marginTop: SPACING.lg, marginBottom: SPACING.sm }}>{t("filterSkill")}</AppText>
-          <View style={styles.wrap}>
-            <Chip label={t("all")} selected={skill === "all"} onPress={() => setSkill("all")} />
-            {ALL_SKILLS.map((s) => (
-              <Chip key={s} label={s} selected={skill === s} onPress={() => setSkill(s)} />
-            ))}
-          </View>
+          <ScrollView contentContainerStyle={{ padding: SPACING.lg, paddingBottom: SPACING["2xl"] }}>
+            {/* Skills — category → sub-skill, same picker as the registration form */}
+            <AppText weight="semibold" style={{ marginBottom: SPACING.sm }}>{t("filterSkill")}</AppText>
+            <View style={{ gap: SPACING.sm, marginBottom: SPACING.lg }}>
+              <Chip label={t("all")} selected={skill === "all"} onPress={() => { setSkill("all"); setExpandedCat(null); }} testID="skillcat-all" />
+              {SKILL_CATEGORIES.map((cat) => {
+                const isLeaf = cat.subs.length === 0;
+                const selectedSub = !isLeaf && cat.subs.includes(skill) ? skill : null;
+                const active = isLeaf ? skill === cat.label : !!selectedSub;
+                const open = expandedCat === cat.key;
+                return (
+                  <View key={cat.key} style={[styles.catWrap, active && { borderColor: COLORS.brandPrimary }]}>
+                    <Pressable
+                      style={styles.catHeader}
+                      onPress={() => (isLeaf ? setSkill(skill === cat.label ? "all" : cat.label) : setExpandedCat(open ? null : cat.key))}
+                      testID={`skillcat-${cat.key}`}
+                    >
+                      <View
+                        style={[
+                          styles.catCheck,
+                          {
+                            backgroundColor: active ? COLORS.brandPrimary : COLORS.surfaceTertiary,
+                            borderColor: active ? COLORS.brandPrimary : COLORS.borderStrong,
+                          },
+                        ]}
+                      >
+                        {active && <Ionicons name="checkmark" size={14} color="#fff" />}
+                      </View>
+                      <AppText weight="semibold" style={{ flex: 1 }}>{cat.label}</AppText>
+                      {selectedSub && (
+                        <AppText size="sm" color={COLORS.brandPrimary} weight="semibold" numberOfLines={1} style={{ maxWidth: 120 }}>
+                          {selectedSub}
+                        </AppText>
+                      )}
+                      {!isLeaf && <Ionicons name={open ? "chevron-up" : "chevron-down"} size={20} color={COLORS.muted} />}
+                    </Pressable>
+                    {open && !isLeaf && (
+                      <View style={styles.catBody}>
+                        {cat.subs.map((s) => (
+                          <Chip
+                            key={s}
+                            label={s}
+                            selected={skill === s}
+                            onPress={() => setSkill(skill === s ? "all" : s)}
+                            testID={`skill-${s}`}
+                          />
+                        ))}
+                      </View>
+                    )}
+                  </View>
+                );
+              })}
+            </View>
 
-          <View style={{ flexDirection: "row", gap: SPACING.md, marginTop: SPACING.xl }}>
+            <AppText weight="semibold" style={{ marginBottom: SPACING.sm }}>{t("filterAvailability")}</AppText>
+            <View style={styles.wrap}>
+              <Chip label={t("all")} selected={availability === "all"} onPress={() => setAvailability("all")} />
+              {AVAILABILITY_OPTIONS.map((o) => (
+                <Chip key={o.value} label={t(o.key)} selected={availability === o.value} onPress={() => setAvailability(o.value)} />
+              ))}
+            </View>
+            <AppText weight="semibold" style={{ marginTop: SPACING.lg, marginBottom: SPACING.sm }}>{t("filterVerification")}</AppText>
+            <View style={styles.wrap}>
+              {VERIF_OPTIONS.map((o) => (
+                <Chip key={o.value} label={t(o.key)} selected={verification === o.value} onPress={() => setVerification(o.value)} />
+              ))}
+            </View>
+            <AppText weight="semibold" style={{ marginTop: SPACING.lg, marginBottom: SPACING.sm }}>{t("filterCity")}</AppText>
+            <TextInput value={city} onChangeText={setCity} placeholder="Hyderabad" placeholderTextColor={COLORS.muted} style={styles.sheetInput} />
+
+            <AppText weight="semibold" style={{ marginTop: SPACING.lg, marginBottom: SPACING.sm }}>Area / Locality</AppText>
+            <TextInput value={area} onChangeText={setArea} placeholder="e.g. Charminar" placeholderTextColor={COLORS.muted} style={styles.sheetInput} />
+
+            <AppText weight="semibold" style={{ marginTop: SPACING.lg, marginBottom: SPACING.sm }}>Experience (years)</AppText>
+            <View style={{ flexDirection: "row", gap: SPACING.md }}>
+              <TextInput
+                value={minExp}
+                onChangeText={(v) => setMinExp(v.replace(/[^0-9]/g, ""))}
+                placeholder="Min"
+                placeholderTextColor={COLORS.muted}
+                keyboardType="number-pad"
+                style={[styles.sheetInput, { flex: 1 }]}
+              />
+              <TextInput
+                value={maxExp}
+                onChangeText={(v) => setMaxExp(v.replace(/[^0-9]/g, ""))}
+                placeholder="Max"
+                placeholderTextColor={COLORS.muted}
+                keyboardType="number-pad"
+                style={[styles.sheetInput, { flex: 1 }]}
+              />
+            </View>
+          </ScrollView>
+
+          <View style={styles.filterDialogFooter}>
             <View style={{ flex: 1 }}>
               <Button title={t("clearFilters")} variant="secondary" onPress={clearFilters} testID="clear-filters-btn" />
             </View>
@@ -513,8 +570,8 @@ export default function WorkerSearch() {
               <Button title={t("applyFilters")} onPress={applyFilters} testID="apply-filters-btn" />
             </View>
           </View>
-        </BottomSheetScrollView>
-      </BottomSheet>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -563,4 +620,26 @@ const styles = StyleSheet.create({
   galleryImageFallback: { backgroundColor: COLORS.surfaceTertiary, alignItems: "center", justifyContent: "center" },
   galleryInfo: { padding: SPACING.sm, gap: 2 },
   verifiedBadge: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 4 },
+  filterDialog: { flex: 1, backgroundColor: COLORS.surface },
+  filterDialogHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: SPACING.lg,
+    paddingVertical: SPACING.md,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  filterDialogFooter: {
+    flexDirection: "row",
+    gap: SPACING.md,
+    padding: SPACING.lg,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+    backgroundColor: COLORS.surface,
+  },
+  catWrap: { borderWidth: 1, borderColor: COLORS.border, borderRadius: RADIUS.md, backgroundColor: COLORS.surfaceSecondary, overflow: "hidden" },
+  catHeader: { flexDirection: "row", alignItems: "center", gap: SPACING.md, paddingHorizontal: SPACING.lg, minHeight: 56 },
+  catCheck: { width: 24, height: 24, borderRadius: 6, borderWidth: 1, alignItems: "center", justifyContent: "center" },
+  catBody: { flexDirection: "row", flexWrap: "wrap", gap: SPACING.sm, paddingHorizontal: SPACING.lg, paddingBottom: SPACING.md },
 });
