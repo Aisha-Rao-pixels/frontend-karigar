@@ -11,7 +11,6 @@ import { AppText, Loader, Button } from "@/src/components/ui";
 import { Panel, StatTile, BarList, ColumnChart, SegmentBar, SERIES } from "@/src/components/charts";
 import { apiFetch } from "@/src/api/client";
 import { useAuth } from "@/src/context/AuthContext";
-import { useToast } from "@/src/components/Toast";
 
 interface Analytics {
   kpis: {
@@ -31,20 +30,33 @@ interface Analytics {
   availability_distribution: { available_now: number; available_from: number; not_available: number };
   experience_buckets: { label: string; count: number }[];
   gender_distribution: { male: number; female: number; other: number };
-  registration_trend: { date: string; count: number }[];
+  registration_trend: { label: string; date_from: string; date_to: string; date?: string; count: number }[];
+  trend_period?: "day" | "week" | "month";
 }
+
+// Aligned by index with the fixed backend order of experience_buckets
+// (0-2 yrs, 3-5 yrs, 6-10 yrs, 10+ yrs) — used to drive the Experience
+// Mix drill-down into the worker directory.
+const EXP_RANGES: { min_exp: number; max_exp?: number }[] = [
+  { min_exp: 0, max_exp: 2 },
+  { min_exp: 3, max_exp: 5 },
+  { min_exp: 6, max_exp: 10 },
+  { min_exp: 11 },
+];
+
+type TrendPeriod = "day" | "week" | "month";
 
 export default function AdminDashboard() {
   const router = useRouter();
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { logout } = useAuth();
-  const { show } = useToast();
   const [a, setA] = useState<Analytics | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [sendingEmail, setSendingEmail] = useState(false);
   const [emailStatus, setEmailStatus] = useState<"idle" | "success" | "error">("idle");
+  const [trendPeriod, setTrendPeriod] = useState<TrendPeriod>("day");
 
   const sendSummaryEmail = async () => {
     setSendingEmail(true);
@@ -60,18 +72,24 @@ export default function AdminDashboard() {
     }
   };
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (period?: TrendPeriod) => {
     try {
-      const data = await apiFetch<Analytics>("/admin/analytics");
+      const data = await apiFetch<Analytics>(`/admin/analytics?period=${period ?? trendPeriod}`);
       setA(data);
     } catch {
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [trendPeriod]);
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
+
+  const changeTrendPeriod = (period: TrendPeriod) => {
+    if (period === trendPeriod) return;
+    setTrendPeriod(period);
+    load(period);
+  };
 
   if (loading || !a) return <View style={styles.container}><Loader /></View>;
 
@@ -200,31 +218,63 @@ export default function AdminDashboard() {
             showPct
             colorFor={(i) => (i === 0 ? SERIES[0] : COLORS.brandSecondary)}
             testID="location-bars"
+            onItemPress={(item) => {
+              router.push({
+                pathname: "/admin/search",
+                params: { area: item.label, view: "table" },
+              });
+            }}
           />
         </Panel>
 
         {/* Registration trend */}
-        <Panel title={t("registrationTrend")} subtitle={t("last14Days")} icon="trending-up" iconTint={SERIES[1]} testID="panel-trend">
+        <Panel
+          title={t("registrationTrend")}
+          subtitle={
+            trendPeriod === "day" ? t("last14Days")
+            : trendPeriod === "week" ? "Last 12 weeks"
+            : "Last 12 months"
+          }
+          icon="trending-up"
+          iconTint={SERIES[1]}
+          testID="panel-trend"
+          right={
+            <View style={styles.periodToggle}>
+              {(["day", "week", "month"] as TrendPeriod[]).map((p) => (
+                <Pressable
+                  key={p}
+                  onPress={() => changeTrendPeriod(p)}
+                  style={[styles.periodBtn, trendPeriod === p && styles.periodBtnActive]}
+                  testID={`trend-period-${p}`}
+                >
+                  <AppText
+                    size="sm"
+                    weight="semibold"
+                    color={trendPeriod === p ? COLORS.onBrandPrimary : COLORS.muted}
+                    style={{ textTransform: "capitalize" }}
+                  >
+                    {p}
+                  </AppText>
+                </Pressable>
+              ))}
+            </View>
+          }
+        >
           <ColumnChart
-            data={a.registration_trend.map((d) => ({ label: d.date.slice(5).replace("-", "/"), value: d.count }))}
+            data={a.registration_trend.map((d) => ({ label: d.label, value: d.count }))}
             tint={SERIES[1]}
             testID="trend-chart"
             onBarPress={(_bar, i) => {
-              const day = a.registration_trend[i];
-              if (!day) return;
-              router.push(`/admin/registrations/${day.date}`);
-              return;
-              const prettyDate = new Date(day.date + "T00:00:00").toLocaleDateString(undefined, {
-                weekday: "short",
-                month: "short",
-                day: "numeric",
-              });
-              show(
-                day.count > 0
-                  ? `${day.count} worker${day.count !== 1 ? "s" : ""} registered on ${prettyDate}`
-                  : `No registrations on ${prettyDate}`,
-                day.count > 0 ? "info" : "info"
-              );
+              const bucket = a.registration_trend[i];
+              if (!bucket) return;
+              if (bucket.date_from === bucket.date_to) {
+                router.push(`/admin/registrations/${bucket.date_from}`);
+              } else {
+                router.push({
+                  pathname: `/admin/registrations/${bucket.date_from}`,
+                  params: { to: bucket.date_to, label: bucket.label },
+                });
+              }
             }}
           />
         </Panel>
@@ -250,14 +300,24 @@ export default function AdminDashboard() {
           />
         </Panel>
 
-        <Panel title={t("availabilitySplit")} icon="flash" iconTint={SERIES[1]} testID="panel-availability">
+        <Panel
+          title={t("availabilitySplit")}
+          subtitle="Tap “Available From” to see who's coming available and when"
+          icon="flash"
+          iconTint={SERIES[1]}
+          testID="panel-availability"
+        >
           <SegmentBar
             segments={[
-              { label: t("avail_now"), value: a.availability_distribution.available_now, color: COLORS.success },
-              { label: t("avail_from"), value: a.availability_distribution.available_from, color: COLORS.warning },
-              { label: t("avail_no"), value: a.availability_distribution.not_available, color: COLORS.error },
+              { label: t("avail_now"), value: a.availability_distribution.available_now, color: COLORS.success, key: "available_now" },
+              { label: t("avail_from"), value: a.availability_distribution.available_from, color: COLORS.warning, key: "available_from" },
+              { label: t("avail_no"), value: a.availability_distribution.not_available, color: COLORS.error, key: "not_available" },
             ]}
             testID="availability-segments"
+            onSegmentPress={(key) => {
+              if (key === "available_from") router.push("/admin/availability");
+              else router.push({ pathname: "/admin/search", params: { availability: key, view: "table" } });
+            }}
           />
         </Panel>
 
@@ -267,6 +327,18 @@ export default function AdminDashboard() {
             data={a.experience_buckets.map((b) => ({ label: b.label, value: b.count }))}
             colorFor={(i) => SERIES[(i + 2) % SERIES.length]}
             testID="experience-bars"
+            onItemPress={(_item, i) => {
+              const range = EXP_RANGES[i];
+              if (!range) return;
+              router.push({
+                pathname: "/admin/search",
+                params: {
+                  min_exp: String(range.min_exp),
+                  ...(range.max_exp != null ? { max_exp: String(range.max_exp) } : {}),
+                  view: "table",
+                },
+              });
+            }}
           />
         </Panel>
 
@@ -302,6 +374,7 @@ export default function AdminDashboard() {
           <Button title={t("registerWorker")} onPress={() => router.push("/admin/register")} icon="person-add" testID="register-worker-btn" />
           <Button title={t("skillManagement")} variant="ghost" onPress={() => router.push("/admin/skills")} icon="construct" testID="skills-btn" />
           <Button title={t("manageAdmins")} variant="ghost" onPress={() => router.push("/admin/manage-admins")} icon="people-circle" testID="manage-admins-btn" />
+          <Button title="Availability" variant="ghost" onPress={() => router.push("/admin/availability")} icon="time" testID="availability-btn" />
           <Button title="Referral Dashboard" variant="ghost" onPress={() => router.push("/admin/referrals")} icon="gift" testID="referrals-dashboard-btn" />
 
           {/* Send Summary Email Button */}
@@ -389,4 +462,7 @@ const styles = StyleSheet.create({
   },
   summaryBtnSuccess: { backgroundColor: "#2D7A4F" },
   summaryBtnError:   { backgroundColor: "#B91C1C" },
+  periodToggle: { flexDirection: "row", gap: 2, backgroundColor: COLORS.surfaceTertiary, borderRadius: RADIUS.sm, padding: 2 },
+  periodBtn: { paddingHorizontal: SPACING.sm, paddingVertical: 5, borderRadius: RADIUS.sm - 2 },
+  periodBtnActive: { backgroundColor: COLORS.brandPrimary },
 });
