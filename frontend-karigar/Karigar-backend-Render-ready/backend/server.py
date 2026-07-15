@@ -1206,6 +1206,7 @@ async def admin_analytics(user: dict = Depends(require_roles(*ADMIN_ROLES)), per
 
 def _apply_filters(search, skill, availability, verification, city, area, min_exp, max_exp, registered_date=None, date_from=None, date_to=None):
     query = {}
+    and_clauses = []
     if search:
         query["$or"] = [
             {"full_name": {"$regex": search, "$options": "i"}},
@@ -1221,22 +1222,38 @@ def _apply_filters(search, skill, availability, verification, city, area, min_ex
         query["city"] = {"$regex": city, "$options": "i"}
     if area:
         query["area"] = {"$regex": area, "$options": "i"}
-    exp = {}
-    if min_exp is not None:
-        exp["$gte"] = min_exp
-    if max_exp is not None:
-        exp["$lte"] = max_exp
-    if exp:
-        query["years_experience"] = exp
+    if min_exp is not None or max_exp is not None:
+        lo = min_exp if min_exp is not None else 0
+        rng = {"$gte": lo}
+        if max_exp is not None:
+            rng["$lte"] = max_exp
+        if lo <= 0:
+            # A worker with no years_experience field at all (profile not yet
+            # fully filled in) is treated as 0 years by the analytics bucket
+            # count — match that here too, or a $gte/$lte query silently
+            # excludes them (Mongo range operators never match a missing
+            # field), which is why the Experience Mix bar count and the
+            # filtered table count used to disagree.
+            and_clauses.append({
+                "$or": [
+                    {"years_experience": {"$exists": False}},
+                    {"years_experience": None},
+                    {"years_experience": rng},
+                ]
+            })
+        else:
+            and_clauses.append({"years_experience": rng})
     if registered_date:
         query["created_at"] = {"$regex": f"^{registered_date}"}
     elif date_from or date_to:
-        rng = {}
+        rng2 = {}
         if date_from:
-            rng["$gte"] = date_from
+            rng2["$gte"] = date_from
         if date_to:
-            rng["$lte"] = date_to + "T23:59:59"
-        query["created_at"] = rng
+            rng2["$lte"] = date_to + "T23:59:59"
+        query["created_at"] = rng2
+    if and_clauses:
+        query["$and"] = and_clauses
     return query
 
 
@@ -1305,6 +1322,7 @@ async def admin_search_workers(
 
 @api_router.get("/admin/workers/{worker_id}")
 async def admin_worker_detail(worker_id: str, user: dict = Depends(require_roles(*ADMIN_ROLES))):
+    await _refresh_availability_statuses()
     worker = await db.workers.find_one({"id": worker_id})
     if not worker:
         raise HTTPException(status_code=404, detail="Worker not found")
