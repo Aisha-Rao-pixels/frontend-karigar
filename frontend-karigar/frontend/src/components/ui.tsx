@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useRef, useState } from "react";
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
   TextStyle,
   StyleProp,
   ScrollView,
+  Platform,
 } from "react-native";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
@@ -396,6 +397,77 @@ export function Card({ children, style, testID }: { children: React.ReactNode; s
 }
 
 // ---------------------------------------------------------------- ChipRow (horizontal scroller)
+// ---------------------------------------------------------------- Tooltip
+// Shared web-hover tooltip. Wrap anything in it; on native it's a no-op
+// passthrough (no hover concept on touch devices).
+export function Tooltip({ text, children }: { text: string; children: React.ReactNode }) {
+  const [visible, setVisible] = useState(false);
+  const [vPos, setVPos] = useState<"top" | "bottom">("bottom");
+  const [hAlign, setHAlign] = useState<"center" | "left" | "right">("center");
+  const wrapRef = useRef<View>(null);
+
+  if (Platform.OS !== "web") return <>{children}</>;
+
+  const handleEnter = () => {
+    // @ts-ignore - getBoundingClientRect exists on web
+    const rect = wrapRef.current?.getBoundingClientRect?.();
+    if (rect) {
+      setVPos(rect.top < 160 ? "bottom" : "top");
+      const halfW = 70; // half of the 140px tooltip width
+      if (rect.left - halfW < 8) setHAlign("left");
+      else if (rect.right + halfW > window.innerWidth - 8) setHAlign("right");
+      else setHAlign("center");
+    }
+    setVisible(true);
+  };
+
+  const hStyle =
+    hAlign === "left"
+      ? { left: 0, right: undefined, transform: [] as any }
+      : hAlign === "right"
+      ? { left: undefined, right: 0, transform: [] as any }
+      : { left: "50%", right: undefined, transform: [{ translateX: -70 }] };
+
+  return (
+    <View
+      ref={wrapRef}
+      style={{ position: "relative" }}
+      // @ts-ignore
+      onMouseEnter={handleEnter}
+      onMouseLeave={() => setVisible(false)}
+    >
+      {children}
+      {visible && (
+        <View
+          style={[
+            tooltipStyles.box,
+            vPos === "bottom" ? { top: "110%", bottom: undefined } : { bottom: "110%" },
+            hStyle,
+          ]}
+          pointerEvents="none"
+        >
+          <AppText size="sm" color="#fff" style={{ textAlign: "center" }}>{text}</AppText>
+        </View>
+      )}
+    </View>
+  );
+}
+
+const tooltipStyles = StyleSheet.create({
+  box: {
+    position: "absolute",
+    width: 140,
+    backgroundColor: "rgba(0,0,0,0.9)",
+    borderRadius: 6,
+    padding: 8,
+    zIndex: 9999,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+  },
+});
+
 export function ChipScroller({ children }: { children: React.ReactNode }) {
   return (
     <ScrollView
