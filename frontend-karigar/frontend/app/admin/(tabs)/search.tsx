@@ -402,42 +402,44 @@ export default function WorkerSearch() {
         <AppText size="sm" color={COLORS.muted}>{t("resultsCount", { count: total })}</AppText>
       </View>
 
-      {loading ? <Loader /> : viewMode === "card" ? (
-        <FlatList
-          data={items}
-          keyExtractor={(w) => w.id}
-          contentContainerStyle={{ padding: SPACING.lg, paddingTop: SPACING.sm, gap: SPACING.sm, paddingBottom: SPACING["2xl"] }}
-          ListEmptyComponent={<EmptyState image="https://images.unsplash.com/photo-1521401415461-83e7162b8e64?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2Nzd8MHwxfHNlYXJjaHwxfHxpbmRpYW4lMjBhcnRpc2FuJTIwZW1icm9pZGVyeSUyMHRhaWxvcmluZyUyMHdvcmtlcnxlbnwwfHx8fDE3ODEyNTk4MTd8MA&ixlib=rb-4.1.0&q=85" title={t("noWorkers")} />}
-          renderItem={({ item }) => (
-            <Tooltip text={`View ${item.full_name}'s full profile`}>
-              <Pressable onPress={() => router.push(`/admin/worker/${item.id}?from=search`)} style={[styles.workerCard, shadow]} testID={`worker-card-${item.id}`}>
-                <Avatar name={item.full_name} size={48} />
-                <View style={{ flex: 1 }}>
-                  <AppText weight="bold" size="base" numberOfLines={1}>{item.full_name}</AppText>
-                  <AppText size="sm" color={COLORS.muted} numberOfLines={1}>
-                    {(item.skills || []).join(", ") || "—"} · {item.years_experience} {t("yearsShort")} · {item.city}
-                  </AppText>
-                  <View style={{ flexDirection: "row", gap: SPACING.sm, marginTop: 6 }}>
-                    <View style={[styles.miniDot, { backgroundColor: availabilityColor(item.availability_status) }]} />
-                    <View style={[styles.miniDot, { backgroundColor: verificationColor(item.verification_status) }]} />
+      <View style={{ flex: 1 }}>
+        {loading ? <Loader /> : viewMode === "card" ? (
+          <FlatList
+            data={items}
+            keyExtractor={(w) => w.id}
+            contentContainerStyle={{ padding: SPACING.lg, paddingTop: SPACING.sm, gap: SPACING.sm, paddingBottom: SPACING["2xl"] }}
+            ListEmptyComponent={<EmptyState image="https://images.unsplash.com/photo-1521401415461-83e7162b8e64?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2Nzd8MHwxfHNlYXJjaHwxfHxpbmRpYW4lMjBhcnRpc2FuJTIwZW1icm9pZGVyeSUyMHRhaWxvcmluZyUyMHdvcmtlcnxlbnwwfHx8fDE3ODEyNTk4MTd8MA&ixlib=rb-4.1.0&q=85" title={t("noWorkers")} />}
+            renderItem={({ item }) => (
+              <Tooltip text={`View ${item.full_name}'s full profile`}>
+                <Pressable onPress={() => router.push(`/admin/worker/${item.id}?from=search`)} style={[styles.workerCard, shadow]} testID={`worker-card-${item.id}`}>
+                  <Avatar name={item.full_name} size={48} />
+                  <View style={{ flex: 1 }}>
+                    <AppText weight="bold" size="base" numberOfLines={1}>{item.full_name}</AppText>
+                    <AppText size="sm" color={COLORS.muted} numberOfLines={1}>
+                      {(item.skills || []).join(", ") || "—"} · {item.years_experience} {t("yearsShort")} · {item.city}
+                    </AppText>
+                    <View style={{ flexDirection: "row", gap: SPACING.sm, marginTop: 6 }}>
+                      <View style={[styles.miniDot, { backgroundColor: availabilityColor(item.availability_status) }]} />
+                      <View style={[styles.miniDot, { backgroundColor: verificationColor(item.verification_status) }]} />
+                    </View>
                   </View>
-                </View>
-                <Ionicons name="chevron-forward" size={20} color={COLORS.muted} />
-              </Pressable>
-            </Tooltip>
-          )}
-        />
-      ) : (
-        <ResizableTable
-          columns={tableColumns}
-          data={items}
-          keyExtractor={(w) => w.id}
-          onRowPress={(w) => router.push(`/admin/worker/${w.id}?from=search`)}
-          testIDPrefix="table"
-          storageKey="admin_search_table"
-          emptyText={t("noWorkers")}
-        />
-      )}
+                  <Ionicons name="chevron-forward" size={20} color={COLORS.muted} />
+                </Pressable>
+              </Tooltip>
+            )}
+          />
+        ) : (
+          <ResizableTable
+            columns={tableColumns}
+            data={items}
+            keyExtractor={(w) => w.id}
+            onRowPress={(w) => router.push(`/admin/worker/${w.id}?from=search`)}
+            testIDPrefix="table"
+            storageKey="admin_search_table"
+            emptyText={t("noWorkers")}
+          />
+        )}
+      </View>
 
       <BottomSheet ref={sheetRef} index={-1} snapPoints={snapPoints} enablePanDownToClose backgroundStyle={{ backgroundColor: COLORS.surfaceSecondary }}>
         <BottomSheetScrollView contentContainerStyle={{ padding: SPACING.lg, paddingBottom: SPACING["2xl"] }}>
