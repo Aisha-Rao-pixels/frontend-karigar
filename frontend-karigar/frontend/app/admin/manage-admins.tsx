@@ -32,6 +32,7 @@ export default function ManageAdmins() {
   const { show } = useToast();
   const [admins, setAdmins] = useState<Admin[]>([]);
   const [loading, setLoading] = useState(true);
+  const [slowLoad, setSlowLoad] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [confirmTarget, setConfirmTarget] = useState<Admin | null>(null);
   const [confirmPhone, setConfirmPhone] = useState("");
