@@ -88,13 +88,13 @@ export function StatTile({
         styles.tile,
         shadow,
         {
-          backgroundColor: pressed ? tint + "15" : hovered ? tint + "0D" : "#FFFFFF",
-          borderWidth: pressed || hovered ? 1.5 : 0,
-          borderColor: pressed ? tint : hovered ? tint + "80" : "transparent",
-          transform: [{ scale: pressed ? 0.96 : hovered ? 0.99 : 1 }],
-          shadowOpacity: pressed ? 0.16 : hovered ? 0.12 : 0.06,
-          shadowRadius: pressed ? 14 : hovered ? 11 : 8,
-          elevation: pressed ? 7 : hovered ? 5 : 2,
+          // Hover/press feedback is size + shadow only now — background and
+          // text color never change, so the tile is always readable.
+          backgroundColor: "#FFFFFF",
+          transform: [{ scale: pressed ? 0.96 : hovered ? 1.045 : 1 }],
+          shadowOpacity: pressed ? 0.16 : hovered ? 0.14 : 0.06,
+          shadowRadius: pressed ? 14 : hovered ? 13 : 8,
+          elevation: pressed ? 7 : hovered ? 6 : 2,
         }
       ]}
     >
@@ -172,7 +172,7 @@ function BarListRow({
       style={({ pressed }) => [
         styles.barRow,
         {
-          backgroundColor: pressed ? COLORS.brandTertiary : hovered ? COLORS.brandTertiary + "AA" : "transparent",
+          transform: [{ scale: pressed ? 0.98 : hovered ? 1.02 : 1 }],
         },
       ]}
     >
@@ -240,7 +240,7 @@ function ColumnBarItem({
         styles.colItem,
         styles.colItemInteractive,
         {
-          backgroundColor: pressed ? COLORS.brandTertiary : hovered ? COLORS.brandTertiary + "AA" : "transparent",
+          transform: [{ scale: pressed ? 0.93 : hovered ? 1.08 : 1 }],
           opacity: pressed ? 0.85 : 1,
         },
       ]}
@@ -341,7 +341,7 @@ function SegmentLegendItem({
       style={({ pressed }) => [
         styles.legendItem,
         styles.legendItemInteractive,
-        { backgroundColor: pressed ? COLORS.brandTertiary : hovered ? COLORS.brandTertiary + "AA" : "transparent" },
+        { transform: [{ scale: pressed ? 0.96 : hovered ? 1.05 : 1 }] },
       ]}
     >
       {inner}
