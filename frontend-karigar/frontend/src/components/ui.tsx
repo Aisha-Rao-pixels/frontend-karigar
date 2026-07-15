@@ -73,15 +73,6 @@ export function Button({
     success: COLORS.success,
   }[variant];
 
-  // Pressed (hover) background — richer, darker shade for each variant
-  const pressedBg = {
-    primary:   "#7A3F1E",   // deeper brand brown
-    secondary: "#E8DDD5",   // warm taupe
-    ghost:     "#F7EBE5",   // soft brand tint
-    danger:    "#C0392B",   // deeper red
-    success:   "#16A34A",   // deeper green
-  }[variant];
-
   const fg = {
     primary: COLORS.onBrandPrimary,
     secondary: COLORS.onSurfaceTertiary,
@@ -91,15 +82,6 @@ export function Button({
   }[variant];
   const isDisabled = disabled || loading;
   const [hovered, setHovered] = React.useState(false);
-
-  // Hover background — subtle, one step lighter/darker than the base color
-  const hoverBg = {
-    primary:   "#8C4A24",
-    secondary: "#EFE6DE",
-    ghost:     "#FBF3EF",
-    danger:    "#D9463A",
-    success:   "#22B457",
-  }[variant];
 
   return (
     <Pressable
@@ -114,14 +96,16 @@ export function Button({
       style={({ pressed }) => [
         styles.btn,
         {
-          backgroundColor: isDisabled ? bg : pressed ? pressedBg : hovered ? hoverBg : bg,
+          backgroundColor: bg,
           opacity: isDisabled ? 0.5 : 1,
-          transform: [{ scale: pressed ? 0.97 : 1 }],
-          shadowColor: pressed ? "#000" : "#1A1817",
-          shadowOpacity: pressed ? 0.18 : hovered ? 0.1 : 0.06,
-          shadowRadius: pressed ? 12 : hovered ? 10 : 8,
-          shadowOffset: { width: 0, height: pressed ? 4 : 2 },
-          elevation: pressed ? 6 : hovered ? 4 : 2,
+          // Hover/press feedback is purely a size + shadow change now —
+          // colors never shift, so text stays legible no matter what.
+          transform: [{ scale: pressed ? 0.97 : hovered ? 1.035 : 1 }],
+          shadowColor: "#1A1817",
+          shadowOpacity: pressed ? 0.18 : hovered ? 0.14 : 0.06,
+          shadowRadius: pressed ? 12 : hovered ? 11 : 8,
+          shadowOffset: { width: 0, height: pressed ? 4 : hovered ? 3 : 2 },
+          elevation: pressed ? 6 : hovered ? 5 : 2,
         },
         variant === "ghost" && { borderWidth: 1, borderColor: pressed || hovered ? COLORS.brandPrimary : COLORS.border },
         style,
