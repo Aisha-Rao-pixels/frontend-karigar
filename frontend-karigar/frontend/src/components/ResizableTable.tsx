@@ -129,8 +129,16 @@ function TableRow<T>({
       onHoverOut={() => setHovered(false)}
       style={[
         styles.row,
-        { minWidth: totalWidth },
-        { backgroundColor: hovered ? COLORS.brandTertiary : baseBackground },
+        { minWidth: totalWidth, backgroundColor: baseBackground },
+        onPress ? {
+          transform: [{ scale: hovered ? 1.012 : 1 }],
+          zIndex: hovered ? 1 : 0,
+          shadowColor: "#1A1817",
+          shadowOpacity: hovered ? 0.12 : 0,
+          shadowRadius: hovered ? 6 : 0,
+          shadowOffset: { width: 0, height: 2 },
+          elevation: hovered ? 3 : 0,
+        } : null,
       ]}
       testID={testID}
     >
