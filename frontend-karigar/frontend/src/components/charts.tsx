@@ -77,21 +77,24 @@ export function StatTile({
   testID?: string;
   onPress?: () => void;
 }) {
+  const [hovered, setHovered] = React.useState(false);
   return (
     <Pressable
       testID={testID}
       onPress={onPress}
+      onHoverIn={() => setHovered(true)}
+      onHoverOut={() => setHovered(false)}
       style={({ pressed }) => [
         styles.tile,
         shadow,
         {
-          backgroundColor: pressed ? tint + "15" : "#FFFFFF",
-          borderWidth: pressed ? 1.5 : 0,
-          borderColor: pressed ? tint : "transparent",
-          transform: [{ scale: pressed ? 0.96 : 1 }],
-          shadowOpacity: pressed ? 0.16 : 0.06,
-          shadowRadius: pressed ? 14 : 8,
-          elevation: pressed ? 7 : 2,
+          backgroundColor: pressed ? tint + "15" : hovered ? tint + "0D" : "#FFFFFF",
+          borderWidth: pressed || hovered ? 1.5 : 0,
+          borderColor: pressed ? tint : hovered ? tint + "80" : "transparent",
+          transform: [{ scale: pressed ? 0.96 : hovered ? 0.99 : 1 }],
+          shadowOpacity: pressed ? 0.16 : hovered ? 0.12 : 0.06,
+          shadowRadius: pressed ? 14 : hovered ? 11 : 8,
+          elevation: pressed ? 7 : hovered ? 5 : 2,
         }
       ]}
     >
@@ -116,43 +119,134 @@ export function StatTile({
 }
 
 // ----------------------------------------------------------- Horizontal bar list
+function BarListRow({
+  d,
+  i,
+  w,
+  c,
+  showPct,
+  testID,
+  onPress,
+}: {
+  d: { label: string; value: number; pct?: number };
+  i: number;
+  w: number;
+  c: string;
+  showPct?: boolean;
+  testID?: string;
+  onPress?: () => void;
+}) {
+  const [hovered, setHovered] = React.useState(false);
+  const interactive = !!onPress;
+  const content = (
+    <>
+      <View style={styles.barLabelRow}>
+        <AppText size="base" weight="medium" numberOfLines={1} style={{ flex: 1 }}>
+          {d.label}
+        </AppText>
+        <AppText size="sm" weight="bold" color={COLORS.onSurface}>
+          {d.value}
+          {showPct && d.pct != null ? `  ·  ${d.pct}%` : ""}
+        </AppText>
+      </View>
+      <View style={styles.barTrack}>
+        <View style={[styles.barFill, { width: `${w}%`, backgroundColor: c }]} />
+      </View>
+    </>
+  );
+
+  if (!interactive) {
+    return (
+      <View testID={testID} style={styles.barRowStatic}>
+        {content}
+      </View>
+    );
+  }
+
+  return (
+    <Pressable
+      testID={testID}
+      onPress={onPress}
+      onHoverIn={() => setHovered(true)}
+      onHoverOut={() => setHovered(false)}
+      style={({ pressed }) => [
+        styles.barRow,
+        {
+          backgroundColor: pressed ? COLORS.brandTertiary : hovered ? COLORS.brandTertiary + "AA" : "transparent",
+        },
+      ]}
+    >
+      {content}
+    </Pressable>
+  );
+}
+
 export function BarList({
   data,
   max,
   showPct,
   colorFor,
   testID,
+  onItemPress,
 }: {
   data: { label: string; value: number; pct?: number }[];
   max?: number;
   showPct?: boolean;
   colorFor?: (i: number) => string;
   testID?: string;
+  /** When provided, each row becomes pressable/hoverable and drills into that item. */
+  onItemPress?: (item: { label: string; value: number; pct?: number }, index: number) => void;
 }) {
   const top = max ?? Math.max(1, ...data.map((d) => d.value));
   return (
-    <View testID={testID} style={{ gap: SPACING.md }}>
+    <View testID={testID} style={{ gap: SPACING.sm }}>
       {data.map((d, i) => {
         const w = Math.max(3, (d.value / top) * 100);
         const c = colorFor ? colorFor(i) : COLORS.brandPrimary;
         return (
-          <View key={d.label + i} testID={`bar-${d.label}`}>
-            <View style={styles.barLabelRow}>
-              <AppText size="base" weight="medium" numberOfLines={1} style={{ flex: 1 }}>
-                {d.label}
-              </AppText>
-              <AppText size="sm" weight="bold" color={COLORS.onSurface}>
-                {d.value}
-                {showPct && d.pct != null ? `  ·  ${d.pct}%` : ""}
-              </AppText>
-            </View>
-            <View style={styles.barTrack}>
-              <View style={[styles.barFill, { width: `${w}%`, backgroundColor: c }]} />
-            </View>
-          </View>
+          <BarListRow
+            key={d.label + i}
+            d={d}
+            i={i}
+            w={w}
+            c={c}
+            showPct={showPct}
+            testID={`bar-${d.label}`}
+            onPress={onItemPress ? () => onItemPress(d, i) : undefined}
+          />
         );
       })}
     </View>
+  );
+}
+
+function ColumnBarItem({
+  children,
+  onPress,
+  testID,
+}: {
+  children: React.ReactNode;
+  onPress: () => void;
+  testID?: string;
+}) {
+  const [hovered, setHovered] = React.useState(false);
+  return (
+    <Pressable
+      testID={testID}
+      onPress={onPress}
+      onHoverIn={() => setHovered(true)}
+      onHoverOut={() => setHovered(false)}
+      style={({ pressed }) => [
+        styles.colItem,
+        styles.colItemInteractive,
+        {
+          backgroundColor: pressed ? COLORS.brandTertiary : hovered ? COLORS.brandTertiary + "AA" : "transparent",
+          opacity: pressed ? 0.85 : 1,
+        },
+      ]}
+    >
+      {children}
+    </Pressable>
   );
 }
 
@@ -193,14 +287,9 @@ export function ColumnChart({
             </>
           );
           return onBarPress ? (
-            <Pressable
-              key={i}
-              testID={`${testID || "col"}-bar-${i}`}
-              onPress={() => onBarPress(d, i)}
-              style={({ pressed }) => [styles.colItem, pressed ? { opacity: 0.6 } : null]}
-            >
+            <ColumnBarItem key={i} testID={`${testID || "col"}-bar-${i}`} onPress={() => onBarPress(d, i)}>
               {barContent}
-            </Pressable>
+            </ColumnBarItem>
           ) : (
             <View key={i} testID={`${testID || "col"}-bar-${i}`} style={styles.colItem}>
               {barContent}
@@ -222,12 +311,53 @@ export function ColumnChart({
 }
 
 // ----------------------------------------------------------- Segmented bar + legend
+function SegmentLegendItem({
+  s,
+  onPress,
+}: {
+  s: { label: string; value: number; color: string };
+  onPress?: () => void;
+}) {
+  const [hovered, setHovered] = React.useState(false);
+  const inner = (
+    <>
+      <View style={[styles.legendDot, { backgroundColor: s.color }]} />
+      <AppText size="sm" weight="medium">
+        {s.label}
+      </AppText>
+      <AppText size="sm" weight="bold" color={COLORS.muted}>
+        {s.value}
+      </AppText>
+    </>
+  );
+  if (!onPress) {
+    return <View style={styles.legendItem}>{inner}</View>;
+  }
+  return (
+    <Pressable
+      onPress={onPress}
+      onHoverIn={() => setHovered(true)}
+      onHoverOut={() => setHovered(false)}
+      style={({ pressed }) => [
+        styles.legendItem,
+        styles.legendItemInteractive,
+        { backgroundColor: pressed ? COLORS.brandTertiary : hovered ? COLORS.brandTertiary + "AA" : "transparent" },
+      ]}
+    >
+      {inner}
+    </Pressable>
+  );
+}
+
 export function SegmentBar({
   segments,
   testID,
+  onSegmentPress,
 }: {
-  segments: { label: string; value: number; color: string }[];
+  segments: { label: string; value: number; color: string; key?: string }[];
   testID?: string;
+  /** When provided, called with the segment's `key` (falls back to `label`) on press. */
+  onSegmentPress?: (segmentKey: string) => void;
 }) {
   const total = segments.reduce((s, x) => s + x.value, 0) || 1;
   return (
@@ -245,15 +375,11 @@ export function SegmentBar({
       </View>
       <View style={styles.legendWrap}>
         {segments.map((s, i) => (
-          <View key={i} style={styles.legendItem}>
-            <View style={[styles.legendDot, { backgroundColor: s.color }]} />
-            <AppText size="sm" weight="medium">
-              {s.label}
-            </AppText>
-            <AppText size="sm" weight="bold" color={COLORS.muted}>
-              {s.value}
-            </AppText>
-          </View>
+          <SegmentLegendItem
+            key={i}
+            s={s}
+            onPress={onSegmentPress ? () => onSegmentPress(s.key ?? s.label) : undefined}
+          />
         ))}
       </View>
     </View>
@@ -282,11 +408,14 @@ const styles = StyleSheet.create({
   },
   tileTop: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   tileIcon: { width: 28, height: 28, borderRadius: 8, alignItems: "center", justifyContent: "center" },
+  barRow: { borderRadius: RADIUS.sm, paddingHorizontal: 6, paddingVertical: 6, marginHorizontal: -6 },
+  barRowStatic: { paddingVertical: 2 },
   barLabelRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 5 },
   barTrack: { height: 10, borderRadius: 5, backgroundColor: COLORS.surfaceTertiary, overflow: "hidden" },
   barFill: { height: "100%", borderRadius: 5 },
   colWrap: { flexDirection: "row", alignItems: "flex-end", gap: 3 },
   colItem: { flex: 1, alignItems: "center", justifyContent: "flex-end", gap: 2 },
+  colItemInteractive: { borderRadius: RADIUS.sm, paddingTop: 4 },
   colBar: { width: "70%", borderTopLeftRadius: 3, borderTopRightRadius: 3, minHeight: 2 },
   segTrack: {
     flexDirection: "row",
@@ -297,5 +426,6 @@ const styles = StyleSheet.create({
   },
   legendWrap: { flexDirection: "row", flexWrap: "wrap", gap: SPACING.md, marginTop: SPACING.md },
   legendItem: { flexDirection: "row", alignItems: "center", gap: 5 },
+  legendItemInteractive: { borderRadius: RADIUS.sm, paddingHorizontal: 6, paddingVertical: 4, marginHorizontal: -6, marginVertical: -4 },
   legendDot: { width: 10, height: 10, borderRadius: 5 },
 });
