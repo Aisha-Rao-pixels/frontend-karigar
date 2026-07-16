@@ -10,6 +10,7 @@
 //                                                      overflows to scroll
 //         <ScrollView flex:1 stickyHeaderIndices=[0]> <- vertical scrollbar
 //           header row (sticky)
+//           filter row (sticky, sits just below header)
 //           data rows
 //
 // We deliberately do NOT nest a FlatList inside a horizontal ScrollView —
@@ -22,17 +23,20 @@
 //   <ResizableTable
 //     storageKey="admin_search_table"
 //     columns={[
-//       { key: "name", label: "Name", width: 160, render: (w) => <AppText>{w.full_name}</AppText> },
+//       { key: "name", label: "Name", width: 160, sortable: true, filterable: true,
+//         render: (w) => <AppText>{w.full_name}</AppText>,
+//         sortValue: (w) => w.full_name },
 //       ...
 //     ]}
 //     data={items}
 //     keyExtractor={(w) => w.id}
 //     onRowPress={(w) => router.push(`/admin/worker/${w.id}`)}
 //   />
-import React, { useCallback, useEffect, useRef, useState } from "react";
-import { View, StyleSheet, ScrollView, Pressable, Platform, RefreshControl } from "react-native";
-import { COLORS, SPACING } from "@/src/theme";
+import React, { useCallback, useEffect, useRef, useState, useMemo } from "react";
+import { View, StyleSheet, ScrollView, Pressable, Platform, RefreshControl, TextInput } from "react-native";
+import { COLORS, SPACING, FONT, RADIUS } from "@/src/theme";
 import { AppText, Tooltip } from "@/src/components/ui";
+import { Ionicons } from "@expo/vector-icons";
 import { storage } from "@/src/utils/storage";
 
 export type ResizableTableColumn<T> = {
@@ -44,7 +48,17 @@ export type ResizableTableColumn<T> = {
   /** Set false for narrow index-style columns that shouldn't be draggable. */
   resizable?: boolean;
   render: (item: T, index: number) => React.ReactNode;
+  /** If true, clicking this column header cycles sort asc → desc → off */
+  sortable?: boolean;
+  /** Returns the primitive value used for sorting. Required when sortable=true. */
+  sortValue?: (item: T) => string | number | null | undefined;
+  /** If true, shows a text filter input below the header for this column. */
+  filterable?: boolean;
+  /** Called to check if an item matches the column's filter string. */
+  filterMatch?: (item: T, filter: string) => boolean;
 };
+
+type SortDir = "asc" | "desc" | null;
 
 type Props<T> = {
   columns: ResizableTableColumn<T>[];
@@ -155,8 +169,6 @@ function TableRow<T>({
     </Pressable>
   );
 
-  // A single tooltip wrapping the whole row, rather than one tooltip per
-  // column — hovering anywhere on the row shows the same message once.
   if (tooltipText) {
     return <Tooltip text={tooltipText}>{row}</Tooltip>;
   }
@@ -184,6 +196,13 @@ export function ResizableTable<T>({
 
   const [colWidths, setColWidths] = useState<Record<string, number>>(defaultWidths);
 
+  // Sort state: which column + direction
+  const [sortKey, setSortKey] = useState<string | null>(null);
+  const [sortDir, setSortDir] = useState<SortDir>(null);
+
+  // Per-column filter strings
+  const [colFilters, setColFilters] = useState<Record<string, string>>({});
+
   // Restore persisted widths on mount.
   useEffect(() => {
     if (!storageKey) return;
@@ -209,14 +228,56 @@ export function ResizableTable<T>({
     [storageKey]
   );
 
+  // Cycle sort: none → asc → desc → none
+  const handleSortPress = useCallback((key: string) => {
+    setSortKey((prev) => {
+      if (prev !== key) { setSortDir("asc"); return key; }
+      setSortDir((d) => {
+        if (d === "asc") return "desc";
+        // was desc → clear sort
+        setSortKey(null);
+        return null;
+      });
+      return key;
+    });
+  }, []);
+
+  // Apply column filters then sort
+  const processedData = useMemo(() => {
+    let result = [...data];
+
+    // Filter
+    for (const col of columns) {
+      if (!col.filterable || !col.filterMatch) continue;
+      const filterVal = colFilters[col.key]?.trim();
+      if (!filterVal) continue;
+      result = result.filter((item) => col.filterMatch!(item, filterVal));
+    }
+
+    // Sort
+    if (sortKey && sortDir) {
+      const col = columns.find((c) => c.key === sortKey);
+      if (col?.sortValue) {
+        result.sort((a, b) => {
+          const av = col.sortValue!(a) ?? "";
+          const bv = col.sortValue!(b) ?? "";
+          if (av < bv) return sortDir === "asc" ? -1 : 1;
+          if (av > bv) return sortDir === "asc" ? 1 : -1;
+          return 0;
+        });
+      }
+    }
+
+    return result;
+  }, [data, columns, colFilters, sortKey, sortDir]);
+
   const totalWidth = columns.reduce((sum, c) => sum + (colWidths[c.key] ?? c.width), 0);
+  const hasFilters = columns.some((c) => c.filterable);
+  const activeFilterCount = Object.values(colFilters).filter(Boolean).length;
 
   return (
     <View style={styles.container} testID={`${testIDPrefix}-container`}>
-      {/* Outer horizontal scroll — this is what gives the horizontal scrollbar.
-          minWidth:"100%" on contentContainerStyle lets the inner column fill
-          the full screen width when the table is narrower than the viewport,
-          and overflow (triggering the scrollbar) when it's wider. */}
+      {/* Outer horizontal scroll */}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator
@@ -224,11 +285,10 @@ export function ResizableTable<T>({
         contentContainerStyle={{ minWidth: "100%", flexGrow: 1 }}
       >
         <View style={{ flex: 1, minWidth: totalWidth }}>
-          {/* Inner vertical scroll — native stickyHeaderIndices keeps the
-              header pinned while rows scroll underneath it. */}
+          {/* Inner vertical scroll — stickyHeaderIndices pins header + filter row */}
           <ScrollView
             style={styles.vScroll}
-            stickyHeaderIndices={[0]}
+            stickyHeaderIndices={hasFilters ? [0, 1] : [0]}
             showsVerticalScrollIndicator
             refreshControl={
               onRefresh ? (
@@ -236,29 +296,92 @@ export function ResizableTable<T>({
               ) : undefined
             }
           >
-            {/* Header (sticky, index 0) */}
+            {/* ── Header row (sticky index 0) ── */}
             <View style={[styles.headerRow, { minWidth: totalWidth }]}>
-              {columns.map((col) => (
-                <View key={col.key} style={[styles.headerCell, { width: colWidths[col.key] ?? col.width }]}>
-                  <AppText weight="bold" size="sm" numberOfLines={1} color={COLORS.onBrandPrimary}>
-                    {col.label}
-                  </AppText>
-                  {col.resizable !== false && (
-                    <ResizeHandle
-                      onResize={(delta) => resizeColumn(col.key, delta, col.minWidth ?? DEFAULT_MIN_WIDTH)}
-                    />
-                  )}
-                </View>
-              ))}
+              {columns.map((col) => {
+                const isSorted = sortKey === col.key;
+                const sortIcon = isSorted
+                  ? sortDir === "asc" ? "arrow-up" : "arrow-down"
+                  : "swap-vertical";
+                return (
+                  <View key={col.key} style={[styles.headerCell, { width: colWidths[col.key] ?? col.width }]}>
+                    {col.sortable ? (
+                      <Pressable
+                        style={styles.headerCellInner}
+                        onPress={() => handleSortPress(col.key)}
+                        testID={`${testIDPrefix}-sort-${col.key}`}
+                      >
+                        <AppText weight="bold" size="sm" numberOfLines={1} color={COLORS.onBrandPrimary} style={{ flex: 1 }}>
+                          {col.label}
+                        </AppText>
+                        <Ionicons
+                          name={sortIcon as any}
+                          size={13}
+                          color={isSorted ? "#fff" : "rgba(255,255,255,0.5)"}
+                          style={{ marginLeft: 3 }}
+                        />
+                      </Pressable>
+                    ) : (
+                      <View style={styles.headerCellInner}>
+                        <AppText weight="bold" size="sm" numberOfLines={1} color={COLORS.onBrandPrimary}>
+                          {col.label}
+                        </AppText>
+                      </View>
+                    )}
+                    {col.resizable !== false && (
+                      <ResizeHandle
+                        onResize={(delta) => resizeColumn(col.key, delta, col.minWidth ?? DEFAULT_MIN_WIDTH)}
+                      />
+                    )}
+                  </View>
+                );
+              })}
             </View>
 
-            {/* Rows */}
-            {data.length === 0 ? (
+            {/* ── Filter row (sticky index 1, only when filterable cols exist) ── */}
+            {hasFilters && (
+              <View style={[styles.filterRow, { minWidth: totalWidth }]}>
+                {columns.map((col) => (
+                  <View key={col.key} style={[styles.filterCell, { width: colWidths[col.key] ?? col.width }]}>
+                    {col.filterable ? (
+                      <TextInput
+                        value={colFilters[col.key] ?? ""}
+                        onChangeText={(v) => setColFilters((prev) => ({ ...prev, [col.key]: v }))}
+                        placeholder="Filter…"
+                        placeholderTextColor={COLORS.muted}
+                        style={styles.filterInput}
+                        testID={`${testIDPrefix}-filter-${col.key}`}
+                        clearButtonMode="while-editing"
+                      />
+                    ) : (
+                      // Empty spacer for non-filterable columns (like S.No)
+                      <View />
+                    )}
+                  </View>
+                ))}
+                {/* Clear-all button if any filter is active */}
+                {activeFilterCount > 0 && (
+                  <Pressable
+                    onPress={() => setColFilters({})}
+                    style={styles.clearFiltersBtn}
+                    testID={`${testIDPrefix}-clear-col-filters`}
+                  >
+                    <Ionicons name="close-circle" size={16} color={COLORS.brandPrimary} />
+                    <AppText size="sm" color={COLORS.brandPrimary} weight="semibold"> Clear ({activeFilterCount})</AppText>
+                  </Pressable>
+                )}
+              </View>
+            )}
+
+            {/* ── Rows ── */}
+            {processedData.length === 0 ? (
               <View style={{ padding: SPACING.xl, minWidth: totalWidth }}>
-                <AppText color={COLORS.muted}>{emptyText}</AppText>
+                <AppText color={COLORS.muted}>
+                  {activeFilterCount > 0 ? "No results match your column filters." : emptyText}
+                </AppText>
               </View>
             ) : (
-              data.map((item, index) => (
+              processedData.map((item, index) => (
                 <TableRow
                   key={keyExtractor(item)}
                   item={item}
@@ -286,7 +409,33 @@ const styles = StyleSheet.create({
   vScroll: { flex: 1, width: "100%" },
   headerRow: { flexDirection: "row", backgroundColor: COLORS.brandPrimary, paddingVertical: SPACING.sm, paddingHorizontal: SPACING.md },
   headerCell: { position: "relative", paddingHorizontal: 6, justifyContent: "center" },
+  headerCellInner: { flexDirection: "row", alignItems: "center", flex: 1 },
   resizeHandle: { position: "absolute", right: -4, top: 0, bottom: 0, width: 8, zIndex: 2 },
+  filterRow: {
+    flexDirection: "row",
+    backgroundColor: COLORS.surfaceSecondary,
+    paddingVertical: 6,
+    paddingHorizontal: SPACING.md,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  filterCell: { paddingHorizontal: 4, justifyContent: "center" },
+  filterInput: {
+    height: 30,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: RADIUS.sm,
+    paddingHorizontal: 8,
+    fontSize: FONT.sm,
+    color: COLORS.onSurface,
+    backgroundColor: COLORS.surface,
+  },
+  clearFiltersBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: SPACING.sm,
+    alignSelf: "center",
+  },
   row: { flexDirection: "row", paddingVertical: SPACING.sm, paddingHorizontal: SPACING.md, borderBottomWidth: 1, borderBottomColor: COLORS.border },
   cell: { paddingHorizontal: 6, justifyContent: "center" },
 });
