@@ -221,7 +221,7 @@ export default function AdminDashboard() {
             onItemPress={(item) => {
               router.push({
                 pathname: "/admin/search",
-                params: { area: item.label, view: "table" },
+                params: { area: item.label, view: "table", verification: "approved" },
               });
             }}
           />
