@@ -29,7 +29,7 @@ import { useFocusEffect } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 
-import { COLORS, SPACING, RADIUS } from "@/src/theme";
+import { COLORS, SPACING, RADIUS, FONT } from "@/src/theme";
 import { ScreenHeader, AppText, Loader } from "@/src/components/ui";
 import { apiFetch } from "@/src/api/client";
 import { useToast } from "@/src/components/Toast";
@@ -245,6 +245,9 @@ export default function ReferralBreakdown() {
     });
   };
 
+  // Table filter — matches referrer name/phone, referred name/phone, or status label
+  const [filterText, setFilterText] = useState("");
+
   // Bulk-select (pending tab only)
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [showBulkModal, setShowBulkModal] = useState(false);
@@ -339,7 +342,22 @@ export default function ReferralBreakdown() {
   };
 
   const isPending = category === "pending";
-  const eligibleRows = rows.filter((r) => r.referrer_has_payout_number);
+  const filteredRows = React.useMemo(() => {
+    const q = filterText.trim().toLowerCase();
+    if (!q) return rows;
+    return rows.filter((r) => {
+      const statusLabel = (STATUS_LABELS[r.status]?.label || r.status || "").toLowerCase();
+      return (
+        r.referrer_name?.toLowerCase().includes(q) ||
+        r.referrer_phone?.includes(q) ||
+        r.name?.toLowerCase().includes(q) ||
+        r.phone?.includes(q) ||
+        statusLabel.includes(q)
+      );
+    });
+  }, [rows, filterText]);
+
+  const eligibleRows = filteredRows.filter((r) => r.referrer_has_payout_number);
 
   // Visible columns — hide check + action cols when not on pending tab
   const visibleCols = DEFAULT_COLS.filter((c) => {
@@ -381,6 +399,26 @@ export default function ReferralBreakdown() {
               Pay Selected
             </AppText>
           </Pressable>
+        </View>
+      )}
+
+      {!loading && category !== "not_registered" && (
+        <View style={styles.filterBar}>
+          <Ionicons name="search" size={16} color={COLORS.muted} />
+          <TextInput
+            value={filterText}
+            onChangeText={setFilterText}
+            placeholder="Filter by referrer, name, phone, or status…"
+            placeholderTextColor={COLORS.muted}
+            style={styles.filterBarInput}
+            clearButtonMode="while-editing"
+            testID="referral-breakdown-filter"
+          />
+          {filterText.length > 0 && (
+            <Pressable onPress={() => setFilterText("")} hitSlop={8}>
+              <Ionicons name="close-circle" size={16} color={COLORS.muted} />
+            </Pressable>
+          )}
         </View>
       )}
 
@@ -441,7 +479,7 @@ export default function ReferralBreakdown() {
               </View>
 
               {/* ── Data rows ──────────────────────────────────────────────── */}
-              {rows.map((r, i) => {
+              {filteredRows.map((r, i) => {
                 const statusInfo = STATUS_LABELS[r.status] || { label: r.status, color: COLORS.muted };
                 const isChecked = selected.has(r.referral_id);
 
@@ -555,6 +593,20 @@ function Cell({ width, children }: { width: number; children: React.ReactNode })
 // ── Styles ────────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.surface },
+  filterBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: SPACING.sm,
+    marginHorizontal: SPACING.lg,
+    marginTop: SPACING.sm,
+    paddingHorizontal: SPACING.md,
+    height: 38,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: RADIUS.md,
+    backgroundColor: COLORS.surfaceSecondary,
+  },
+  filterBarInput: { flex: 1, fontSize: FONT.sm, color: COLORS.onSurface, height: "100%" },
   headerRow: { backgroundColor: COLORS.surfaceInverse },
   dataRow: { flexDirection: "row", borderTopWidth: 1, borderTopColor: COLORS.divider, alignItems: "center" },
 
