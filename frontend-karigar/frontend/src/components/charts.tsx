@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Pressable, StyleSheet } from "react-native";
+import { View, Pressable, StyleSheet, ScrollView } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { AppText } from "@/src/components/ui";
 import { COLORS, SPACING, RADIUS, FONT, shadow } from "@/src/theme";
@@ -265,48 +265,59 @@ export function ColumnChart({
   onBarPress?: (item: { label: string; value: number }, index: number) => void;
 }) {
   const top = Math.max(1, ...data.map((d) => d.value));
+  // Each bar takes a fixed width so bars stay readable regardless of count.
+  // 30-day view would squish bars to nothing without this.
+  const BAR_W = 36;
+  const totalW = Math.max(data.length * BAR_W, 1);
   return (
-    <View testID={testID}>
-      <View style={[styles.colWrap, { height }]}>
-        {data.map((d, i) => {
-          const isZero = d.value <= 0;
-          // Zero days still get a small visible stub (not just 2px) so the
-          // column reads as "checked, nothing happened" rather than absent.
-          const h = isZero ? 6 : Math.max(4, (d.value / top) * (height - 18));
-          const barContent = (
-            <>
-              <AppText size="sm" weight="bold" color={COLORS.muted} style={{ fontSize: 10 }}>
-                {d.value}
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator
+      testID={testID}
+      contentContainerStyle={{ minWidth: "100%" }}
+    >
+      <View style={{ width: totalW }}>
+        <View style={[styles.colWrap, { height }]}>
+          {data.map((d, i) => {
+            const isZero = d.value <= 0;
+            // Zero days still get a small visible stub (not just 2px) so the
+            // column reads as "checked, nothing happened" rather than absent.
+            const h = isZero ? 6 : Math.max(4, (d.value / top) * (height - 18));
+            const barContent = (
+              <>
+                <AppText size="sm" weight="bold" color={COLORS.muted} style={{ fontSize: 10 }}>
+                  {d.value}
+                </AppText>
+                <View
+                  style={[
+                    styles.colBar,
+                    { height: h, backgroundColor: isZero ? COLORS.border : tint },
+                  ]}
+                />
+              </>
+            );
+            return onBarPress ? (
+              <ColumnBarItem key={i} testID={`${testID || "col"}-bar-${i}`} onPress={() => onBarPress(d, i)}>
+                {barContent}
+              </ColumnBarItem>
+            ) : (
+              <View key={i} testID={`${testID || "col"}-bar-${i}`} style={styles.colItem}>
+                {barContent}
+              </View>
+            );
+          })}
+        </View>
+        <View style={styles.colWrap}>
+          {data.map((d, i) => (
+            <View key={i} style={styles.colItem}>
+              <AppText size="sm" color={COLORS.muted} style={{ fontSize: 9 }}>
+                {d.label}
               </AppText>
-              <View
-                style={[
-                  styles.colBar,
-                  { height: h, backgroundColor: isZero ? COLORS.border : tint },
-                ]}
-              />
-            </>
-          );
-          return onBarPress ? (
-            <ColumnBarItem key={i} testID={`${testID || "col"}-bar-${i}`} onPress={() => onBarPress(d, i)}>
-              {barContent}
-            </ColumnBarItem>
-          ) : (
-            <View key={i} testID={`${testID || "col"}-bar-${i}`} style={styles.colItem}>
-              {barContent}
             </View>
-          );
-        })}
+          ))}
+        </View>
       </View>
-      <View style={styles.colWrap}>
-        {data.map((d, i) => (
-          <View key={i} style={styles.colItem}>
-            <AppText size="sm" color={COLORS.muted} style={{ fontSize: 9 }}>
-              {i % 2 === 0 ? d.label : ""}
-            </AppText>
-          </View>
-        ))}
-      </View>
-    </View>
+    </ScrollView>
   );
 }
 
