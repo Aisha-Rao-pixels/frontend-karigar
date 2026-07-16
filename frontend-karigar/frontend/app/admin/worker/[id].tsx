@@ -115,6 +115,15 @@ export default function AdminWorkerDetail() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.surface },
+  editBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: 8,
+    borderRadius: RADIUS.pill,
+    backgroundColor: COLORS.brandTertiary,
+  },
   deleteBtn: {
     flexDirection: "row",
     alignItems: "center",
