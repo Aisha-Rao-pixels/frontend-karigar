@@ -337,14 +337,19 @@ async def update_self_admin(payload: UpdateSelfAdminPayload, current: dict = Dep
 @api_router.delete("/auth/admins/{admin_id}")
 async def delete_admin(admin_id: str, payload: DeleteAdminPayload, current: dict = Depends(require_roles("admin"))):
     # Defense in depth: deleting an admin requires BOTH the acting admin's
-    # role to be "Manager" AND the acting admin to re-confirm their own
-    # registered mobile number. Checking role alone is not enough, since a
-    # role name is just a mutable profile field — requiring the admin to
-    # also prove who they are (their own phone on file) ensures the person
-    # performing this destructive action is really the account it appears
-    # to be, and keeps a clear, deliberate confirmation step for something
-    # that permanently affects admin data.
-    if current.get("admin_role") != "Manager":
+    # role to be "Manager" (or the account being the permanent owner) AND
+    # the acting admin to re-confirm their own registered mobile number.
+    # Checking role alone is not enough, since a role name is just a mutable
+    # profile field — requiring the admin to also prove who they are (their
+    # own phone on file) ensures the person performing this destructive
+    # action is really the account it appears to be, and keeps a clear,
+    # deliberate confirmation step for something that permanently affects
+    # admin data.
+    OWNER_PHONE = "9959602258"  # Ravichandra (owner) — always has delete rights,
+    # even if their admin_role field says "Admin" rather than "Manager".
+    is_manager = current.get("admin_role") == "Manager"
+    is_owner = current.get("phone") == OWNER_PHONE
+    if not (is_manager or is_owner):
         raise HTTPException(status_code=403, detail="Only a Manager can remove an admin")
     confirm_phone = (payload.confirm_phone or "").strip()
     if confirm_phone != current.get("phone"):
