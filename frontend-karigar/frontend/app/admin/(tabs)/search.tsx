@@ -214,24 +214,33 @@ export default function WorkerSearch() {
     },
     {
       key: "name", label: "Name", width: 160,
+      sortable: true, sortValue: (w) => w.full_name?.toLowerCase() ?? "",
+      filterable: true, filterMatch: (w, f) => w.full_name?.toLowerCase().includes(f.toLowerCase()) ?? false,
       render: (item) => <AppText size="sm" numberOfLines={1}>{item.full_name}</AppText>,
     },
     {
       key: "phone", label: "Phone", width: 130,
+      filterable: true, filterMatch: (w, f) => (w.phone ?? "").includes(f),
       render: (item) => <AppText size="sm" numberOfLines={1} color={COLORS.muted}>{item.phone || "—"}</AppText>,
     },
     {
-      key: "skill", label: "Skill", width: 220,
+      key: "skill", label: "Skills", width: 220,
+      sortable: true, sortValue: (w) => (w.skills || []).join(", ").toLowerCase(),
+      filterable: true, filterMatch: (w, f) => (w.skills || []).join(" ").toLowerCase().includes(f.toLowerCase()),
       render: (item) => (
         <AppText size="sm" numberOfLines={2}>{(item.skills || []).join(", ") || "—"}</AppText>
       ),
     },
     {
       key: "city", label: "City", width: 120,
+      sortable: true, sortValue: (w) => w.city?.toLowerCase() ?? "",
+      filterable: true, filterMatch: (w, f) => (w.city ?? "").toLowerCase().includes(f.toLowerCase()),
       render: (item) => <AppText size="sm" numberOfLines={1}>{item.city || "—"}</AppText>,
     },
     {
-      key: "status", label: "Status", width: 140,
+      key: "status", label: "Verification", width: 140,
+      sortable: true, sortValue: (w) => w.verification_status ?? "",
+      filterable: true, filterMatch: (w, f) => (w.verification_status ?? "").toLowerCase().includes(f.toLowerCase()),
       render: (item) => (
         <AppText size="sm" numberOfLines={1} color={verificationColor(item.verification_status)}>
           {item.verification_status === "approved" ? "✅ Verified" : item.verification_status === "pending" ? "⏳ Pending" : "❌ Rejected"}
@@ -239,7 +248,9 @@ export default function WorkerSearch() {
       ),
     },
     {
-      key: "exp", label: "Exp", width: 80,
+      key: "exp", label: "Experience", width: 100,
+      sortable: true, sortValue: (w) => w.years_experience ?? 0,
+      filterable: true, filterMatch: (w, f) => String(w.years_experience ?? 0).includes(f),
       render: (item) => <AppText size="sm">{item.years_experience || 0} yrs</AppText>,
     },
   ];
