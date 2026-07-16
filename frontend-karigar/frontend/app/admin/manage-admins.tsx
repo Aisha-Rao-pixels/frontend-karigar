@@ -186,7 +186,11 @@ export default function ManageAdmins() {
 
       {/* ── Header ── */}
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={10}>
+        <Pressable
+          onPress={() => (router.canGoBack() ? router.back() : router.replace("/admin/(tabs)/dashboard"))}
+          style={styles.backBtn}
+          hitSlop={10}
+        >
           <Ionicons name="arrow-back" size={22} color={COLORS.onSurface} />
         </Pressable>
         <View style={{ flex: 1 }}>
