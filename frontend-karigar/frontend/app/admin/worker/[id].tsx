@@ -23,6 +23,21 @@ export default function AdminWorkerDetail() {
   const sheetRef = useRef<BottomSheet>(null);
   const [worker, setWorker] = useState<Worker | null>(null);
   const [busy, setBusy] = useState(false);
+  const [editing, setEditing] = useState(false);
+
+  const saveEdit = async (v: WorkerFormValues) => {
+    setBusy(true);
+    try {
+      const updated = await apiFetch<Worker>(`/admin/workers/${id}`, { method: "PUT", body: toPayload(v) });
+      setWorker(updated);
+      setEditing(false);
+      show(t("profileUpdated"), "success");
+    } catch (e: any) {
+      show(e.message || t("genericError"), "error");
+    } finally {
+      setBusy(false);
+    }
+  };
 
   // This screen is reachable from two different flows:
   //   1) Dashboard -> Search -> Worker                     (from=search)
