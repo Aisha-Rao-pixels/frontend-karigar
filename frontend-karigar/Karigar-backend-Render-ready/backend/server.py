@@ -1163,7 +1163,7 @@ def _build_registration_trend(workers: list, period: str) -> list:
                 "date_from": start_s, "date_to": end_s, "count": c,
             })
     else:  # day
-        for i in range(13, -1, -1):
+        for i in range(29, -1, -1):
             d = (now - timedelta(days=i)).strftime("%Y-%m-%d")
             c = sum(1 for w in workers if (w.get("created_at") or "")[:10] == d)
             trend.append({
