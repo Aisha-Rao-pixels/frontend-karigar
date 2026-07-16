@@ -66,6 +66,20 @@ export default function AdminWorkerDetail() {
     }
   };
 
+  if (editing && worker) {
+    return (
+      <View style={[styles.container, { paddingTop: insets.top }]}>
+        <ScreenHeader title={t("editProfile")} onBack={() => setEditing(false)} />
+        <WorkerForm
+          initial={fromWorker(worker)}
+          submitLabel={t("saveChanges")}
+          onSubmit={saveEdit}
+          submitting={busy}
+        />
+      </View>
+    );
+  }
+
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <ScreenHeader
@@ -73,10 +87,16 @@ export default function AdminWorkerDetail() {
         onBack={goBack}
         right={
           worker ? (
-            <Pressable onPress={() => sheetRef.current?.expand()} style={styles.deleteBtn} testID="delete-worker-btn">
-              <Ionicons name="trash-outline" size={18} color={COLORS.error} />
-              <AppText size="sm" weight="semibold" color={COLORS.error}>{t("delete")}</AppText>
-            </Pressable>
+            <View style={{ flexDirection: "row", gap: 8 }}>
+              <Pressable onPress={() => setEditing(true)} style={styles.editBtn} testID="edit-worker-btn">
+                <Ionicons name="create-outline" size={18} color={COLORS.brandPrimary} />
+                <AppText size="sm" weight="semibold" color={COLORS.brandPrimary}>{t("edit")}</AppText>
+              </Pressable>
+              <Pressable onPress={() => sheetRef.current?.expand()} style={styles.deleteBtn} testID="delete-worker-btn">
+                <Ionicons name="trash-outline" size={18} color={COLORS.error} />
+                <AppText size="sm" weight="semibold" color={COLORS.error}>{t("delete")}</AppText>
+              </Pressable>
+            </View>
           ) : undefined
         }
       />
