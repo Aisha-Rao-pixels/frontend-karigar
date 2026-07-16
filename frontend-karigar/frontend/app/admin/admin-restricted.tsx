@@ -53,7 +53,10 @@ export default function AdminRestricted() {
           </AppText>
         </View>
 
-        <Pressable style={styles.backLink} onPress={() => router.back()}>
+        <Pressable
+          style={styles.backLink}
+          onPress={() => (router.canGoBack() ? router.back() : router.replace("/admin/manage-admins"))}
+        >
           <AppText weight="semibold" size="base" style={{ color: COLORS.brandPrimary }}>Back to Admin List</AppText>
         </Pressable>
       </View>
