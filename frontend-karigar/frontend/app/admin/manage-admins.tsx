@@ -101,8 +101,14 @@ export default function ManageAdmins() {
       show("Admin removed", "success");
       setAdmins((prev) => prev.filter((x) => x.id !== admin.id));
       closeConfirm();
-    } catch (e: any) {
-      setConfirmError(e.message || "Could not remove admin");
+   } catch (e: any) {
+      const msg = e.message || "Could not remove admin";
+      // If it looks like a network/timeout error, give a more helpful message
+      if (e.status === 0 || !e.status) {
+        setConfirmError("Server is waking up, please try again in a moment.");
+      } else {
+        setConfirmError(msg);
+      }
     } finally {
       setDeletingId(null);
     }
