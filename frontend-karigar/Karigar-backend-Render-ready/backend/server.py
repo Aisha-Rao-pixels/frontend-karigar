@@ -355,8 +355,11 @@ async def delete_admin(admin_id: str, payload: DeleteAdminPayload, current: dict
     if not target:
         raise HTTPException(status_code=404, detail="Admin not found")
 
-    # Protected accounts — these can never be deleted by anyone
-    PROTECTED_PHONES = {"9959602258"}  # Ravichandra (owner) is permanently protected
+   # Protected accounts — these can never be deleted by anyone
+    PROTECTED_PHONES = {
+        "9959602258",  # Ravichandra (owner) — permanently protected
+        "9491106575",  # Shashank (Manager) — permanently protected
+    }
     target_phone = target.get("phone", "")
     target_name = target.get("name") or "this admin"
     if target_phone in PROTECTED_PHONES:
