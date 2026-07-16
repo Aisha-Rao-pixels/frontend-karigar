@@ -354,6 +354,24 @@ async def delete_admin(admin_id: str, payload: DeleteAdminPayload, current: dict
     target = await db.users.find_one({"id": admin_id, "role": "admin"})
     if not target:
         raise HTTPException(status_code=404, detail="Admin not found")
+
+    # Protected accounts — these can never be deleted by anyone
+    PROTECTED_PHONES = {"9959602258"}  # Ravichandra (owner) is permanently protected
+    target_phone = target.get("phone", "")
+    target_name = target.get("name") or "this admin"
+    if target_phone in PROTECTED_PHONES:
+        raise HTTPException(
+            status_code=403,
+            detail=f"You cannot delete Mr. {target_name}'s profile. This account is permanently protected."
+        )
+
+    # Manager accounts are also protected — no one can delete a Manager
+    if target.get("admin_role") == "Manager":
+        raise HTTPException(
+            status_code=403,
+            detail=f"You cannot delete Mr. {target_name}'s profile. Manager accounts are protected."
+        )
+
     await db.users.delete_one({"id": admin_id})
     return {"success": True}
 
