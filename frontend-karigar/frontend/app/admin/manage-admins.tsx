@@ -195,6 +195,15 @@ export default function ManageAdmins() {
             {admins.length} {admins.length === 1 ? "account" : "accounts"} registered
           </AppText>
         </View>
+       {canDelete && (
+          <Pressable
+            style={styles.historyBtn}
+            onPress={() => router.push("/admin/admin-audit-log")}
+            testID="go-to-audit-log"
+          >
+            <Ionicons name="time-outline" size={16} color={COLORS.onSurface} />
+          </Pressable>
+        )}
         <Pressable
           style={styles.addBtn}
           onPress={() => router.push("/admin/add-admin")}
