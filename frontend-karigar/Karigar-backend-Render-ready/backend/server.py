@@ -380,8 +380,36 @@ async def delete_admin(admin_id: str, payload: DeleteAdminPayload, current: dict
             detail=f"You cannot delete Mr. {target_name}'s profile. Manager accounts are protected."
         )
 
+    # Record who deleted whom and when, before the record is gone for good.
+    # This is a permanent audit trail — it is never read back into the app,
+    # and it is not affected by the delete below (separate collection).
+    await db.audit_logs.insert_one({
+        "id": new_id(),
+        "action": "delete_admin",
+        "deleted_admin_id": target["id"],
+        "deleted_admin_phone": target.get("phone", ""),
+        "deleted_admin_name": target.get("name", ""),
+        "deleted_admin_role": target.get("admin_role", "Admin"),
+        "performed_by_id": current["id"],
+        "performed_by_phone": current.get("phone", ""),
+        "performed_by_name": current.get("name", ""),
+        "created_at": now_iso(),
+    })
+
     await db.users.delete_one({"id": admin_id})
     return {"success": True}
+
+
+@api_router.get("/auth/admins/audit-log")
+async def list_admin_audit_log(current: dict = Depends(require_roles("admin"))):
+    # Same permission bar as deleting: Manager, or the owner account.
+    OWNER_PHONE = "9959602258"
+    is_manager = current.get("admin_role") == "Manager"
+    is_owner = current.get("phone") == OWNER_PHONE
+    if not (is_manager or is_owner):
+        raise HTTPException(status_code=403, detail="Only a Manager can view the admin audit log")
+    logs = await db.audit_logs.find({"action": "delete_admin"}).sort("created_at", -1).to_list(500)
+    return [clean(l) for l in logs]
 
 
 @api_router.get("/auth/me")
