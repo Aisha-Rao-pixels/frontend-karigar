@@ -57,8 +57,11 @@ export default function ManageAdmins() {
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
   // The logged-in admin's own row tells us their admin_role.
-  const me = admins.find((a) => a.is_you);
+ const me = admins.find((a) => a.is_you);
   const isManager = me?.admin_role === "Manager";
+  // Ravichandra (owner) also has delete permission like a Manager
+  const isOwner = me?.phone === "9959602258";
+  const canDelete = isManager || isOwner;
 
   const handleDelete = (admin: Admin) => {
     Alert.alert(
