@@ -168,7 +168,7 @@ export default function ManageAdmins() {
       key: "actions", label: " ", width: COL_WIDTHS.c6, resizable: false,
       render: (item) => (
         <View style={{ flexDirection: "row", gap: 10, justifyContent: "flex-end", alignItems: "center" }}>
-          {isManager && !item.is_you && (
+          {canDelete && !item.is_you && (
             deletingId === item.id ? (
               <ActivityIndicator size="small" color={COLORS.error} />
             ) : (
