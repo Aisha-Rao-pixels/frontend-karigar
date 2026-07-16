@@ -9,6 +9,7 @@ import BottomSheet, { BottomSheetView } from "@gorhom/bottom-sheet";
 import { COLORS, SPACING, RADIUS } from "@/src/theme";
 import { ScreenHeader, Loader, Button, AppText } from "@/src/components/ui";
 import WorkerDetail from "@/src/components/WorkerDetail";
+import WorkerForm, { fromWorker, toPayload, WorkerFormValues } from "@/src/components/WorkerForm";
 import { apiFetch } from "@/src/api/client";
 import { Worker } from "@/src/utils/profile";
 import { useToast } from "@/src/components/Toast";
