@@ -20,6 +20,38 @@ import { AppText, Button, Chip, Field } from "@/src/components/ui";
 import { Calendar } from "@/src/components/Calendar";
 import { GENDERS, SPOKEN_LANGUAGES, AVAILABILITY_OPTIONS, PROOF_TYPES } from "@/src/constants/app";
 
+// ─── Hindi translations map (for dual English/Hindi labels) ───────────────────
+// We import these directly so we can always show the Hindi label alongside
+// the English one, regardless of the user's selected app language.
+const HI: Record<string, string> = {
+  workerMobile: "कारीगर का मोबाइल नंबर",
+  fullName: "पूरा नाम",
+  gender: "लिंग",
+  languagesSpoken: "बोली जाने वाली भाषाएं",
+  area: "क्षेत्र / मोहल्ला",
+  city: "शहर",
+  skills: "कौशल",
+  experience: "अनुभव के वर्ष",
+  currentEmployer: "वर्तमान कार्यशाला / नियोक्ता",
+  prevEmployer: "पिछली कार्यशाला / नियोक्ता",
+  aadhaarCard: "आधार कार्ड",
+  employmentProof: "पिछले रोज़गार का प्रमाण",
+  wage: "अपेक्षित मासिक मजदूरी (₹)",
+  phonepeGpay: "PhonePe / Google Pay नंबर",
+  referredBy: "रेफ़रल कोड (वैकल्पिक)",
+  portfolio: "पोर्टफोलियो छवियां",
+  availability: "उपलब्धता स्थिति",
+};
+
+/** Returns "English Label / हिंदी लेबल" */
+function biLabel(enLabel: string, hiKey: string): string {
+  const hi = HI[hiKey];
+  if (!hi) return enLabel;
+  return `${enLabel} / ${hi}`;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 const PortfolioImages = React.memo(function PortfolioImages({
   images,
   onRemove,
@@ -65,10 +97,6 @@ const PortfolioImages = React.memo(function PortfolioImages({
 });
 
 // Shrinks an image to roughly targetKB by resizing + compressing.
-// ImageManipulator can throw on some browsers/image formats (notably with
-// the blob: URIs the web file picker hands back) — if that happens we fall
-// back to the base64 the picker already gave us instead of losing the
-// photo and leaving the user with no feedback at all.
 async function shrinkImage(uri: string, targetKB = 60, fallbackBase64?: string | null): Promise<string> {
   let width = 900;
   let quality = 0.5;
@@ -100,6 +128,7 @@ async function shrinkImage(uri: string, targetKB = 60, fallbackBase64?: string |
   }
   return uri;
 }
+
 import { SKILL_CATEGORIES } from "@/src/constants/skills";
 import { availabilityColor, formatDate, Worker } from "@/src/utils/profile";
 import { useToast } from "@/src/components/Toast";
@@ -293,6 +322,7 @@ export default function WorkerForm({
       }
     });
   }, []);
+
   const [gpsFilledArea, setGpsFilledArea] = useState<string | null>(null);
   const [expandedCat, setExpandedCat] = useState<string | null>(null);
   const [proofOpen, setProofOpen] = useState(false);
@@ -353,7 +383,7 @@ export default function WorkerForm({
       quality: 0.6,
       base64: true,
     });
-   if (!res.canceled) {
+    if (!res.canceled) {
       const results = await Promise.allSettled(
         res.assets.filter((a) => a.uri).map((a) => shrinkImage(a.uri, 100, a.base64))
       );
@@ -395,8 +425,6 @@ export default function WorkerForm({
         if (result.area) setGpsFilledArea(result.area);
         show(t("locationDetected"), "success");
       } catch {
-        // Geocoding failed but we still have raw coordinates — keep them and
-        // let the worker type the area manually rather than blocking them.
         setV((p) => ({ ...p, location_lat: latitude, location_lng: longitude }));
         show(t("locationCoordsOnly"), "info");
       }
@@ -450,7 +478,7 @@ export default function WorkerForm({
       >
         {showMobile && (
           <Field
-            label={t("workerMobile")}
+            label={biLabel(t("workerMobile"), "workerMobile")}
             value={v.mobile || ""}
             onChangeText={(x) => set("mobile", x.replace(/[^0-9]/g, ""))}
             placeholder="9876543210"
@@ -462,7 +490,7 @@ export default function WorkerForm({
         )}
 
         <Field
-          label={t("fullName")}
+          label={biLabel(t("fullName"), "fullName")}
           value={v.full_name}
           onChangeText={(x) => set("full_name", x)}
           placeholder={t("fullNamePh")}
@@ -472,10 +500,9 @@ export default function WorkerForm({
           testID="form-name"
         />
 
-
         {/* Gender */}
         <AppText weight="semibold" style={{ marginBottom: SPACING.sm }}>
-          {t("gender")}
+          {biLabel(t("gender"), "gender")}
         </AppText>
         <View style={styles.row}>
           {GENDERS.map((g) => (
@@ -485,7 +512,7 @@ export default function WorkerForm({
 
         {/* Languages */}
         <AppText weight="semibold" style={{ marginTop: SPACING.lg, marginBottom: SPACING.sm }}>
-          {t("languagesSpoken")}
+          {biLabel(t("languagesSpoken"), "languagesSpoken")}
         </AppText>
         <View style={styles.wrap}>
           {SPOKEN_LANGUAGES.map((l) => (
@@ -505,8 +532,9 @@ export default function WorkerForm({
             {locating ? t("detectingLocation") : t("detectMyLocation")}
           </AppText>
         </Pressable>
+
         <Field
-          label={t("area")}
+          label={biLabel(t("area"), "area")}
           value={v.area}
           onChangeText={(x) =>
             setV((p) => ({
@@ -522,11 +550,17 @@ export default function WorkerForm({
           error={errors.area}
           testID="form-area"
         />
-        <Field label={t("city")} value={v.city} onChangeText={(x) => set("city", x)} maxLength={60} testID="form-city" />
+        <Field
+          label={biLabel(t("city"), "city")}
+          value={v.city}
+          onChangeText={(x) => set("city", x)}
+          maxLength={60}
+          testID="form-city"
+        />
 
         {/* Skills — category → sub-skill */}
         <AppText weight="semibold" style={{ marginBottom: SPACING.sm }}>
-          {t("skills")}
+          {biLabel(t("skills"), "skills")}
         </AppText>
         <View style={{ gap: SPACING.sm }}>
           {SKILL_CATEGORIES.map((cat) => {
@@ -586,17 +620,51 @@ export default function WorkerForm({
         )}
 
         <View style={{ height: SPACING.lg }} />
-        <Field label={t("experience")} value={v.years_experience} onChangeText={(x) => set("years_experience", x.replace(/[^0-9]/g, ""))} keyboardType="numeric" maxLength={2} error={errors.years_experience} testID="form-exp" />
-        <Field label={t("currentEmployer")} value={v.current_employer} onChangeText={(x) => set("current_employer", x)} optional={t("optional")} maxLength={100} testID="form-curemp" />
-        <Field label={t("prevEmployer")} value={v.previous_employer} onChangeText={(x) => set("previous_employer", x)} maxLength={100} error={errors.previous_employer} testID="form-prevemp" />
+        <Field
+          label={biLabel(t("experience"), "experience")}
+          value={v.years_experience}
+          onChangeText={(x) => set("years_experience", x.replace(/[^0-9]/g, ""))}
+          keyboardType="numeric"
+          maxLength={2}
+          error={errors.years_experience}
+          testID="form-exp"
+        />
+        <Field
+          label={biLabel(t("currentEmployer"), "currentEmployer")}
+          value={v.current_employer}
+          onChangeText={(x) => set("current_employer", x)}
+          optional={t("optional")}
+          maxLength={100}
+          testID="form-curemp"
+        />
+        <Field
+          label={biLabel(t("prevEmployer"), "prevEmployer")}
+          value={v.previous_employer}
+          onChangeText={(x) => set("previous_employer", x)}
+          maxLength={100}
+          error={errors.previous_employer}
+          testID="form-prevemp"
+        />
 
         {/* Aadhaar card upload */}
-        <AppText weight="semibold" style={{ marginBottom: 2 }}>{t("aadhaarCard")}</AppText>
-        <AppText size="sm" color={COLORS.muted} style={{ marginBottom: SPACING.sm }}>{t("uploadAadhaarMulti")}</AppText>
-        <MultiDocUpload images={v.aadhar_images} onAdd={() => pickMulti("aadhar_images")} onRemove={(i) => removeAt("aadhar_images", i)} error={errors.aadhar_images} testID="aadhaar-upload" />
+        <AppText weight="semibold" style={{ marginBottom: 2 }}>
+          {biLabel(t("aadhaarCard"), "aadhaarCard")}
+        </AppText>
+        <AppText size="sm" color={COLORS.muted} style={{ marginBottom: SPACING.sm }}>
+          {t("uploadAadhaarMulti")}
+        </AppText>
+        <MultiDocUpload
+          images={v.aadhar_images}
+          onAdd={() => pickMulti("aadhar_images")}
+          onRemove={(i) => removeAt("aadhar_images", i)}
+          error={errors.aadhar_images}
+          testID="aadhaar-upload"
+        />
 
         {/* Proof of previous employment */}
-        <AppText weight="semibold" style={{ marginTop: SPACING.lg, marginBottom: SPACING.sm }}>{t("employmentProof")}</AppText>
+        <AppText weight="semibold" style={{ marginTop: SPACING.lg, marginBottom: SPACING.sm }}>
+          {biLabel(t("employmentProof"), "employmentProof")}
+        </AppText>
         <View style={[styles.dropdown, errors.employment_proof_type && { borderColor: COLORS.error }]}>
           <Pressable style={styles.dropdownHeader} onPress={() => setProofOpen((o) => !o)} testID="proof-type-dropdown">
             <AppText color={v.employment_proof_type ? COLORS.onSurface : COLORS.muted} style={{ flex: 1 }}>
@@ -623,20 +691,53 @@ export default function WorkerForm({
         {errors.employment_proof_type && (
           <AppText size="sm" color={COLORS.error} style={{ marginTop: 4 }}>{errors.employment_proof_type}</AppText>
         )}
-        <AppText size="sm" color={COLORS.muted} style={{ marginTop: SPACING.md, marginBottom: SPACING.sm }}>{t("uploadProofDocMulti")}</AppText>
-        <MultiDocUpload images={v.employment_proof_images} onAdd={() => pickMulti("employment_proof_images")} onRemove={(i) => removeAt("employment_proof_images", i)} error={errors.employment_proof_images} testID="proof-upload" />
+        <AppText size="sm" color={COLORS.muted} style={{ marginTop: SPACING.md, marginBottom: SPACING.sm }}>
+          {t("uploadProofDocMulti")}
+        </AppText>
+        <MultiDocUpload
+          images={v.employment_proof_images}
+          onAdd={() => pickMulti("employment_proof_images")}
+          onRemove={(i) => removeAt("employment_proof_images", i)}
+          error={errors.employment_proof_images}
+          testID="proof-upload"
+        />
 
         <View style={{ height: SPACING.lg }} />
-        <Field label={t("wage")} value={v.wage_expectation} onChangeText={(x) => set("wage_expectation", x.replace(/[^0-9]/g, ""))} keyboardType="numeric" optional={t("optional")} maxLength={6} testID="form-wage" />
-        <Field label={t("phonepeGpay")} value={v.upi_id} onChangeText={(x) => set("upi_id", x.replace(/[^0-9]/g, ""))} placeholder={t("phonepePh")} keyboardType="phone-pad" maxLength={10} optional={t("optional")} autoCapitalize="none" testID="form-upi" />
+        <Field
+          label={biLabel(t("wage"), "wage")}
+          value={v.wage_expectation}
+          onChangeText={(x) => set("wage_expectation", x.replace(/[^0-9]/g, ""))}
+          keyboardType="numeric"
+          optional={t("optional")}
+          maxLength={6}
+          testID="form-wage"
+        />
+        <Field
+          label={biLabel(t("phonepeGpay"), "phonepeGpay")}
+          value={v.upi_id}
+          onChangeText={(x) => set("upi_id", x.replace(/[^0-9]/g, ""))}
+          placeholder={t("phonepePh")}
+          keyboardType="phone-pad"
+          maxLength={10}
+          optional={t("optional")}
+          autoCapitalize="none"
+          testID="form-upi"
+        />
 
         {showReferral && (
-          <Field label={t("referredBy")} value={v.referred_by_code} onChangeText={(x) => set("referred_by_code", x.toUpperCase())} placeholder={t("referredByPh")} autoCapitalize="none" testID="form-referredby" />
+          <Field
+            label={biLabel(t("referredBy"), "referredBy")}
+            value={v.referred_by_code}
+            onChangeText={(x) => set("referred_by_code", x.toUpperCase())}
+            placeholder={t("referredByPh")}
+            autoCapitalize="none"
+            testID="form-referredby"
+          />
         )}
 
         {/* Portfolio (mandatory) */}
         <AppText weight="semibold" style={{ marginBottom: SPACING.sm }}>
-          {t("portfolio")}
+          {biLabel(t("portfolio"), "portfolio")}
         </AppText>
         <PortfolioImages
           images={v.portfolio_images}
@@ -648,7 +749,7 @@ export default function WorkerForm({
 
         {/* Availability */}
         <AppText weight="semibold" style={{ marginTop: SPACING.lg, marginBottom: SPACING.sm }}>
-          {t("availability")}
+          {biLabel(t("availability"), "availability")}
         </AppText>
         <View style={{ gap: SPACING.sm }}>
           {AVAILABILITY_OPTIONS.map((o) => {
@@ -702,20 +803,8 @@ export default function WorkerForm({
   );
 }
 
-const inputStyle = {
-  minHeight: 52,
-  borderWidth: 1,
-  borderColor: COLORS.border,
-  borderRadius: RADIUS.md,
-  paddingHorizontal: SPACING.md,
-  fontSize: FONT.lg,
-  color: COLORS.onSurface,
-  backgroundColor: COLORS.surfaceSecondary,
-} as const;
-
 const styles = StyleSheet.create({
   row: { flexDirection: "row", gap: SPACING.sm },
-  
   wrap: { flexDirection: "row", flexWrap: "wrap", gap: SPACING.sm },
   catWrap: { borderWidth: 1, borderColor: COLORS.border, borderRadius: RADIUS.md, backgroundColor: COLORS.surfaceSecondary, overflow: "hidden" },
   catHeader: { flexDirection: "row", alignItems: "center", gap: SPACING.md, paddingHorizontal: SPACING.lg, minHeight: 56 },
