@@ -224,6 +224,12 @@ export default function WorkerSearch() {
       render: (item) => <AppText size="sm" numberOfLines={1} color={COLORS.muted}>{item.phone || "—"}</AppText>,
     },
     {
+      key: "area", label: "Area / Locality", width: 160,
+      sortable: true, sortValue: (w) => w.area?.toLowerCase() ?? "",
+      filterable: true, filterMatch: (w, f) => (w.area ?? "").toLowerCase().includes(f.toLowerCase()),
+      render: (item) => <AppText size="sm" numberOfLines={1}>{item.area || "—"}</AppText>,
+    },
+    {
       key: "skill", label: "Skills", width: 220,
       sortable: true, sortValue: (w) => (w.skills || []).join(", ").toLowerCase(),
       filterable: true, filterMatch: (w, f) => (w.skills || []).join(" ").toLowerCase().includes(f.toLowerCase()),
