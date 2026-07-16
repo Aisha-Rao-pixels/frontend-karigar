@@ -39,11 +39,17 @@ export default function ManageAdmins() {
   const [confirmError, setConfirmError] = useState("");
 
   const load = useCallback(async () => {
+    setLoading(true);
+    setSlowLoad(false);
+    // If loading takes more than 2 seconds (Render cold start), show a hint
+    const slowTimer = setTimeout(() => setSlowLoad(true), 2000);
     try {
       const a = await apiFetch<Admin[]>("/auth/admins");
       setAdmins(a);
     } catch {
     } finally {
+      clearTimeout(slowTimer);
+      setSlowLoad(false);
       setLoading(false);
     }
   }, []);
@@ -64,9 +70,6 @@ export default function ManageAdmins() {
           text: "Remove",
           style: "destructive",
           onPress: () => {
-            // Role alone isn't enough to prove who is asking for this —
-            // the acting Manager must also re-enter their own registered
-            // mobile number before the deletion is actually sent.
             setConfirmPhone("");
             setConfirmError("");
             setConfirmTarget(admin);
@@ -207,6 +210,11 @@ export default function ManageAdmins() {
       {loading ? (
         <View style={styles.loaderWrap}>
           <ActivityIndicator color={COLORS.brandPrimary} />
+          {slowLoad && (
+            <AppText size="sm" style={{ color: COLORS.muted, marginTop: 12, textAlign: "center" }}>
+              Server is waking up, please wait...{"\n"}This may take up to 30 seconds.
+            </AppText>
+          )}
         </View>
       ) : admins.length === 0 ? (
         <View style={styles.emptyWrap}>
@@ -241,7 +249,7 @@ export default function ManageAdmins() {
         </View>
       )}
 
-      {/* ── Delete confirmation: verify role (already checked) + own mobile number ── */}
+      {/* ── Delete confirmation modal ── */}
       <Modal visible={!!confirmTarget} transparent animationType="fade" onRequestClose={closeConfirm}>
         <View style={styles.modalBackdrop}>
           <View style={[styles.modalCard, shadow]}>
@@ -326,7 +334,7 @@ const styles = StyleSheet.create({
   },
   divider: { height: 1, backgroundColor: COLORS.border },
 
-  loaderWrap: { flex: 1, alignItems: "center", justifyContent: "center" },
+  loaderWrap: { flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: SPACING.xl },
   emptyWrap: { flex: 1, alignItems: "center", justifyContent: "center", gap: SPACING.sm },
 
   footerNote: {
