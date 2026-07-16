@@ -274,6 +274,7 @@ export function ColumnChart({
       horizontal
       showsHorizontalScrollIndicator
       testID={testID}
+      style={{ minWidth: 0 }}
       contentContainerStyle={{ minWidth: "100%" }}
     >
       <View style={{ width: totalW }}>
@@ -406,6 +407,7 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.md,
     borderWidth: 1,
     borderColor: COLORS.border,
+    minWidth: 0,
   },
   panelHead: { flexDirection: "row", alignItems: "center", gap: SPACING.sm, marginBottom: SPACING.lg },
   panelIcon: { width: 30, height: 30, borderRadius: 8, alignItems: "center", justifyContent: "center" },
