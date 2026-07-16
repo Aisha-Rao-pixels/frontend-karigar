@@ -16,7 +16,11 @@ export default function AdminRestricted() {
     <View style={[styles.container, { paddingTop: insets.top }]}>
 
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={10}>
+        <Pressable
+          onPress={() => (router.canGoBack() ? router.back() : router.replace("/admin/manage-admins"))}
+          style={styles.backBtn}
+          hitSlop={10}
+        >
           <Ionicons name="arrow-back" size={22} color={COLORS.onSurface} />
         </Pressable>
         <AppText weight="semibold" size="xl" style={{ color: COLORS.onSurface }}>Admin Profile</AppText>
