@@ -54,7 +54,11 @@ export default function AdminAuditLog() {
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={10}>
+        <Pressable
+          onPress={() => (router.canGoBack() ? router.back() : router.replace("/admin/manage-admins"))}
+          style={styles.backBtn}
+          hitSlop={10}
+        >
           <Ionicons name="arrow-back" size={22} color={COLORS.onSurface} />
         </Pressable>
         <View style={{ flex: 1 }}>
