@@ -56,6 +56,12 @@ export type ResizableTableColumn<T> = {
   filterable?: boolean;
   /** Called to check if an item matches the column's filter string. */
   filterMatch?: (item: T, filter: string) => boolean;
+  /** If true, this cell becomes an editable text input once its row enters edit mode. */
+  editable?: boolean;
+  /** Returns the current raw string value to seed the edit input with. Required when editable=true. */
+  getEditValue?: (item: T) => string;
+  /** "numeric" shows a numeric keyboard on native; value is still passed back as a string. */
+  editKeyboardType?: "default" | "numeric";
 };
 
 type SortDir = "asc" | "desc" | null;
@@ -77,9 +83,17 @@ type Props<T> = {
   /** When provided, hovering anywhere on a row (web) shows a single tooltip
    *  with this text, instead of any per-column tooltips. */
   getRowTooltip?: (item: T) => string | null | undefined;
+  /**
+   * Called when the user saves an edited row (click a cell to edit, then hit
+   * the save check). Receives the item and a map of changed column key ->
+   * new string value. Only present when at least one column is editable.
+   * Return/reject a promise to show a saving spinner and surface errors.
+   */
+  onSaveRow?: (item: T, changes: Record<string, string>) => Promise<void> | void;
 };
 
 const DEFAULT_MIN_WIDTH = 56;
+const ROW_ACTIONS_WIDTH = 64;
 
 function ResizeHandle({ onResize }: { onResize: (deltaX: number) => void }) {
   const dragging = useRef(false);
@@ -129,6 +143,15 @@ function TableRow<T>({
   onPress,
   testID,
   tooltipText,
+  isEditing,
+  draftValues,
+  onDraftChange,
+  onStartEdit,
+  onSave,
+  onCancel,
+  saving,
+  saveError,
+  hasEditableColumns,
 }: {
   item: T;
   index: number;
@@ -139,17 +162,27 @@ function TableRow<T>({
   onPress?: () => void;
   testID?: string;
   tooltipText?: string | null;
+  isEditing: boolean;
+  draftValues: Record<string, string>;
+  onDraftChange: (key: string, value: string) => void;
+  onStartEdit: () => void;
+  onSave: () => void;
+  onCancel: () => void;
+  saving: boolean;
+  saveError: string | null;
+  hasEditableColumns: boolean;
 }) {
   const [hovered, setHovered] = useState(false);
-  const row = (
+  const rowContent = (
     <Pressable
-      onPress={onPress}
+      onPress={isEditing ? undefined : onPress}
       onHoverIn={() => setHovered(true)}
       onHoverOut={() => setHovered(false)}
       style={[
         styles.row,
         { minWidth: totalWidth, backgroundColor: baseBackground },
-        onPress ? {
+        isEditing ? styles.rowEditing : null,
+        onPress && !isEditing ? {
           transform: [{ scale: hovered ? 1.012 : 1 }],
           zIndex: hovered ? 1 : 0,
           shadowColor: "#1A1817",
@@ -161,18 +194,77 @@ function TableRow<T>({
       ]}
       testID={testID}
     >
-      {columns.map((col) => (
-        <View key={col.key} style={[styles.cell, { width: colWidths[col.key] ?? col.width }]}>
-          {col.render(item, index)}
+      {columns.map((col) => {
+        const cellIsEditable = isEditing && col.editable;
+        return (
+          <View key={col.key} style={[styles.cell, { width: colWidths[col.key] ?? col.width }]}>
+            {cellIsEditable ? (
+              <TextInput
+                value={draftValues[col.key] ?? ""}
+                onChangeText={(v) => onDraftChange(col.key, v)}
+                style={styles.editInput}
+                keyboardType={col.editKeyboardType === "numeric" ? "numeric" : "default"}
+                testID={`${testID}-edit-${col.key}`}
+                editable={!saving}
+              />
+            ) : col.editable ? (
+              <Pressable
+                onPress={(e: any) => { e?.stopPropagation?.(); onStartEdit(); }}
+                style={styles.editableCellTrigger}
+                testID={`${testID}-cell-${col.key}`}
+              >
+                {col.render(item, index)}
+              </Pressable>
+            ) : (
+              col.render(item, index)
+            )}
+          </View>
+        );
+      })}
+      {hasEditableColumns && (
+        <View style={styles.rowActionsCell}>
+          {isEditing ? (
+            <>
+              <Pressable
+                onPress={(e: any) => { e?.stopPropagation?.(); onSave(); }}
+                disabled={saving}
+                style={styles.rowActionBtn}
+                testID={`${testID}-save`}
+              >
+                <Ionicons name="checkmark-circle" size={20} color={saving ? COLORS.muted : COLORS.success} />
+              </Pressable>
+              <Pressable
+                onPress={(e: any) => { e?.stopPropagation?.(); onCancel(); }}
+                disabled={saving}
+                style={styles.rowActionBtn}
+                testID={`${testID}-cancel`}
+              >
+                <Ionicons name="close-circle" size={20} color={COLORS.muted} />
+              </Pressable>
+            </>
+          ) : (
+            <Pressable
+              onPress={(e: any) => { e?.stopPropagation?.(); onStartEdit(); }}
+              style={styles.rowActionBtn}
+              testID={`${testID}-edit`}
+            >
+              <Ionicons name="pencil" size={16} color={COLORS.muted} />
+            </Pressable>
+          )}
         </View>
-      ))}
+      )}
+      {isEditing && saveError && (
+        <View style={styles.saveErrorBanner}>
+          <AppText size="sm" color={COLORS.error}>{saveError}</AppText>
+        </View>
+      )}
     </Pressable>
   );
 
-  if (tooltipText) {
-    return <Tooltip text={tooltipText}>{row}</Tooltip>;
+  if (tooltipText && !isEditing) {
+    return <Tooltip text={tooltipText}>{rowContent}</Tooltip>;
   }
-  return row;
+  return rowContent;
 }
 
 export function ResizableTable<T>({
@@ -187,6 +279,7 @@ export function ResizableTable<T>({
   refreshing,
   onRefresh,
   getRowTooltip,
+  onSaveRow,
 }: Props<T>) {
   const defaultWidths = React.useMemo(() => {
     const w: Record<string, number> = {};
@@ -202,6 +295,56 @@ export function ResizableTable<T>({
 
   // Per-column filter strings
   const [colFilters, setColFilters] = useState<Record<string, string>>({});
+
+  // Inline row-edit state — only one row editable at a time.
+  const editableColumns = useMemo(() => columns.filter((c) => c.editable), [columns]);
+  const hasEditableColumns = editableColumns.length > 0;
+  const [editingRowKey, setEditingRowKey] = useState<string | null>(null);
+  const [draftValues, setDraftValues] = useState<Record<string, string>>({});
+  const [savingRowKey, setSavingRowKey] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
+
+  const beginEdit = useCallback((item: T) => {
+    const rowKey = keyExtractor(item);
+    const seed: Record<string, string> = {};
+    editableColumns.forEach((c) => { seed[c.key] = c.getEditValue ? c.getEditValue(item) : ""; });
+    setEditingRowKey(rowKey);
+    setDraftValues(seed);
+    setSaveError(null);
+  }, [editableColumns, keyExtractor]);
+
+  const cancelEdit = useCallback(() => {
+    setEditingRowKey(null);
+    setDraftValues({});
+    setSaveError(null);
+  }, []);
+
+  const saveEditForItem = useCallback(async (item: T) => {
+    if (!onSaveRow) return;
+    const rowKey = keyExtractor(item);
+    // Only send fields that actually changed.
+    const changes: Record<string, string> = {};
+    editableColumns.forEach((c) => {
+      const original = c.getEditValue ? c.getEditValue(item) : "";
+      const draft = draftValues[c.key] ?? "";
+      if (draft !== original) changes[c.key] = draft;
+    });
+    if (Object.keys(changes).length === 0) {
+      cancelEdit();
+      return;
+    }
+    setSavingRowKey(rowKey);
+    setSaveError(null);
+    try {
+      await onSaveRow(item, changes);
+      setEditingRowKey(null);
+      setDraftValues({});
+    } catch (e: any) {
+      setSaveError(e?.message || "Could not save changes");
+    } finally {
+      setSavingRowKey(null);
+    }
+  }, [onSaveRow, editableColumns, draftValues, keyExtractor, cancelEdit]);
 
   // Restore persisted widths on mount.
   useEffect(() => {
@@ -271,7 +414,7 @@ export function ResizableTable<T>({
     return result;
   }, [data, columns, colFilters, sortKey, sortDir]);
 
-  const totalWidth = columns.reduce((sum, c) => sum + (colWidths[c.key] ?? c.width), 0);
+  const totalWidth = columns.reduce((sum, c) => sum + (colWidths[c.key] ?? c.width), 0) + (hasEditableColumns ? ROW_ACTIONS_WIDTH : 0);
   const hasFilters = columns.some((c) => c.filterable);
   const activeFilterCount = Object.values(colFilters).filter(Boolean).length;
 
@@ -336,6 +479,13 @@ export function ResizableTable<T>({
                   </View>
                 );
               })}
+              {hasEditableColumns && (
+                <View style={[styles.headerCell, { width: ROW_ACTIONS_WIDTH }]}>
+                  <View style={styles.headerCellInner}>
+                    <AppText weight="bold" size="sm" color={COLORS.onBrandPrimary}>Edit</AppText>
+                  </View>
+                </View>
+              )}
             </View>
 
             {/* ── Filter row (sticky index 1, only when filterable cols exist) ── */}
@@ -359,6 +509,7 @@ export function ResizableTable<T>({
                     )}
                   </View>
                 ))}
+                {hasEditableColumns && <View style={{ width: ROW_ACTIONS_WIDTH }} />}
                 {/* Clear-all button if any filter is active */}
                 {activeFilterCount > 0 && (
                   <Pressable
@@ -393,6 +544,15 @@ export function ResizableTable<T>({
                   onPress={onRowPress ? () => onRowPress(item) : undefined}
                   testID={`${testIDPrefix}-row-${keyExtractor(item)}`}
                   tooltipText={getRowTooltip?.(item)}
+                  hasEditableColumns={hasEditableColumns}
+                  isEditing={editingRowKey === keyExtractor(item)}
+                  draftValues={draftValues}
+                  onDraftChange={(key, value) => setDraftValues((prev) => ({ ...prev, [key]: value }))}
+                  onStartEdit={() => beginEdit(item)}
+                  onSave={() => saveEditForItem(item)}
+                  onCancel={cancelEdit}
+                  saving={savingRowKey === keyExtractor(item)}
+                  saveError={editingRowKey === keyExtractor(item) ? saveError : null}
                 />
               ))
             )}
@@ -404,9 +564,9 @@ export function ResizableTable<T>({
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, width: "100%", alignSelf: "stretch" },
-  hScroll: { flex: 1, width: "100%" },
-  vScroll: { flex: 1, width: "100%" },
+  container: { flex: 1, width: "100%", alignSelf: "stretch", minWidth: 0, minHeight: 0 },
+  hScroll: { flex: 1, width: "100%", minWidth: 0, minHeight: 0 },
+  vScroll: { flex: 1, width: "100%", minWidth: 0, minHeight: 0 },
   headerRow: { flexDirection: "row", backgroundColor: COLORS.brandPrimary, paddingVertical: SPACING.sm, paddingHorizontal: SPACING.md },
   headerCell: { position: "relative", paddingHorizontal: 6, justifyContent: "center" },
   headerCellInner: { flexDirection: "row", alignItems: "center", flex: 1 },
@@ -437,5 +597,20 @@ const styles = StyleSheet.create({
     alignSelf: "center",
   },
   row: { flexDirection: "row", paddingVertical: SPACING.sm, paddingHorizontal: SPACING.md, borderBottomWidth: 1, borderBottomColor: COLORS.border },
+  rowEditing: { backgroundColor: COLORS.surfaceTertiary, borderColor: COLORS.brandPrimary, borderWidth: 1 },
   cell: { paddingHorizontal: 6, justifyContent: "center" },
+  editableCellTrigger: { flex: 1, borderRadius: RADIUS.sm },
+  editInput: {
+    height: 32,
+    borderWidth: 1,
+    borderColor: COLORS.brandPrimary,
+    borderRadius: RADIUS.sm,
+    paddingHorizontal: 8,
+    fontSize: FONT.sm,
+    color: COLORS.onSurface,
+    backgroundColor: COLORS.surface,
+  },
+  rowActionsCell: { flexDirection: "row", alignItems: "center", justifyContent: "center", width: 64, gap: 4 },
+  rowActionBtn: { padding: 4 },
+  saveErrorBanner: { position: "absolute", left: SPACING.md, bottom: -18 },
 });
