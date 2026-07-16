@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from "react";
-import { View, StyleSheet, Pressable, ActivityIndicator, Alert, Modal, TextInput } from "react-native";
+import { View, StyleSheet, Pressable, ActivityIndicator, Modal, TextInput } from "react-native";
 import { useRouter } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
@@ -9,7 +9,6 @@ import { COLORS, SPACING, RADIUS, FONT, shadow } from "@/src/theme";
 import { AppText, Loader } from "@/src/components/ui";
 import { ResizableTable, ResizableTableColumn } from "@/src/components/ResizableTable";
 import { apiFetch } from "@/src/api/client";
-import { useToast } from "@/src/components/Toast";
 
 interface Admin {
   id: string;
@@ -29,7 +28,6 @@ function formatDate(iso?: string) {
 export default function ManageAdmins() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { show } = useToast();
   const [admins, setAdmins] = useState<Admin[]>([]);
   const [loading, setLoading] = useState(true);
   const [slowLoad, setSlowLoad] = useState(false);
@@ -64,22 +62,13 @@ export default function ManageAdmins() {
   const canDelete = isManager || isOwner;
 
   const handleDelete = (admin: Admin) => {
-    Alert.alert(
-      "Remove admin?",
-      `${admin.name || admin.phone} will lose access immediately. This cannot be undone.`,
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Remove",
-          style: "destructive",
-          onPress: () => {
-            setConfirmPhone("");
-            setConfirmError("");
-            setConfirmTarget(admin);
-          },
-        },
-      ]
-    );
+    // NOTE: Alert.alert has no real implementation on react-native-web, so it
+    // silently no-ops in the browser build. We go straight to the in-app
+    // confirm modal below (which requires entering your own phone number),
+    // which works the same on web, iOS, and Android.
+    setConfirmPhone("");
+    setConfirmError("");
+    setConfirmTarget(admin);
   };
 
   const closeConfirm = () => {
@@ -101,9 +90,14 @@ export default function ManageAdmins() {
         method: "DELETE",
         body: { confirm_phone: confirmPhone.trim() },
       });
-      show("Admin removed", "success");
       setAdmins((prev) => prev.filter((x) => x.id !== admin.id));
       closeConfirm();
+      // Take the user to a fresh confirmation page instead of just toasting,
+      // so it's unmistakably clear the delete went through.
+      router.push({
+        pathname: "/admin/admin-deleted",
+        params: { name: admin.name || admin.phone },
+      });
    } catch (e: any) {
       const msg = e.message || "Could not remove admin";
       // If it looks like a network/timeout error, give a more helpful message
