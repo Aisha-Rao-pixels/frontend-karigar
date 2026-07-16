@@ -334,7 +334,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surfaceTertiary,
     alignItems: "center", justifyContent: "center",
   },
-  addBtn: {
+ addBtn: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: COLORS.surfaceSecondary,
@@ -343,6 +343,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.sm,
     borderRadius: RADIUS.md,
+  },
+  historyBtn: {
+    width: 36, height: 36,
+    borderRadius: RADIUS.sm,
+    backgroundColor: COLORS.surfaceTertiary,
+    alignItems: "center", justifyContent: "center",
   },
   divider: { height: 1, backgroundColor: COLORS.border },
 
