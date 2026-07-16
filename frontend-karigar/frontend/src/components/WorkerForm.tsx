@@ -309,19 +309,22 @@ export default function WorkerForm({
   const [v, setV] = useState<WorkerFormValues>(initial);
 
   React.useEffect(() => {
-    storage.getItem("form_draft", "").then((draft) => {
-      if (draft) {
-        try {
-          const parsed = JSON.parse(draft);
-          setV((prev) => ({
-            ...prev,
-            ...parsed,
-            referred_by_code: initial.referred_by_code || parsed.referred_by_code || "",
-          }));
-        } catch {}
-      }
-    });
-  }, []);
+  // Skip draft restore if we're editing an existing worker (initial has real data)
+  if (initial.full_name || initial.area || initial.languages.length > 0) return;
+
+  storage.getItem("form_draft", "").then((draft) => {
+    if (draft) {
+      try {
+        const parsed = JSON.parse(draft);
+        setV((prev) => ({
+          ...prev,
+          ...parsed,
+          referred_by_code: initial.referred_by_code || parsed.referred_by_code || "",
+        }));
+      } catch {}
+    }
+  });
+}, []);
 
   const [gpsFilledArea, setGpsFilledArea] = useState<string | null>(null);
   const [expandedCat, setExpandedCat] = useState<string | null>(null);
