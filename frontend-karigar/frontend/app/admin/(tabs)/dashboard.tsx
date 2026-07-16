@@ -199,7 +199,11 @@ export default function AdminDashboard() {
           testID="panel-location"
         >
           {topLoc && (
-            <View style={styles.hotspot}>
+            <Pressable
+              style={styles.hotspot}
+              onPress={() => router.push({ pathname: "/admin/search", params: { area: topLoc.area, view: "table" } })}
+              testID="hotspot-card"
+            >
               <View style={styles.hotspotIcon}>
                 <Ionicons name="flame" size={16} color={SERIES[0]} />
               </View>
@@ -211,7 +215,7 @@ export default function AdminDashboard() {
                 <AppText weight="bold" size="2xl" color={SERIES[0]}>{topLoc.pct}%</AppText>
                 <AppText size="sm" color={COLORS.muted}>{t("ofWorkforce")}</AppText>
               </View>
-            </View>
+            </Pressable>
           )}
           <BarList
             data={a.location_distribution.slice(0, 7).map((l) => ({ label: l.area, value: l.count, pct: l.pct }))}
@@ -221,7 +225,7 @@ export default function AdminDashboard() {
             onItemPress={(item) => {
               router.push({
                 pathname: "/admin/search",
-                params: { area: item.label, view: "table", verification: "approved" },
+                params: { area: item.label, view: "table" },
               });
             }}
           />
