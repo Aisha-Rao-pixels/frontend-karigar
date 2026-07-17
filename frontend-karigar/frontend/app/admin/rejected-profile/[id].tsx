@@ -10,6 +10,14 @@ import { apiFetch } from "@/src/api/client";
 import { Worker } from "@/src/utils/profile";
 import { useToast } from "@/src/components/Toast";
 
+function formatDDMMYYYY(dateStr: string) {
+  const d = new Date(dateStr);
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const yyyy = d.getFullYear();
+  return `${dd}/${mm}/${yyyy}`;
+}
+
 interface RejectedWorker extends Worker {
   rejection_reason: string | null;
   rejected_by: string;
