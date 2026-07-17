@@ -1317,7 +1317,7 @@ async def admin_analytics(user: dict = Depends(require_roles(*ADMIN_ROLES)), per
 def _apply_filters(search, skill, availability, verification, city, area, min_exp, max_exp, registered_date=None, date_from=None, date_to=None):
     query = {}
     and_clauses = []
-   if search:
+    if search:
         safe_search = re.escape(search)
         query["$or"] = [
             {"full_name": {"$regex": safe_search, "$options": "i"}},
@@ -1329,7 +1329,7 @@ def _apply_filters(search, skill, availability, verification, city, area, min_ex
         query["availability_status"] = availability
     if verification and verification != "all":
         query["verification_status"] = verification
-   if city:
+    if city:
         query["city"] = {"$regex": re.escape(city), "$options": "i"}
     if area:
         query["area"] = {"$regex": re.escape(area), "$options": "i"}
