@@ -42,7 +42,7 @@ export default function OfflineHandler({ children, exempt = false }: Props) {
     setChecking(false);
   }, []);
 
-  if (!isOffline) return <>{children}</>;
+  if (!isOffline || exempt) return <>{children}</>;
 
   return (
     <View style={styles.container}>
