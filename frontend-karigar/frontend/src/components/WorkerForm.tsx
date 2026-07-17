@@ -39,7 +39,7 @@ const HI: Record<string, string> = {
   wage: "अपेक्षित मासिक मजदूरी (₹)",
   phonepeGpay: "PhonePe / Google Pay नंबर",
   referredBy: "रेफ़रल कोड (वैकल्पिक)",
-  portfolio: "पोर्टफोलियो छवियां",
+  portfolio: "काम की तस्वीर",
   availability: "उपलब्धता स्थिति",
 };
 
