@@ -355,7 +355,9 @@ export default function WorkerSearch() {
     {
       key: "exp", label: "Experience", width: 100,
       sortable: true, sortValue: (w) => w.years_experience ?? 0,
-      filterable: true, filterMatch: (w, f) => String(w.years_experience ?? 0).includes(f),
+      // Exact match, not "contains" — typing "1" should only match workers
+      // with exactly 1 year of experience, not 11, 12, 13, 21, etc.
+      filterable: true, filterMatch: (w, f) => String(w.years_experience ?? 0) === f.trim(),
       editable: true, getEditValue: (w) => String(w.years_experience || 0), editKeyboardType: "numeric",
       render: (item) => <AppText size="sm">{item.years_experience || 0} yrs</AppText>,
     },
