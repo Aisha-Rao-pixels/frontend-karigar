@@ -197,9 +197,18 @@ from fastapi import Request
 
 async def get_current_user(request: Request) -> dict:
     auth = request.headers.get("Authorization", "")
-    if not auth.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Missing token")
-    token = auth.split(" ", 1)[1]
+    if auth.startswith("Bearer "):
+        token = auth.split(" ", 1)[1]
+    else:
+        # Fallback: allow the token as a `?token=` query param. This exists
+        # solely so admin export/download links (CSV & PDF) can be opened
+        # directly — as a plain URL / browser download / Linking.openURL —
+        # without needing to attach an Authorization header, which isn't
+        # possible for a bare hyperlink. Not used by any other endpoint's
+        # normal request flow (those all send the header via apiFetch).
+        token = request.query_params.get("token", "")
+        if not token:
+            raise HTTPException(status_code=401, detail="Missing token")
     try:
         payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
         user_id = payload.get("sub")
