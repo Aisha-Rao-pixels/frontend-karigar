@@ -1304,10 +1304,10 @@ def _apply_filters(search, skill, availability, verification, city, area, min_ex
         query["availability_status"] = availability
     if verification and verification != "all":
         query["verification_status"] = verification
-    if city:
-        query["city"] = {"$regex": city, "$options": "i"}
+   if city:
+        query["city"] = {"$regex": re.escape(city), "$options": "i"}
     if area:
-        query["area"] = {"$regex": area, "$options": "i"}
+        query["area"] = {"$regex": re.escape(area), "$options": "i"}
     if min_exp is not None or max_exp is not None:
         lo = min_exp if min_exp is not None else 0
         rng = {"$gte": lo}
