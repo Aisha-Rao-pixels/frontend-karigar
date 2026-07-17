@@ -1543,7 +1543,7 @@ async def admin_delete_worker(worker_id: str, user: dict = Depends(require_roles
     archived = clean(dict(worker))
     archived.pop("_id", None)
     archived["rejection_reason"] = archived.get("rejection_reason") or "Deleted by admin"
-    archived["rejected_by"] = user.get("phone") or user.get("id")
+    archived["rejected_by"] = user.get("name") or user.get("phone") or user.get("id")
     archived["rejected_at"] = now_iso()
     await db.rejected_profiles.insert_one(archived)
 
