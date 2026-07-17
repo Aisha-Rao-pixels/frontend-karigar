@@ -75,7 +75,7 @@ export default function RejectedProfiles() {
                 <AppText size="sm">{item.rejection_reason || "No reason given"}</AppText>
               </View>
               <AppText size="sm" color={COLORS.muted} style={{ marginTop: SPACING.xs }}>
-                Rejected {new Date(item.rejected_at).toLocaleDateString()} by {item.rejected_by}
+                Rejected by {item.rejected_by} on {formatDDMMYYYY(item.rejected_at)}
               </AppText>
             </Pressable>
           )}
