@@ -162,6 +162,17 @@ class SkillPayload(BaseModel):
     name: str
 
 
+class WorkerQuickEditPayload(BaseModel):
+    # Used by the admin Registrations table for inline, single-cell edits.
+    # Every field is optional — the admin only sends the one field they
+    # changed in that row.
+    full_name: Optional[str] = None
+    phone: Optional[str] = None
+    city: Optional[str] = None
+    skills: Optional[List[str]] = None
+    years_experience: Optional[int] = None
+
+
 class ReferralClickPayload(BaseModel):
     referral_code: str
 
@@ -1421,6 +1432,57 @@ async def admin_update_worker(worker_id: str, payload: WorkerProfilePayload, use
     return await gridfs_images.hydrate_worker(image_bucket, clean(updated))
 
 
+@api_router.patch("/admin/workers/{worker_id}/quick-edit")
+async def admin_quick_edit_worker(worker_id: str, payload: WorkerQuickEditPayload, user: dict = Depends(require_roles(*ADMIN_ROLES))):
+    worker = await db.workers.find_one({"id": worker_id})
+    if not worker:
+        raise HTTPException(status_code=404, detail="Worker not found")
+
+    update: dict = {}
+    if payload.full_name is not None:
+        name = payload.full_name.strip()
+        if not name:
+            raise HTTPException(status_code=400, detail="Name cannot be empty")
+        dup = await _check_name_duplicate(name, exclude_worker_id=worker_id)
+        if dup:
+            raise HTTPException(status_code=400, detail=dup)
+        update["full_name"] = name
+    if payload.phone is not None:
+        phone = payload.phone.strip()
+        if not phone:
+            raise HTTPException(status_code=400, detail="Phone cannot be empty")
+        existing = await db.workers.find_one({"phone": phone, "id": {"$ne": worker_id}})
+        if existing:
+            raise HTTPException(status_code=400, detail="A worker with this mobile number is already registered")
+        update["phone"] = phone
+    if payload.city is not None:
+        city = payload.city.strip()
+        if not city:
+            raise HTTPException(status_code=400, detail="City cannot be empty")
+        update["city"] = city
+    if payload.skills is not None:
+        skills = [s.strip() for s in payload.skills if s.strip()]
+        if not skills:
+            raise HTTPException(status_code=400, detail="At least one skill is required")
+        update["skills"] = skills
+    if payload.years_experience is not None:
+        if payload.years_experience < 0:
+            raise HTTPException(status_code=400, detail="Experience cannot be negative")
+        update["years_experience"] = payload.years_experience
+
+    if not update:
+        raise HTTPException(status_code=400, detail="No changes provided")
+
+    update["updated_at"] = now_iso()
+    snapshot = _make_snapshot(worker, edited_by="admin")
+    await db.workers.update_one(
+        {"id": worker_id},
+        {"$set": update, "$push": {"history": snapshot}},
+    )
+    updated = await db.workers.find_one({"id": worker_id})
+    return await gridfs_images.hydrate_worker(image_bucket, clean(updated))
+
+
 @api_router.delete("/admin/workers/{worker_id}")
 async def admin_delete_worker(worker_id: str, user: dict = Depends(require_roles(*ADMIN_ROLES))):
     worker = await db.workers.find_one({"id": worker_id})
@@ -1723,6 +1785,19 @@ async def seed_data():
             await db.notifications.delete_many({})
             await db.meta.insert_one({"key": "pwd_auth_migration_v1", "done_at": now_iso()})
             logger.info("Auth pivot: wiped legacy users/workers/demo data")
+
+        if not await db.meta.find_one({"key": "referral_data_reset_v1"}):
+            # One-time reset requested by admin: clear out all existing
+            # referral records and click-tracking so the ₹50-per-successful-
+            # registration reward program starts from a clean slate. This
+            # does NOT touch workers/users — only the referrals and
+            # referral_clicks collections. Existing referral_code values on
+            # worker profiles are left untouched so old invite links keep
+            # working, they simply have no referral history behind them.
+            await db.referrals.delete_many({})
+            await db.referral_clicks.delete_many({})
+            await db.meta.insert_one({"key": "referral_data_reset_v1", "done_at": now_iso()})
+            logger.info("Referral reset: cleared referrals + referral_clicks collections")
 
         await _ensure_indexes()
 
