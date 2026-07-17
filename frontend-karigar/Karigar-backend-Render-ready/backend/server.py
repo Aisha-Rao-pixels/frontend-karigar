@@ -280,13 +280,30 @@ async def register(payload: RegisterPayload):
     _validate_password(payload.password)
     role = payload.role if payload.role in ("karigar", "admin") else "karigar"
 
-    if role == "admin":
+if role == "admin":
         admin_count = await db.users.count_documents({"role": "admin"})
         if admin_count > 0:
             raise HTTPException(status_code=403, detail="Admin registration is closed. Ask an existing admin to add you.")
 
     if await db.users.find_one({"phone": phone}):
         raise HTTPException(status_code=400, detail="This mobile number is already registered. Please log in.")
+
+    claimed_first_admin_lock = False
+    if role == "admin":
+        # The count check above has a race window: two requests landing at
+        # the exact same moment could both pass it before either inserts,
+        # creating two "first" admins. find_one_and_update with upsert is
+        # atomic — only the first of two simultaneous callers gets `None`
+        # back (meaning it just created the lock document); anyone after
+        # that gets the already-existing document and is turned away.
+        prior = await db.meta.find_one_and_update(
+            {"key": "first_admin_lock"},
+            {"$setOnInsert": {"key": "first_admin_lock", "claimed_at": now_iso()}},
+            upsert=True,
+        )
+        if prior is not None:
+            raise HTTPException(status_code=403, detail="Admin registration is closed. Ask an existing admin to add you.")
+        claimed_first_admin_lock = True
 
     user = {
         "id": new_id(),
@@ -296,7 +313,15 @@ async def register(payload: RegisterPayload):
         "created_at": now_iso(),
     }
 
-    await db.users.insert_one(dict(user))
+    try:
+        await db.users.insert_one(dict(user))
+    except Exception:
+        # Don't leave the lock claimed if the admin account itself never
+        # actually got created — otherwise a failed first attempt would
+        # permanently block anyone from ever becoming the first admin.
+        if claimed_first_admin_lock:
+            await db.meta.delete_one({"key": "first_admin_lock"})
+        raise
     await _register_referral_account(user["id"], phone, payload.referred_by_code)
     worker = await db.workers.find_one({"phone": phone})
     return _auth_response(user, worker is not None)
