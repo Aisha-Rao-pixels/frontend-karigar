@@ -45,6 +45,34 @@ export default function ProfileFormScreen() {
   };
   const [initial, setInitial] = useState<WorkerFormValues | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  // If a submission was saved while offline (see handleSubmit's catch
+  // block below), send it the moment the connection comes back — the
+  // worker doesn't need to press submit again.
+  useEffect(() => {
+    const unsubscribe = NetInfo.addEventListener(async (state) => {
+      if (!(state.isConnected && state.isInternetReachable)) return;
+      const raw = await storage.getItem("pending_submission", "");
+      if (!raw) return;
+      try {
+        const { isEdit: pendingIsEdit, payload } = JSON.parse(raw);
+        if (pendingIsEdit) {
+          await apiFetch("/workers/me", { method: "PUT", body: payload });
+          show(t("profileUpdated"), "success");
+        } else {
+          await apiFetch("/workers", { method: "POST", body: payload });
+          setHasProfile(true);
+          await refresh();
+          show(t("profileSubmitted"), "success");
+        }
+        await storage.removeItem("pending_submission");
+      } catch {
+        // Still failing for a real reason (not just connectivity) — leave
+        // it saved so the next reconnect (or a manual resubmit) can retry.
+      }
+    });
+    return () => unsubscribe();
+  }, []);
   useEffect(() => {
     if (isEdit) {
       apiFetch<Worker>("/workers/me")
