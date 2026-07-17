@@ -839,6 +839,8 @@ export default function WorkerForm({
 }
 
 const styles = StyleSheet.create({
+  helpBar: { flexDirection: "row", justifyContent: "space-between", marginBottom: SPACING.lg },
+  helpBtn: { flexDirection: "row", alignItems: "center", paddingVertical: 6, paddingHorizontal: 10, backgroundColor: COLORS.surfaceSecondary, borderRadius: RADIUS.md },
   row: { flexDirection: "row", gap: SPACING.sm },
   wrap: { flexDirection: "row", flexWrap: "wrap", gap: SPACING.sm },
   catWrap: { borderWidth: 1, borderColor: COLORS.border, borderRadius: RADIUS.md, backgroundColor: COLORS.surfaceSecondary, overflow: "hidden" },
