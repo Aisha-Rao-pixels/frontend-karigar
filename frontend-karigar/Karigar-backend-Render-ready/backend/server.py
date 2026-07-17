@@ -1292,10 +1292,11 @@ async def admin_analytics(user: dict = Depends(require_roles(*ADMIN_ROLES)), per
 def _apply_filters(search, skill, availability, verification, city, area, min_exp, max_exp, registered_date=None, date_from=None, date_to=None):
     query = {}
     and_clauses = []
-    if search:
+   if search:
+        safe_search = re.escape(search)
         query["$or"] = [
-            {"full_name": {"$regex": search, "$options": "i"}},
-            {"phone": {"$regex": search, "$options": "i"}},
+            {"full_name": {"$regex": safe_search, "$options": "i"}},
+            {"phone": {"$regex": safe_search, "$options": "i"}},
         ]
     if skill and skill != "all":
         query["skills"] = skill
