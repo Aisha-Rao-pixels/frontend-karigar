@@ -480,6 +480,29 @@ export default function WorkerForm({
         contentContainerStyle={{ padding: SPACING.lg, paddingBottom: 120 }}
         showsVerticalScrollIndicator={false}
       >
+        <View style={styles.helpBar}>
+          <Pressable
+            onPress={() => Linking.openURL(`tel:${SUPPORT_PHONE}`)}
+            style={styles.helpBtn}
+            testID="form-call-support-btn"
+          >
+            <Ionicons name="call" size={16} color={COLORS.brandPrimary} />
+            <AppText size="sm" weight="semibold" color={COLORS.brandPrimary} style={{ marginLeft: 6 }}>
+              Need help? Call us
+            </AppText>
+          </Pressable>
+          <Pressable
+            onPress={() => Linking.openURL(`https://wa.me/${SUPPORT_WHATSAPP}`)}
+            style={styles.helpBtn}
+            testID="form-whatsapp-support-btn"
+          >
+            <Ionicons name="logo-whatsapp" size={16} color={COLORS.success} />
+            <AppText size="sm" weight="semibold" color={COLORS.success} style={{ marginLeft: 6 }}>
+              WhatsApp us
+            </AppText>
+          </Pressable>
+        </View>
+
         {showMobile && (
           <Field
             label={biLabel(t("workerMobile"), "workerMobile")}
