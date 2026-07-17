@@ -285,23 +285,30 @@ export default function WorkerSearch() {
       key: "name", label: "Name", width: 160,
       sortable: true, sortValue: (w) => w.full_name?.toLowerCase() ?? "",
       filterable: true, filterMatch: (w, f) => w.full_name?.toLowerCase().includes(f.toLowerCase()) ?? false,
-      render: (item) => <AppText size="sm" numberOfLines={1}>{item.full_name}</AppText>,
+      render: (item) => (
+        <Pressable onPress={() => router.push(`/admin/worker/${item.id}?from=search`)} testID={`directory-name-${item.id}`}>
+          <AppText size="sm" weight="semibold" numberOfLines={1} color={COLORS.brandPrimary}>{item.full_name}</AppText>
+        </Pressable>
+      ),
     },
     {
       key: "phone", label: "Phone", width: 130,
       filterable: true, filterMatch: (w, f) => (w.phone ?? "").includes(f),
+      editable: true, getEditValue: (w) => w.phone || "",
       render: (item) => <AppText size="sm" numberOfLines={1} color={COLORS.muted}>{item.phone || "—"}</AppText>,
     },
     {
       key: "area", label: "Area / Locality", width: 160,
       sortable: true, sortValue: (w) => w.area?.toLowerCase() ?? "",
       filterable: true, filterMatch: (w, f) => (w.area ?? "").toLowerCase().includes(f.toLowerCase()),
+      editable: true, getEditValue: (w) => w.area || "",
       render: (item) => <AppText size="sm" numberOfLines={1}>{item.area || "—"}</AppText>,
     },
     {
       key: "skill", label: "Skills", width: 220,
       sortable: true, sortValue: (w) => (w.skills || []).join(", ").toLowerCase(),
       filterable: true, filterMatch: (w, f) => (w.skills || []).join(" ").toLowerCase().includes(f.toLowerCase()),
+      editable: true, getEditValue: (w) => (w.skills || []).join(", "),
       render: (item) => (
         <AppText size="sm" numberOfLines={2}>{(item.skills || []).join(", ") || "—"}</AppText>
       ),
@@ -310,22 +317,46 @@ export default function WorkerSearch() {
       key: "city", label: "City", width: 120,
       sortable: true, sortValue: (w) => w.city?.toLowerCase() ?? "",
       filterable: true, filterMatch: (w, f) => (w.city ?? "").toLowerCase().includes(f.toLowerCase()),
+      editable: true, getEditValue: (w) => w.city || "",
       render: (item) => <AppText size="sm" numberOfLines={1}>{item.city || "—"}</AppText>,
     },
     {
-      key: "status", label: "Verification", width: 140,
+      key: "status", label: "Verification", width: 150,
       sortable: true, sortValue: (w) => w.verification_status ?? "",
       filterable: true, filterMatch: (w, f) => (w.verification_status ?? "").toLowerCase().includes(f.toLowerCase()),
       render: (item) => (
-        <AppText size="sm" numberOfLines={1} color={verificationColor(item.verification_status)}>
-          {item.verification_status === "approved" ? "✅ Verified" : item.verification_status === "pending" ? "⏳ Pending" : "❌ Rejected"}
-        </AppText>
+        <Pressable
+          onPress={(e: any) => { e?.stopPropagation?.(); setStatusEditKey(statusEditKey === item.id ? null : item.id); }}
+          testID={`directory-status-${item.id}`}
+        >
+          {statusEditKey === item.id ? (
+            statusSavingKey === item.id ? (
+              <AppText size="sm" color={COLORS.muted}>Saving…</AppText>
+            ) : (
+              <View style={{ flexDirection: "row", gap: 8 }}>
+                {item.verification_status !== "approved" && (
+                  <Pressable onPress={(e: any) => { e?.stopPropagation?.(); approveWorker(item); }} hitSlop={6}>
+                    <Ionicons name="checkmark-circle" size={20} color={COLORS.success} />
+                  </Pressable>
+                )}
+                <Pressable onPress={(e: any) => { e?.stopPropagation?.(); rejectWorker(item); }} hitSlop={6}>
+                  <Ionicons name="close-circle" size={20} color={COLORS.error} />
+                </Pressable>
+              </View>
+            )
+          ) : (
+            <AppText size="sm" numberOfLines={1} color={verificationColor(item.verification_status)}>
+              {item.verification_status === "approved" ? "✅ Verified" : item.verification_status === "pending" ? "⏳ Pending" : "❌ Rejected"}
+            </AppText>
+          )}
+        </Pressable>
       ),
     },
     {
       key: "exp", label: "Experience", width: 100,
       sortable: true, sortValue: (w) => w.years_experience ?? 0,
       filterable: true, filterMatch: (w, f) => String(w.years_experience ?? 0).includes(f),
+      editable: true, getEditValue: (w) => String(w.years_experience || 0), editKeyboardType: "numeric",
       render: (item) => <AppText size="sm">{item.years_experience || 0} yrs</AppText>,
     },
   ];
