@@ -52,7 +52,7 @@ export default function RootLayout() {
         <BottomSheetModalProvider>
           <AuthProvider>
             <ToastProvider>
-              <OfflineHandler>
+              <OfflineHandler exempt={pathname === "/profile-form"}>
                 <StatusBar style="dark" />
                 <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: "#FCFAF8" } }} />
               </OfflineHandler>
