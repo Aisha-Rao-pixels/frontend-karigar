@@ -182,6 +182,9 @@ class BulkMarkPaidPayload(BaseModel):
     amount_per_referral_rs: Optional[int] = None
 
 
+class SetPaidAmountPayload(BaseModel):
+    amount_rs: int
+
 class AdminRegisterWorkerPayload(WorkerProfilePayload):
     mobile: str
 
