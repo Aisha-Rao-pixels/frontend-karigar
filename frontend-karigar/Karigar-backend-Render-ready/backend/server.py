@@ -163,11 +163,12 @@ class SkillPayload(BaseModel):
 
 
 class WorkerQuickEditPayload(BaseModel):
-    # Used by the admin Registrations table for inline, single-cell edits.
-    # Every field is optional — the admin only sends the one field they
-    # changed in that row.
+    # Used by the admin tables (Registrations + Worker Directory) for
+    # inline, single-cell edits. Every field is optional — the admin only
+    # sends the fields they actually changed in that row.
     full_name: Optional[str] = None
     phone: Optional[str] = None
+    area: Optional[str] = None
     city: Optional[str] = None
     skills: Optional[List[str]] = None
     years_experience: Optional[int] = None
