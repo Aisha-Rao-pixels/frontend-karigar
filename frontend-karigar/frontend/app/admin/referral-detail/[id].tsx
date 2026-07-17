@@ -64,6 +64,7 @@ export default function AdminReferralDetail() {
     try {
       const res = await apiFetch<DetailResponse>(`/admin/referrals/${id}/detail`);
       setData(res);
+      setPaidInput(String(res.paid_rs));
     } catch {
     } finally {
       setLoading(false);
