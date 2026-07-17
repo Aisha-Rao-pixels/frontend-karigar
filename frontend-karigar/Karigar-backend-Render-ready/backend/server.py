@@ -892,8 +892,10 @@ async def my_referrals(user: dict = Depends(get_current_user)):
         raise HTTPException(status_code=404, detail="Profile not found")
     refs = await db.referrals.find({"referrer_worker_id": worker["id"]}).to_list(200)
     refs = [clean(r) for r in refs]
-    paid = sum(r["payout_amount_rs"] for r in refs if r["status"] == "paid")
-    pending = sum(r["payout_amount_rs"] for r in refs if r["status"] in ("pending", "reward_triggered"))
+    refs_earned = [r for r in refs if r["status"] in ("reward_triggered", "paid")]
+    total_earned_rs = sum(r["payout_amount_rs"] for r in refs_earned)
+    paid = min(worker.get("manual_paid_rs", 0), total_earned_rs)
+    pending = max(total_earned_rs - paid, 0)
     return {
         "referral_code": worker["referral_code"],
         "referred_count": len(refs),
