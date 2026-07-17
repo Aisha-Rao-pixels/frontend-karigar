@@ -12,9 +12,9 @@ import { AppText } from "@/src/components/ui";
 
 interface Props {
   children: React.ReactNode;
+  exempt?: boolean;
 }
-
-export default function OfflineHandler({ children }: Props) {
+export default function OfflineHandler({ children, exempt = false }: Props) {
   const [isOffline, setIsOffline] = useState(false);
   const [checking, setChecking] = useState(false);
   const fadeAnim = new Animated.Value(0);
