@@ -51,7 +51,7 @@ export default function RejectedProfiles() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      <ScreenHeader title="Rejected Profiles" onBack={() => router.back()} />
+      <ScreenHeader title="Rejected Profiles" onBack={() => (router.canGoBack() ? router.back() : router.replace("/admin/dashboard"))} />
       {loading ? (
         <Loader />
       ) : (
