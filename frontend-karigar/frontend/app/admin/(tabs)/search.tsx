@@ -562,13 +562,12 @@ export default function WorkerSearch() {
             columns={tableColumns}
             data={items}
             keyExtractor={(w) => w.id}
-            onRowPress={(w) => router.push(`/admin/worker/${w.id}?from=search`)}
-            getRowTooltip={(w) => `View ${w.full_name}'s profile`}
             testIDPrefix="table"
             storageKey="admin_search_table"
             emptyText={t("noWorkers")}
+            onSaveRow={saveQuickEdit}
           />
-        )}
+      )}
       </View>
 
       <Modal
