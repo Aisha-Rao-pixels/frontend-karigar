@@ -60,6 +60,75 @@ export default function WorkerSearch() {
   const [galleryLoading, setGalleryLoading] = useState(false);
   const [galleryVisible, setGalleryVisible] = useState(false);
 
+  // Inline Status editing (Approve / Reject) for the table view — kept
+  // separate from ResizableTable's generic editable-column mechanism
+  // because approving/rejecting call dedicated endpoints with side effects
+  // (referral rewards, notifications, moving rejected workers out of the
+  // workers collection) rather than a plain field update.
+  const [statusEditKey, setStatusEditKey] = useState<string | null>(null);
+  const [statusSavingKey, setStatusSavingKey] = useState<string | null>(null);
+
+  const patchWorker = useCallback((workerId: string, updated: Partial<Worker>) => {
+    setItems((prev) => prev.map((w) => (w.id === workerId ? { ...w, ...updated } : w)));
+  }, []);
+
+  const approveWorker = useCallback(async (worker: Worker) => {
+    setStatusSavingKey(worker.id);
+    try {
+      await apiFetch(`/admin/workers/${worker.id}/approve`, { method: "POST" });
+      patchWorker(worker.id, { verification_status: "approved" });
+      show(`${worker.full_name} approved`, "success");
+    } catch (e: any) {
+      show(e.message || "Could not approve", "error");
+    } finally {
+      setStatusSavingKey(null);
+      setStatusEditKey(null);
+    }
+  }, [patchWorker, show]);
+
+  const rejectWorker = useCallback(async (worker: Worker) => {
+    setStatusSavingKey(worker.id);
+    try {
+      await apiFetch(`/admin/workers/${worker.id}/reject`, {
+        method: "POST",
+        body: { reason: "Rejected by admin from Worker Directory" },
+      });
+      setItems((prev) => prev.filter((w) => w.id !== worker.id));
+      setTotal((n) => n - 1);
+      show(`${worker.full_name} rejected`, "success");
+    } catch (e: any) {
+      show(e.message || "Could not reject", "error");
+    } finally {
+      setStatusSavingKey(null);
+      setStatusEditKey(null);
+    }
+  }, [show]);
+
+  // Saves whichever editable cells changed in a row (Phone / Area / Skills /
+  // City / Experience) via the lightweight quick-edit endpoint.
+  const saveQuickEdit = useCallback(async (worker: Worker, changes: Record<string, string>) => {
+    const body: any = {};
+    if (changes.phone !== undefined) body.phone = changes.phone.trim();
+    if (changes.area !== undefined) body.area = changes.area.trim();
+    if (changes.city !== undefined) body.city = changes.city.trim();
+    if (changes.exp !== undefined) {
+      const n = parseInt(changes.exp, 10);
+      if (isNaN(n) || n < 0) throw new Error("Enter a valid number of years");
+      body.years_experience = n;
+    }
+    if (changes.skill !== undefined) {
+      const skills = changes.skill.split(",").map((s) => s.trim()).filter(Boolean);
+      if (skills.length === 0) throw new Error("Enter at least one skill");
+      body.skills = skills;
+    }
+    const updated = await apiFetch<Worker>(`/admin/workers/${worker.id}/quick-edit`, {
+      method: "PATCH",
+      body,
+    });
+    patchWorker(worker.id, updated);
+    show("Saved", "success");
+  }, [patchWorker, show]);
+
   // Restore last-used view mode (card/table) on mount — unless a drill-down
   // link explicitly requested a view (?view=table), which takes priority.
   useEffect(() => {
