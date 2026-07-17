@@ -8,6 +8,13 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { COLORS, SPACING, RADIUS, shadow } from "@/src/theme";
 import { ScreenHeader, AppText, Loader } from "@/src/components/ui";
 import { apiFetch } from "@/src/api/client";
+function formatDDMMYYYY(dateStr: string) {
+  const d = new Date(dateStr);
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const yyyy = d.getFullYear();
+  return `${dd}/${mm}/${yyyy}`;
+}
 
 interface RejectedProfile {
   id: string;
