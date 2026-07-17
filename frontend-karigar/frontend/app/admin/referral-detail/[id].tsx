@@ -92,6 +92,58 @@ export default function AdminReferralDetail() {
             {data.referrer_phone} · {data.referral_code} · {data.people.length} referred
           </AppText>
 
+          <View style={{ backgroundColor: COLORS.surfaceSecondary, borderRadius: RADIUS.md, padding: SPACING.lg, marginBottom: SPACING.lg }}>
+            <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: SPACING.md }}>
+              <View>
+                <AppText size="xs" color={COLORS.muted}>Total Earned</AppText>
+                <AppText weight="bold" size="lg">₹{data.total_earned_rs}</AppText>
+              </View>
+              <View>
+                <AppText size="xs" color={COLORS.muted}>Pending</AppText>
+                <AppText weight="bold" size="lg" color={COLORS.warning}>₹{data.pending_rs}</AppText>
+              </View>
+            </View>
+            <AppText size="sm" weight="semibold" style={{ marginBottom: 6 }}>Amount Paid So Far (₹)</AppText>
+            <View style={{ flexDirection: "row", gap: 8, alignItems: "center" }}>
+              <TextInput
+                value={paidInput}
+                onChangeText={setPaidInput}
+                keyboardType="numeric"
+                editable={!saving}
+                style={{
+                  flex: 1, borderWidth: 1, borderColor: COLORS.border, borderRadius: RADIUS.md,
+                  paddingVertical: 10, paddingHorizontal: 12, fontSize: 15, color: COLORS.onSurface,
+                  backgroundColor: COLORS.surface,
+                }}
+              />
+              {saving ? (
+                <ActivityIndicator color={COLORS.brandPrimary} />
+              ) : (
+                <Pressable
+                  onPress={async () => {
+                    const n = parseInt(paidInput, 10);
+                    if (isNaN(n) || n < 0) { show("Enter a valid amount", "error"); return; }
+                    setSaving(true);
+                    try {
+                      const res = await apiFetch<{ total_earned_rs: number; paid_rs: number; pending_rs: number }>(
+                        `/admin/referrals/${id}/paid-amount`, { method: "PATCH", body: { amount_rs: n } }
+                      );
+                      setData((d) => d ? { ...d, ...res } : d);
+                      setPaidInput(String(res.paid_rs));
+                      show("Saved — updated in worker's app too", "success");
+                    } catch (e: any) {
+                      show(e.message || "Could not save", "error");
+                    } finally {
+                      setSaving(false);
+                    }
+                  }}
+                  style={{ backgroundColor: COLORS.brandPrimary, paddingVertical: 10, paddingHorizontal: 18, borderRadius: RADIUS.md }}
+                >
+                  <AppText size="sm" weight="bold" color="#fff">Save</AppText>
+                </Pressable>
+              )}
+            </View>
+          </View>
           <View style={{ width: "100%", minWidth: TABLE_WIDTH, borderWidth: 1, borderColor: COLORS.border, borderRadius: RADIUS.md, overflow: "hidden" }}>
             {/* Header */}
             <View style={styles.headerRow}>
