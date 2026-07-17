@@ -72,7 +72,7 @@ export default function RejectedProfileDetail() {
         <AppText size="sm" weight="semibold" color={COLORS.error}>Rejection Reason</AppText>
         <AppText size="sm" style={{ marginTop: 2 }}>{profile.rejection_reason || "No reason given"}</AppText>
         <AppText size="sm" color={COLORS.muted} style={{ marginTop: 6 }}>
-          Rejected {new Date(profile.rejected_at).toLocaleDateString()} by {profile.rejected_by}
+          Rejected by {profile.rejected_by} on {formatDDMMYYYY(profile.rejected_at)}
         </AppText>
       </View>
 
