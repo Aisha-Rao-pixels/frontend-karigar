@@ -24,6 +24,9 @@ interface DetailResponse {
   referrer_phone: string;
   referral_code: string;
   people: ReferredPerson[];
+  total_earned_rs: number;
+  paid_rs: number;
+  pending_rs: number;
 }
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
