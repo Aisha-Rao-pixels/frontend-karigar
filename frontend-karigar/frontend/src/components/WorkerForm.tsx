@@ -483,7 +483,15 @@ export default function WorkerForm({
           <Field
             label={biLabel(t("workerMobile"), "workerMobile")}
             value={v.mobile || ""}
-            onChangeText={(x) => set("mobile", x.replace(/[^0-9]/g, ""))}
+            onChangeText={(x) => {
+              const digits = x.replace(/[^0-9]/g, "");
+              // Alert the moment the very first digit is typed wrong —
+              // don't make them fill the whole field before finding out.
+              if (digits.length === 1 && !["6", "7", "8", "9"].includes(digits)) {
+                show(t("mobileStartDigit") || "Mobile number must start with 6, 7, 8 or 9", "error");
+              }
+              set("mobile", digits);
+            }}
             placeholder="9876543210"
             keyboardType="phone-pad"
             maxLength={10}
