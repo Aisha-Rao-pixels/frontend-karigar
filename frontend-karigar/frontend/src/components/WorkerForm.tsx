@@ -6,6 +6,7 @@ import {
   Pressable,
   Platform,
   KeyboardAvoidingView,
+  Linking,
 } from "react-native";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
