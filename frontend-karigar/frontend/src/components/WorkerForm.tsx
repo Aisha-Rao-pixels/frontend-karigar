@@ -19,7 +19,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { COLORS, SPACING, RADIUS, FONT } from "@/src/theme";
 import { AppText, Button, Chip, Field } from "@/src/components/ui";
 import { Calendar } from "@/src/components/Calendar";
-import { GENDERS, SPOKEN_LANGUAGES, AVAILABILITY_OPTIONS, PROOF_TYPES } from "@/src/constants/app";
+import { GENDERS, SPOKEN_LANGUAGES, AVAILABILITY_OPTIONS, PROOF_TYPES, SUPPORT_PHONE, SUPPORT_WHATSAPP } from "@/src/constants/app";
 
 // ─── Hindi translations map (for dual English/Hindi labels) ───────────────────
 // We import these directly so we can always show the Hindi label alongside
