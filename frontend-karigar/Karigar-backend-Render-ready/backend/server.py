@@ -1456,11 +1456,16 @@ async def admin_quick_edit_worker(worker_id: str, payload: WorkerQuickEditPayloa
         if existing:
             raise HTTPException(status_code=400, detail="A worker with this mobile number is already registered")
         update["phone"] = phone
-    if payload.city is not None:
+   if payload.city is not None:
         city = payload.city.strip()
         if not city:
             raise HTTPException(status_code=400, detail="City cannot be empty")
         update["city"] = city
+    if payload.area is not None:
+        area = payload.area.strip()
+        if not area:
+            raise HTTPException(status_code=400, detail="Area cannot be empty")
+        update["area"] = area
     if payload.skills is not None:
         skills = [s.strip() for s in payload.skills if s.strip()]
         if not skills:
