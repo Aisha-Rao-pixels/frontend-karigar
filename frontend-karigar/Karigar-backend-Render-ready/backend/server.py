@@ -1697,7 +1697,7 @@ async def reject_worker(worker_id: str, payload: RejectPayload, user: dict = Dep
     archived = clean(dict(worker))
     archived.pop("_id", None)
     archived["rejection_reason"] = payload.reason
-    archived["rejected_by"] = user.get("phone") or user.get("id")
+    archived["rejected_by"] = user.get("name") or user.get("phone") or user.get("id")
     archived["rejected_at"] = now_iso()
     await db.rejected_profiles.insert_one(archived)
 
