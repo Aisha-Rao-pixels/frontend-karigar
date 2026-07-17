@@ -720,7 +720,7 @@ async def _check_portfolio_image_reuse(portfolio_hashes: List[str], exclude_work
 
 
 async def _check_name_duplicate(full_name: str, exclude_worker_id: Optional[str] = None) -> Optional[str]:
-    query: dict = {"full_name": {"$regex": f"^{full_name.strip()}$", "$options": "i"}}
+    query: dict = {"full_name": {"$regex": f"^{re.escape(full_name.strip())}$", "$options": "i"}}
     if exclude_worker_id:
         query["id"] = {"$ne": exclude_worker_id}
     existing = await db.workers.find_one(query)
