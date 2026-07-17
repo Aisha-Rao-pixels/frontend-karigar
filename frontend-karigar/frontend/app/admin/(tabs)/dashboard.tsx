@@ -235,7 +235,7 @@ export default function AdminDashboard() {
         <Panel
           title={t("registrationTrend")}
           subtitle={
-            trendPeriod === "day" ? "Last 30 days"
+            trendPeriod === "day" ? "Since 25 Jun"
             : trendPeriod === "week" ? "Last 12 weeks"
             : "Last 12 months"
           }
