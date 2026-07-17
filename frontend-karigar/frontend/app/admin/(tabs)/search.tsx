@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import {
   View, StyleSheet, FlatList, Pressable, TextInput,
-  Modal, Image, ScrollView,
+  Modal, Image, ScrollView, Platform, Linking,
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
@@ -12,7 +12,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { COLORS, SPACING, RADIUS, FONT, shadow } from "@/src/theme";
 import { AppText, Avatar, Chip, EmptyState, Loader, Button, Tooltip } from "@/src/components/ui";
 import { ResizableTable, ResizableTableColumn } from "@/src/components/ResizableTable";
-import { apiFetch } from "@/src/api/client";
+import { apiFetch, getToken, BASE } from "@/src/api/client";
 import { storage } from "@/src/utils/storage";
 import { Worker, availabilityColor, verificationColor } from "@/src/utils/profile";
 import { AVAILABILITY_OPTIONS } from "@/src/constants/app";
@@ -32,6 +32,8 @@ export default function WorkerSearch() {
   const { show } = useToast();
   const insets = useSafeAreaInsets();
   const [filtersVisible, setFiltersVisible] = useState(false);
+  const [exportMenuVisible, setExportMenuVisible] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [expandedCat, setExpandedCat] = useState<string | null>(null);
   const params = useLocalSearchParams<{
     verification?: string;
@@ -160,6 +162,49 @@ export default function WorkerSearch() {
       return p.toString();
     },
     [skill, availability, verification, city, area, minExp, maxExp, search]
+  );
+
+  // Downloads the currently-filtered directory as CSV or a photo-embedded
+  // PDF. Reuses buildQuery so the export always matches exactly what's on
+  // screen. The export endpoints accept the auth token as a `?token=` query
+  // param (in addition to the normal header) specifically so this can be a
+  // plain link — a bare hyperlink/window.open/Linking.openURL can't attach
+  // an Authorization header the way apiFetch does.
+  const handleExport = useCallback(
+    async (kind: "csv" | "pdf") => {
+      setExportMenuVisible(false);
+      setExporting(true);
+      try {
+        const token = await getToken();
+        const q = buildQuery();
+        // page_size in buildQuery caps the on-screen list at 100; exports
+        // should cover every matching worker, not just the current page.
+        const params = new URLSearchParams(q);
+        params.delete("page_size");
+        if (token) params.set("token", token);
+        const path = kind === "csv" ? "/admin/export" : "/admin/export/full";
+        const url = `${BASE}${path}?${params.toString()}`;
+
+        if (Platform.OS === "web") {
+          // Trigger a real browser download rather than navigating away.
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = kind === "csv" ? "workers.csv" : "karigar_worker_report.pdf";
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+        } else {
+          // No in-app file/share pipeline yet on native — hand off to the
+          // system browser, which will download or preview it there.
+          await Linking.openURL(url);
+        }
+      } catch (e: any) {
+        show(e.message || t("genericError"), "error");
+      } finally {
+        setExporting(false);
+      }
+    },
+    [buildQuery]
   );
 
   const load = useCallback(
@@ -450,6 +495,48 @@ export default function WorkerSearch() {
               </Pressable>
             </Tooltip>
           </View>
+          <View>
+            <Pressable
+              onPress={() => setExportMenuVisible((v) => !v)}
+              style={[styles.toggleBtn, styles.exportBtn]}
+              disabled={exporting}
+              testID="export-menu-btn"
+            >
+              <Ionicons name="download-outline" size={16} color={COLORS.onSurface} />
+              <AppText size="sm" weight="semibold" style={{ marginLeft: 4 }}>
+                {exporting ? "Exporting…" : "Export"}
+              </AppText>
+            </Pressable>
+            {exportMenuVisible && (
+              <>
+                <Pressable style={styles.exportBackdrop} onPress={() => setExportMenuVisible(false)} />
+                <View style={styles.exportDropdown}>
+                  <Pressable
+                    style={styles.exportOption}
+                    onPress={() => handleExport("csv")}
+                    testID="export-csv-btn"
+                  >
+                    <Ionicons name="document-text-outline" size={16} color={COLORS.onSurface} />
+                    <View style={{ marginLeft: SPACING.sm }}>
+                      <AppText weight="semibold">CSV</AppText>
+                      <AppText size="sm" color={COLORS.muted}>Data only, fast</AppText>
+                    </View>
+                  </Pressable>
+                  <Pressable
+                    style={styles.exportOption}
+                    onPress={() => handleExport("pdf")}
+                    testID="export-pdf-btn"
+                  >
+                    <Ionicons name="document-outline" size={16} color={COLORS.onSurface} />
+                    <View style={{ marginLeft: SPACING.sm }}>
+                      <AppText weight="semibold">PDF</AppText>
+                      <AppText size="sm" color={COLORS.muted}>With photos</AppText>
+                    </View>
+                  </Pressable>
+                </View>
+              </>
+            )}
+          </View>
         </View>
 
         <View style={styles.searchRow}>
@@ -707,6 +794,21 @@ const styles = StyleSheet.create({
   viewToggle: { flexDirection: "row", gap: 4, backgroundColor: COLORS.surfaceSecondary, borderRadius: RADIUS.md, padding: 4 },
   toggleBtn: { width: 36, height: 36, borderRadius: RADIUS.sm, alignItems: "center", justifyContent: "center" },
   toggleBtnActive: { backgroundColor: COLORS.brandPrimary },
+  exportBtn: {
+    width: "auto", flexDirection: "row", paddingHorizontal: SPACING.sm,
+    marginLeft: SPACING.sm, backgroundColor: COLORS.surfaceSecondary,
+  },
+  exportBackdrop: {
+    position: "absolute", top: -1000, left: -1000, right: -1000, bottom: -1000, zIndex: 10,
+  },
+  exportDropdown: {
+    position: "absolute", top: 42, right: 0, zIndex: 11, minWidth: 180,
+    backgroundColor: COLORS.surface, borderRadius: RADIUS.md, paddingVertical: 4,
+    ...shadow,
+  },
+  exportOption: {
+    flexDirection: "row", alignItems: "center", paddingVertical: SPACING.sm, paddingHorizontal: SPACING.md,
+  },
   searchRow: { flexDirection: "row", gap: SPACING.sm, marginTop: SPACING.md, zIndex: 1 },
   searchBox: { flex: 1, maxWidth: 420, flexDirection: "row", alignItems: "center", gap: SPACING.sm, backgroundColor: COLORS.surfaceSecondary, borderRadius: RADIUS.md, paddingHorizontal: SPACING.md, height: 48, borderWidth: 1, borderColor: COLORS.border },
   searchInput: { flex: 1, fontSize: FONT.base, color: COLORS.onSurface },
