@@ -8,6 +8,7 @@ import { COLORS, SPACING } from "@/src/theme";
 import { ScreenHeader, Loader, AppText } from "@/src/components/ui";
 import WorkerForm, { emptyValues, fromWorker, toPayload, WorkerFormValues } from "@/src/components/WorkerForm";
 import { apiFetch } from "@/src/api/client";
+import NetInfo from "@react-native-community/netinfo";
 import { Worker } from "@/src/utils/profile";
 import { useAuth } from "@/src/context/AuthContext";
 import { storage } from "@/src/utils/storage";
