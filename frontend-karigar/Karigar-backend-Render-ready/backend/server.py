@@ -975,11 +975,58 @@ async def admin_referral_detail(worker_id: str, user: dict = Depends(require_rol
             "created_at": r.get("created_at"),
         })
 
+    refs_earned = [r for r in refs if r.get("status") in ("reward_triggered", "paid")]
+    total_earned_rs = sum(r.get("payout_amount_rs", 50) for r in refs_earned)
+    paid_rs = min(referrer.get("manual_paid_rs", 0), total_earned_rs)
+
     return {
         "referrer_name": referrer.get("full_name") or "Unknown",
         "referrer_phone": referrer.get("phone"),
         "referral_code": referrer.get("referral_code"),
         "people": people,
+        "total_earned_rs": total_earned_rs,
+        "paid_rs": paid_rs,
+        "pending_rs": max(total_earned_rs - paid_rs, 0),
+    }
+
+
+@api_router.patch("/admin/referrals/{worker_id}/paid-amount")
+async def set_referrer_paid_amount(worker_id: str, payload: SetPaidAmountPayload, user: dict = Depends(require_roles(*ADMIN_ROLES))):
+    # A single admin-entered running total, instead of ticking "paid" one
+    # referral at a time — matches how payouts actually happen in practice
+    # (one lump PhonePe/UPI transfer covering several referrals at once).
+    # This number is the single source of truth for "Paid Out" on both this
+    # admin screen and the referrer's own mobile Referral Center; "Pending"
+    # is always just (total earned so far) minus this number.
+    if payload.amount_rs < 0:
+        raise HTTPException(status_code=400, detail="Amount cannot be negative")
+    referrer = await db.workers.find_one({"id": worker_id})
+    if not referrer:
+        raise HTTPException(status_code=404, detail="Referrer not found")
+
+    refs = await db.referrals.find({
+        "referrer_worker_id": worker_id,
+        "status": {"$in": ["reward_triggered", "paid"]},
+    }).to_list(10000)
+    total_earned_rs = sum(r.get("payout_amount_rs", 50) for r in refs)
+
+    amount_rs = min(payload.amount_rs, total_earned_rs)  # can't mark more paid than earned
+    prev_amount_rs = referrer.get("manual_paid_rs", 0)
+    await db.workers.update_one({"id": worker_id}, {"$set": {"manual_paid_rs": amount_rs}})
+
+    if amount_rs > prev_amount_rs and referrer.get("upi_id"):
+        newly_paid = amount_rs - prev_amount_rs
+        await _notify_worker(referrer, "referral_reward",
+            f"Referral Reward Paid ₹{newly_paid}", f"रेफ़रल इनाम ₹{newly_paid} भेजा गया", f"రెఫరల్ రివార్డ్ ₹{newly_paid} చెల్లించబడింది",
+            f"₹{newly_paid} has been sent to your PhonePe/Google Pay number for your referrals.",
+            f"आपके रेफ़रल के लिए ₹{newly_paid} आपके PhonePe/Google Pay नंबर पर भेजे गए हैं।",
+            f"మీ రెఫరల్స్ కోసం ₹{newly_paid} మీ PhonePe/Google Pay నంబర్‌కు పంపబడ్డాయి.")
+
+    return {
+        "success": True,
+        "total_earned_rs": total_earned_rs,
+        "paid_rs": amount_rs,
+        "pending_rs": max(total_earned_rs - amount_rs, 0),
     }
 
 
