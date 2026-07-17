@@ -104,7 +104,16 @@ export default function ProfileFormScreen() {
         router.replace("/(artisan)/dashboard");
       }
     } catch (e: any) {
-      show(e.message || t("genericError"), "error");
+      // status 0 = the request never reached the server (no internet), as
+      // opposed to a real server-side error (duplicate phone, etc). Save it
+      // so it sends itself the moment connection comes back, instead of
+      // making the worker sit there retrying or losing what they filled in.
+      if (e.status === 0) {
+        await storage.setItem("pending_submission", JSON.stringify({ isEdit, payload: toPayload(v) }));
+        show("No internet — this will be sent automatically once you're back online.", "info");
+      } else {
+        show(e.message || t("genericError"), "error");
+      }
     } finally {
       setSubmitting(false);
     }
