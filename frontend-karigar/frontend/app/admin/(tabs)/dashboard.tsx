@@ -94,7 +94,11 @@ export default function AdminDashboard() {
   if (loading || !a) return <View style={styles.container}><Loader /></View>;
 
   const k = a.kpis;
-  const topLoc = a.location_distribution[0];
+  const locationDistribution = a.location_distribution ?? [];
+  const skillDistribution = a.skill_distribution ?? [];
+  const experienceBuckets = a.experience_buckets ?? [];
+  const registrationTrend = a.registration_trend ?? [];
+  const topLoc = locationDistribution[0];
 
   return (
     <View style={styles.container}>
@@ -218,7 +222,7 @@ export default function AdminDashboard() {
             </Pressable>
           )}
           <BarList
-            data={a.location_distribution.slice(0, 7).map((l) => ({ label: l.area, value: l.count, pct: l.pct }))}
+            data={locationDistribution.slice(0, 7).map((l) => ({ label: l.area, value: l.count, pct: l.pct }))}
             showPct
             colorFor={(i) => (i === 0 ? SERIES[0] : COLORS.brandSecondary)}
             testID="location-bars"
@@ -265,11 +269,11 @@ export default function AdminDashboard() {
           }
         >
           <ColumnChart
-            data={a.registration_trend.map((d) => ({ label: d.label, value: d.count }))}
+            data={registrationTrend.map((d) => ({ label: d.label, value: d.count }))}
             tint={SERIES[1]}
             testID="trend-chart"
             onBarPress={(_bar, i) => {
-              const bucket = a.registration_trend[i];
+              const bucket = registrationTrend[i];
               if (!bucket) return;
               if (bucket.date_from === bucket.date_to) {
                 router.push(`/admin/registrations/${bucket.date_from}`);
@@ -286,7 +290,7 @@ export default function AdminDashboard() {
         {/* Skill distribution */}
         <Panel title={t("skillDistribution")} subtitle={t("topSkillsSubtitle")} icon="construct" iconTint={SERIES[4]} testID="panel-skills">
           <BarList
-            data={a.skill_distribution.slice(0, 8).map((s) => ({ label: s.skill, value: s.count }))}
+            data={skillDistribution.slice(0, 8).map((s) => ({ label: s.skill, value: s.count }))}
             colorFor={(i) => SERIES[i % SERIES.length]}
             testID="skill-bars"
           />
@@ -306,7 +310,7 @@ export default function AdminDashboard() {
 
         <Panel
           title={t("availabilitySplit")}
-          subtitle="Tap “Available From” to see who's coming available and when"
+          subtitle="Tap "Available From" to see who's coming available and when"
           icon="flash"
           iconTint={SERIES[1]}
           testID="panel-availability"
@@ -328,7 +332,7 @@ export default function AdminDashboard() {
         {/* Experience mix */}
         <Panel title={t("experienceMix")} icon="bar-chart" iconTint={SERIES[5]} testID="panel-experience">
           <BarList
-            data={a.experience_buckets.map((b) => ({ label: b.label, value: b.count }))}
+            data={experienceBuckets.map((b) => ({ label: b.label, value: b.count }))}
             colorFor={(i) => SERIES[(i + 2) % SERIES.length]}
             testID="experience-bars"
             onItemPress={(_item, i) => {
@@ -406,7 +410,7 @@ export default function AdminDashboard() {
               {sendingEmail
                 ? "Sending..."
                 : emailStatus === "success"
-                ? "Email Sent to Manager 2713"
+                ? "Email Sent to Manager ✓"
                 : emailStatus === "error"
                 ? "Failed — Try Again"
                 : "Send Summary Email to Manager"}
