@@ -1174,33 +1174,22 @@ def _build_registration_trend(workers: list, period: str) -> list:
                 "label": start.strftime("%b %Y"),
                 "date_from": start_s, "date_to": end_s, "count": c,
             })
-    else:
+    else:  # day
+        # Anchored at 25 June instead of a rolling "last 30 days" window, so
+        # the chart grows by one bar per day after that date. The frontend's
+        # ColumnChart already scrolls horizontally once there are more bars
+        # than fit on screen, so no cap is needed here.
         today_d = now.date()
         start_d = date(today_d.year, 6, 25)
         if start_d > today_d:
-            start_d = today_d
+            start_d = today_d  # defensive: before 25 June, just show today
         num_days = (today_d - start_d).days
         for i in range(num_days, -1, -1):
             d_date = today_d - timedelta(days=i)
             d = d_date.strftime("%Y-%m-%d")
             c = sum(1 for w in workers if (w.get("created_at") or "")[:10] == d)
             trend.append({
-                "label": d_date.strftime("%d/%m"),
-                "date_from": d, "date_to": d, "date": d, "count": c,
-            })
-    return trend
-   else:  # day
-        today_d = now.date()
-        start_d = date(today_d.year, 6, 25)
-        if start_d > today_d:
-            start_d = today_d
-        num_days = (today_d - start_d).days
-        for i in range(num_days, -1, -1):
-            d_date = today_d - timedelta(days=i)
-            d = d_date.strftime("%Y-%m-%d")
-            c = sum(1 for w in workers if (w.get("created_at") or "")[:10] == d)
-            trend.append({
-                "label": d_date.strftime("%d/%m"),
+                "label": d_date.strftime("%d/%m"),  # Date/Month
                 "date_from": d, "date_to": d, "date": d, "count": c,
             })
     return trend
@@ -1477,7 +1466,7 @@ async def admin_quick_edit_worker(worker_id: str, payload: WorkerQuickEditPayloa
         if existing:
             raise HTTPException(status_code=400, detail="A worker with this mobile number is already registered")
         update["phone"] = phone
-   if payload.city is not None:
+    if payload.city is not None:
         city = payload.city.strip()
         if not city:
             raise HTTPException(status_code=400, detail="City cannot be empty")
