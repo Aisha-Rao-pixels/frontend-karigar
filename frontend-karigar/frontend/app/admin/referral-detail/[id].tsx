@@ -52,11 +52,13 @@ const TABLE_WIDTH = COLS.reduce((s, c) => s + c.width, 0);
 export default function AdminReferralDetail() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { show } = useToast();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [data, setData] = useState<DetailResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-
+  const [paidInput, setPaidInput] = useState("");
+  const [saving, setSaving] = useState(false);
   const load = useCallback(async () => {
     if (!id) return;
     try {
