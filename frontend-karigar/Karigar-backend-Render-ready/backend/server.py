@@ -280,7 +280,7 @@ async def register(payload: RegisterPayload):
     _validate_password(payload.password)
     role = payload.role if payload.role in ("karigar", "admin") else "karigar"
 
-if role == "admin":
+    if role == "admin":
         admin_count = await db.users.count_documents({"role": "admin"})
         if admin_count > 0:
             raise HTTPException(status_code=403, detail="Admin registration is closed. Ask an existing admin to add you.")
