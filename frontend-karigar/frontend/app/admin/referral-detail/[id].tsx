@@ -76,6 +76,30 @@ export default function AdminReferralDetail() {
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
+  // ── Live pending calculation as admin types ────────────────────────────
+  const totalEarned = data?.total_earned_rs ?? 0;
+  const parsedInput = parseInt(paidInput, 10);
+  const livePaid = isNaN(parsedInput) || parsedInput < 0 ? 0 : Math.min(parsedInput, totalEarned);
+  const livePending = Math.max(totalEarned - livePaid, 0);
+
+  const handleSave = async () => {
+    const n = parseInt(paidInput, 10);
+    if (isNaN(n) || n < 0) { show("Enter a valid amount (0 to reset)", "error"); return; }
+    setSaving(true);
+    try {
+      const res = await apiFetch<{ total_earned_rs: number; paid_rs: number; pending_rs: number }>(
+        `/admin/referrals/${id}/paid-amount`, { method: "PATCH", body: { amount_rs: n } }
+      );
+      setData((d) => d ? { ...d, total_earned_rs: res.total_earned_rs, paid_rs: res.paid_rs, pending_rs: res.pending_rs } : d);
+      setPaidInput(String(res.paid_rs));
+      show("Saved — pending updated ✓", "success");
+    } catch (e: any) {
+      show(e.message || "Could not save", "error");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <ScreenHeader title="Referred Users" onBack={goBack} />
@@ -94,65 +118,62 @@ export default function AdminReferralDetail() {
             {data.referrer_phone} · {data.referral_code} · {data.people.length} referred
           </AppText>
 
-          <View style={{ backgroundColor: COLORS.surfaceSecondary, borderRadius: RADIUS.md, padding: SPACING.lg, marginBottom: SPACING.lg }}>
-            <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: SPACING.md }}>
-              <View>
+          {/* ── Payment card ─────────────────────────────────────────── */}
+          <View style={styles.paymentCard}>
+
+            {/* Top row: Total Earned | Live Pending */}
+            <View style={styles.summaryRow}>
+              <View style={styles.summaryBox}>
                 <AppText size="xs" color={COLORS.muted}>Total Earned</AppText>
                 <AppText weight="bold" size="lg">₹{data.total_earned_rs}</AppText>
               </View>
-              <View>
+              <View style={[styles.summaryBox, { alignItems: "flex-end" }]}>
                 <AppText size="xs" color={COLORS.muted}>Pending</AppText>
-                <AppText weight="bold" size="lg" color={COLORS.warning}>₹{data.pending_rs}</AppText>
+                {/* Updates LIVE as you type */}
+                <AppText weight="bold" size="lg" color={livePending > 0 ? COLORS.warning : COLORS.success}>
+                  ₹{livePending}
+                </AppText>
               </View>
             </View>
-            <AppText size="sm" weight="semibold" style={{ marginBottom: 6 }}>Amount Paid So Far (₹)</AppText>
-            <AppText size="xs" color={COLORS.muted} style={{ marginBottom: 6 }}>
-              You can reduce or reset to 0 anytime. Enter the corrected amount and tap Save.
+
+            <View style={styles.divider} />
+
+            {/* Input row */}
+            <AppText size="sm" weight="semibold" style={{ marginBottom: 4 }}>
+              Amount Paid So Far (₹)
             </AppText>
-            <View style={{ flexDirection: "row", gap: 8, alignItems: "center" }}>
+            <AppText size="xs" color={COLORS.muted} style={{ marginBottom: 8 }}>
+              Enter 0 to reset. Pending updates as you type.
+            </AppText>
+
+            <View style={styles.inputRow}>
               <TextInput
                 value={paidInput}
                 onChangeText={setPaidInput}
                 keyboardType="numeric"
                 editable={!saving}
-                style={{
-                  flex: 1, borderWidth: 1, borderColor: COLORS.border, borderRadius: RADIUS.md,
-                  paddingVertical: 10, paddingHorizontal: 12, fontSize: 15, color: COLORS.onSurface,
-                  backgroundColor: COLORS.surface,
-                }}
+                placeholder="0"
+                placeholderTextColor={COLORS.muted}
+                style={styles.input}
               />
               {saving ? (
-                <ActivityIndicator color={COLORS.brandPrimary} />
+                <ActivityIndicator color={COLORS.brandPrimary} style={{ paddingHorizontal: 18 }} />
               ) : (
-                <Pressable
-                  onPress={async () => {
-                    const n = parseInt(paidInput, 10);
-                    if (isNaN(n) || n < 0) { show("Enter a valid amount", "error"); return; }
-                    setSaving(true);
-                    try {
-                      const res = await apiFetch<{ total_earned_rs: number; paid_rs: number; pending_rs: number }>(
-                        `/admin/referrals/${id}/paid-amount`, { method: "PATCH", body: { amount_rs: n } }
-                      );
-                      setData((d) => d ? { ...d, ...res } : d);
-                      setPaidInput(String(res.paid_rs));
-                      show("Saved — updated in worker's app too", "success");
-                    } catch (e: any) {
-                      show(e.message || "Could not save", "error");
-                    } finally {
-                      setSaving(false);
-                    }
-                  }}
-                  style={{ backgroundColor: COLORS.brandPrimary, paddingVertical: 10, paddingHorizontal: 18, borderRadius: RADIUS.md }}
-                >
+                <Pressable onPress={handleSave} style={styles.saveBtn}>
                   <AppText size="sm" weight="bold" color="#fff">Save</AppText>
                 </Pressable>
               )}
             </View>
+
+            {/* Saved values for reference */}
+            <AppText size="xs" color={COLORS.muted} style={{ marginTop: 6 }}>
+              Last saved: ₹{data.paid_rs} paid · ₹{data.pending_rs} pending
+            </AppText>
           </View>
 
+          {/* ── Referred people table ──────────────────────────────── */}
           <ScrollView horizontal showsHorizontalScrollIndicator>
-            <View style={{ width: "100%", minWidth: TABLE_WIDTH, borderWidth: 1, borderColor: COLORS.border, borderRadius: RADIUS.md, overflow: "hidden" }}>
-              {/* Header */}
+            <View style={{ minWidth: TABLE_WIDTH, borderWidth: 1, borderColor: COLORS.border, borderRadius: RADIUS.md, overflow: "hidden" }}>
               <View style={styles.headerRow}>
                 {COLS.map((c) => (
                   <View key={c.key} style={{ flex: 1, minWidth: c.width, paddingVertical: SPACING.sm, paddingHorizontal: SPACING.sm }}>
@@ -161,14 +182,11 @@ export default function AdminReferralDetail() {
                 ))}
               </View>
 
-              {/* Rows */}
               {data.people.map((p, i) => {
                 const statusInfo = STATUS_LABELS[p.status] || { label: p.status, color: COLORS.muted };
                 const canReview = !!p.worker_id;
                 const row = (
-                  <View
-                    style={[styles.dataRow, { backgroundColor: i % 2 === 0 ? COLORS.surface : COLORS.surfaceSecondary }]}
-                  >
+                  <View style={[styles.dataRow, { backgroundColor: i % 2 === 0 ? COLORS.surface : COLORS.surfaceSecondary }]}>
                     <Cell width={COLS[0].width}><AppText size="sm">{i + 1}</AppText></Cell>
                     <Cell width={COLS[1].width}><AppText size="sm" weight="semibold">{p.name}</AppText></Cell>
                     <Cell width={COLS[2].width}><AppText size="sm" color={COLORS.muted}>{p.phone}</AppText></Cell>
@@ -222,6 +240,40 @@ function Cell({ width, children }: { width: number; children: React.ReactNode })
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.surface },
+
+  paymentCard: {
+    backgroundColor: COLORS.surfaceSecondary,
+    borderRadius: RADIUS.md,
+    padding: SPACING.lg,
+    marginBottom: SPACING.lg,
+  },
+  summaryRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: SPACING.md,
+  },
+  summaryBox: { flex: 1 },
+  divider: { height: 1, backgroundColor: COLORS.divider, marginBottom: SPACING.md },
+
+  inputRow: { flexDirection: "row", gap: 8, alignItems: "center" },
+  input: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: RADIUS.md,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    fontSize: 15,
+    color: COLORS.onSurface,
+    backgroundColor: COLORS.surface,
+  },
+  saveBtn: {
+    backgroundColor: COLORS.brandPrimary,
+    paddingVertical: 10,
+    paddingHorizontal: 18,
+    borderRadius: RADIUS.md,
+  },
+
   headerRow: { flexDirection: "row", backgroundColor: COLORS.surfaceInverse },
   dataRow: { flexDirection: "row", borderTopWidth: 1, borderTopColor: COLORS.divider },
 });
