@@ -1,10 +1,9 @@
 import React, { useCallback, useState } from "react";
-import { View, StyleSheet, ScrollView, RefreshControl, Pressable } from "react-native";
+import { View, StyleSheet, ScrollView, RefreshControl, Pressable, TextInput, ActivityIndicator } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { TextInput, ActivityIndicator } from "react-native";
 import { COLORS, SPACING, RADIUS } from "@/src/theme";
 import { ScreenHeader, AppText, Loader } from "@/src/components/ui";
 import { apiFetch } from "@/src/api/client";
@@ -59,6 +58,7 @@ export default function AdminReferralDetail() {
   const [refreshing, setRefreshing] = useState(false);
   const [paidInput, setPaidInput] = useState("");
   const [saving, setSaving] = useState(false);
+
   const load = useCallback(async () => {
     if (!id) return;
     try {
@@ -144,6 +144,7 @@ export default function AdminReferralDetail() {
               )}
             </View>
           </View>
+
           <View style={{ width: "100%", minWidth: TABLE_WIDTH, borderWidth: 1, borderColor: COLORS.border, borderRadius: RADIUS.md, overflow: "hidden" }}>
             {/* Header */}
             <View style={styles.headerRow}>
