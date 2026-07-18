@@ -1038,6 +1038,15 @@ async def set_referrer_paid_amount(worker_id: str, payload: SetPaidAmountPayload
     }
 
 
+@api_router.post("/admin/referrals/reset-all-paid-amounts")
+async def reset_all_paid_amounts(user: dict = Depends(require_roles("manager"))):
+    """Reset all manual_paid_rs to 0 for a fresh campaign start."""
+    await db.workers.update_many(
+        {"manual_paid_rs": {"$gt": 0}},
+        {"$set": {"manual_paid_rs": 0}}
+    )
+    return {"success": True, "message": "All paid amounts reset to 0"}
+
 @api_router.post("/admin/referrals/{referral_id}/mark-paid")
 async def mark_referral_paid(referral_id: str, user: dict = Depends(require_roles(*ADMIN_ROLES))):
     ref = await db.referrals.find_one({"id": referral_id})
