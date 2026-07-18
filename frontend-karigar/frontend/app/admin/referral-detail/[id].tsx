@@ -1,5 +1,6 @@
 import React, { useCallback, useState } from "react";
 import { View, StyleSheet, ScrollView, RefreshControl, Pressable, TextInput, ActivityIndicator } from "react-native";
+import { ResizableTable, ResizableTableColumn } from "@/src/components/ResizableTable";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
