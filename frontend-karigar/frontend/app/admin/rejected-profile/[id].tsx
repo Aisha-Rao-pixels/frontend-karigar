@@ -33,6 +33,8 @@ export default function RejectedProfileDetail() {
   const [notFound, setNotFound] = useState(false);
   const [busy, setBusy] = useState(false);
 
+  const goBack = () => (router.canGoBack() ? router.back() : router.replace("/admin/rejected-profiles"));
+
   useEffect(() => {
     apiFetch<RejectedWorker>(`/admin/rejected-profiles/${id}`)
       .then(setProfile)
@@ -44,7 +46,7 @@ export default function RejectedProfileDetail() {
     try {
       await apiFetch(`/admin/rejected-profiles/${id}/restore`, { method: "POST" });
       show("Profile moved back to Pending Verification", "success");
-      router.back();
+      goBack();
     } catch (e: any) {
       show(e.message || "Something went wrong", "error");
     } finally {
@@ -55,7 +57,7 @@ export default function RejectedProfileDetail() {
   if (notFound) {
     return (
       <View style={[styles.container, { paddingTop: insets.top }]}>
-        <ScreenHeader title="Rejected Profile" onBack={() => router.back()} />
+        <ScreenHeader title="Rejected Profile" onBack={goBack} />
         <View style={{ padding: SPACING.xl, alignItems: "center" }}>
           <AppText color={COLORS.muted}>This profile could not be found.</AppText>
         </View>
@@ -66,7 +68,7 @@ export default function RejectedProfileDetail() {
   if (!profile) {
     return (
       <View style={[styles.container, { paddingTop: insets.top }]}>
-        <ScreenHeader title="Rejected Profile" onBack={() => router.back()} />
+        <ScreenHeader title="Rejected Profile" onBack={goBack} />
         <Loader />
       </View>
     );
@@ -74,7 +76,7 @@ export default function RejectedProfileDetail() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      <ScreenHeader title={profile.full_name} onBack={() => router.back()} />
+      <ScreenHeader title={profile.full_name} onBack={goBack} />
 
       <View style={styles.reasonBanner}>
         <AppText size="sm" weight="semibold" color={COLORS.error}>Rejection Reason</AppText>
