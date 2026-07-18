@@ -1693,7 +1693,8 @@ async def approve_worker(worker_id: str, background_tasks: BackgroundTasks, user
     if not worker:
         raise HTTPException(status_code=404, detail="Worker not found")
     await db.workers.update_one({"id": worker_id}, {"$set": {
-        "verification_status": "approved", "verified_by": user["id"],
+        "verification_status": "approved",
+        "verified_by": user.get("name") or user.get("phone") or user["id"],
         "verified_at": now_iso(), "rejection_reason": None, "updated_at": now_iso(),
     }})
     await _notify_worker(worker, "verification_update",
