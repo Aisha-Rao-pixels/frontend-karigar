@@ -106,6 +106,9 @@ export default function AdminReferralDetail() {
               </View>
             </View>
             <AppText size="sm" weight="semibold" style={{ marginBottom: 6 }}>Amount Paid So Far (₹)</AppText>
+              <AppText size="xs" color={COLORS.muted} style={{ marginBottom: 6 }}>
+                You can reduce or reset to 0 anytime. Enter the corrected amount and tap Save.
+              </AppText>
             <View style={{ flexDirection: "row", gap: 8, alignItems: "center" }}>
               <TextInput
                 value={paidInput}
