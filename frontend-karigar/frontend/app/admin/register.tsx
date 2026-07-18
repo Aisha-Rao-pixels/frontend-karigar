@@ -22,7 +22,7 @@ export default function RegisterWorker() {
     try {
       await apiFetch("/admin/workers", { method: "POST", body: { ...toPayload(v), mobile: v.mobile } });
       show(t("workerRegistered"), "success");
-      router.back();
+      router.canGoBack() ? router.back() : router.replace("/admin/(tabs)/dashboard");
     } catch (e: any) {
       show(e.message || t("genericError"), "error");
     } finally {
