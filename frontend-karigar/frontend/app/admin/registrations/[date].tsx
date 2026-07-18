@@ -49,10 +49,11 @@ export default function AdminRegistrationsByDate() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  // Which cell is currently being edited, e.g. "workerId:city"
   const [editingKey, setEditingKey] = useState<string | null>(null);
   const [draft, setDraft] = useState<string>("");
   const [savingKey, setSavingKey] = useState<string | null>(null);
+
+  const goBack = () => (router.canGoBack() ? router.back() : router.replace("/admin/(tabs)/dashboard"));
 
   const load = useCallback(async () => {
     if (!date) return;
@@ -147,8 +148,6 @@ export default function AdminRegistrationsByDate() {
         method: "POST",
         body: { reason: "Rejected by admin from Registrations table" },
       });
-      // Rejecting removes the worker from the workers collection entirely
-      // (moved to rejected profiles), so drop the row from this list.
       setItems((prev) => prev.filter((w) => w.id !== worker.id));
       setTotal((t) => t - 1);
       show(`${worker.full_name} rejected`, "success");
@@ -165,7 +164,7 @@ export default function AdminRegistrationsByDate() {
       <ScreenHeader
         title="Registrations"
         subtitle={isRange ? (label ? `${label} (${prettyRange(date, to as string)})` : prettyRange(date, to as string)) : date ? prettyDate(date) : undefined}
-        onBack={() => router.back()}
+        onBack={goBack}
       />
 
       {loading ? (
@@ -205,7 +204,6 @@ export default function AdminRegistrationsByDate() {
                     <View key={w.id} style={[styles.dataRow, { backgroundColor: rowBg }]} testID={`registration-row-${w.id}`}>
                       <Cell width={COLS[0].width}><AppText size="sm">{i + 1}</AppText></Cell>
 
-                      {/* Name — the only cell that navigates to Review Profile */}
                       <Pressable
                         onPress={() => router.push(`/admin/worker/${w.id}?from=search`)}
                         style={{ width: COLS[1].width, paddingVertical: SPACING.sm, paddingHorizontal: SPACING.sm, borderRightWidth: 1, borderRightColor: COLORS.divider }}
@@ -251,7 +249,6 @@ export default function AdminRegistrationsByDate() {
                         display={<AppText size="sm" numberOfLines={1}>{w.city || "—"}</AppText>}
                       />
 
-                      {/* Status — inline Approve / Reject instead of a text field */}
                       <Pressable
                         onPress={() => setEditingKey(editingKey === `${w.id}:status` ? null : `${w.id}:status`)}
                         style={{ width: COLS[5].width, paddingVertical: SPACING.sm, paddingHorizontal: SPACING.sm, borderRightWidth: 1, borderRightColor: COLORS.divider }}
@@ -291,7 +288,6 @@ export default function AdminRegistrationsByDate() {
                         display={<AppText size="sm">{w.years_experience || 0} yrs</AppText>}
                       />
 
-                      {/* Registered At — read-only, system-generated */}
                       <Cell width={COLS[7].width}>
                         <AppText size="sm" color={COLORS.muted}>
                           {new Date(w.created_at).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}
