@@ -38,16 +38,7 @@ const STATUS_LABELS: Record<string, { label: string; color: string }> = {
   paid:             { label: "Paid",           color: COLORS.success },
 };
 
-const COLS = [
-  { key: "sino",     label: "S.No",     width: 50 },
-  { key: "name",     label: "Name",     width: 160 },
-  { key: "phone",    label: "Phone",    width: 120 },
-  { key: "status",   label: "Status",   width: 130 },
-  { key: "verified", label: "Verified", width: 100 },
-  { key: "paid",     label: "Paid (₹)", width: 100 },
-  { key: "date",     label: "Date",     width: 110 },
-];
-const TABLE_WIDTH = COLS.reduce((s, c) => s + c.width, 0);
+// columns defined inside component so we have access to router & statusInfo
 
 export default function AdminReferralDetail() {
   const router = useRouter();
