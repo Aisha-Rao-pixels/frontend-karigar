@@ -1,549 +1,472 @@
 import React, { useCallback, useState } from "react";
 import { View, StyleSheet, ScrollView, Pressable, RefreshControl } from "react-native";
-import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
 import { useTranslation } from "react-i18next";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import * as Haptics from "expo-haptics";
 
-import { COLORS, SPACING, RADIUS, FONT, shadow } from "@/src/theme";
-import { AppText, ProgressBar, StatusBadge, Card, Loader } from "@/src/components/ui";
-import { Calendar } from "@/src/components/Calendar";
+import { COLORS, SPACING, RADIUS } from "@/src/theme";
+import { AppText, Loader, Button } from "@/src/components/ui";
+import { Panel, StatTile, BarList, ColumnChart, SegmentBar, SERIES } from "@/src/components/charts";
 import { apiFetch } from "@/src/api/client";
-import { Worker, profileCompletion, availabilityColor, verificationColor, timeAgo, formatDate } from "@/src/utils/profile";
-import { AVAILABILITY_OPTIONS } from "@/src/constants/app";
-import { useToast } from "@/src/components/Toast";
-import i18n from "@/src/i18n";
+import { useAuth } from "@/src/context/AuthContext";
 
-const REFERRAL_BG =
-  "https://images.unsplash.com/photo-1619459074324-33d5f591c53e?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA4Mzl8MHwxfHNlYXJjaHwyfHx3YXJtJTIwZmFicmljJTIwdGV4dHVyZSUyMGJhY2tncm91bmQlMjBjcmFmdHxlbnwwfHx8fDE3ODEyNTk4MTd8MA&ixlib=rb-4.1.0&q=85";
-
-// ── Profile completion helper ─────────────────────────────────────────────
-function getMissingFields(worker: Worker): string[] {
-  const missing: string[] = [];
-  if (!worker.portfolio_images || worker.portfolio_images.length === 0)
-    missing.push("Portfolio photos");
-  if (!worker.aadhar_images || worker.aadhar_images.length === 0)
-    missing.push("Aadhaar card");
-  if (!worker.upi_id) missing.push("PhonePe/Google Pay number");
-  if (!worker.employment_proof_images || worker.employment_proof_images.length === 0)
-    missing.push("Employment proof");
-  if (!worker.current_employer) missing.push("Current employer");
-  if (!worker.wage_expectation) missing.push("Expected wage");
-  return missing;
+interface Analytics {
+  kpis: {
+    total_workers: number;
+    verified_workers: number;
+    pending_verification: number;
+    rejected_workers: number;
+    available_workers: number;
+    new_today: number;
+    new_this_week: number;
+    rejected_profiles: number;
+    total_referrals: number;
+  };
+  location_distribution: { area: string; city: string; count: number; pct: number }[];
+  skill_distribution: { skill: string; count: number }[];
+  verification_funnel: { approved: number; pending: number; rejected: number };
+  availability_distribution: { available_now: number; available_from: number; not_available: number };
+  experience_buckets: { label: string; count: number }[];
+  gender_distribution: { male: number; female: number; other: number };
+  registration_trend: { label: string; date_from: string; date_to: string; date?: string; count: number }[];
+  trend_period?: "day" | "week" | "month";
 }
 
-function completionColor(pct: number): string {
-  if (pct === 100) return COLORS.success;
-  if (pct >= 60) return COLORS.warning;
-  return COLORS.error;
-}
+// Aligned by index with the fixed backend order of experience_buckets
+// (0-2 yrs, 3-5 yrs, 6-10 yrs, 10+ yrs) — used to drive the Experience
+// Mix drill-down into the worker directory.
+const EXP_RANGES: { min_exp: number; max_exp?: number }[] = [
+  { min_exp: 0, max_exp: 2 },
+  { min_exp: 3, max_exp: 5 },
+  { min_exp: 6, max_exp: 10 },
+  { min_exp: 11 },
+];
 
-export default function ArtisanDashboard() {
+type TrendPeriod = "day" | "week" | "month";
+
+export default function AdminDashboard() {
   const router = useRouter();
   const { t } = useTranslation();
-  const { show } = useToast();
   const insets = useSafeAreaInsets();
-  const [worker, setWorker] = useState<Worker | null>(null);
-  const [notifs, setNotifs] = useState<any[]>([]);
-  const [referralSummary, setReferralSummary] = useState<{ total_paid_rs: number; pending_rs: number } | null>(null);
+  const { logout } = useAuth();
+  const [a, setA] = useState<Analytics | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [updating, setUpdating] = useState(false);
-  const [pickerOpen, setPickerOpen] = useState(false);
+  const [sendingEmail, setSendingEmail] = useState(false);
+  const [emailStatus, setEmailStatus] = useState<"idle" | "success" | "error">("idle");
+  const [trendPeriod, setTrendPeriod] = useState<TrendPeriod>("day");
 
-  const load = useCallback(async () => {
+  const sendSummaryEmail = async () => {
+    setSendingEmail(true);
+    setEmailStatus("idle");
     try {
-      const [w, n] = await Promise.all([
-        apiFetch<Worker>("/workers/me"),
-        apiFetch<any[]>("/notifications"),
-      ]);
-      setWorker(w);
-      setNotifs(n);
-      // Referral summary is best-effort — a brand new worker may not have
-      // a referral code resolved yet, so don't let this fail the whole load.
-      try {
-        const r = await apiFetch<{ total_paid_rs: number; pending_rs: number }>("/referrals/me");
-        setReferralSummary(r);
-      } catch {
-        setReferralSummary(null);
-      }
+      await apiFetch("/admin/daily-summary/run", { method: "POST" });
+      setEmailStatus("success");
+    } catch {
+      setEmailStatus("error");
+    } finally {
+      setSendingEmail(false);
+      setTimeout(() => setEmailStatus("idle"), 4000);
+    }
+  };
+
+  const load = useCallback(async (period?: TrendPeriod) => {
+    try {
+      const data = await apiFetch<Analytics>(`/admin/analytics?period=${period ?? trendPeriod}`);
+      setA(data);
     } catch {
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [trendPeriod]);
 
-  const onRefresh = useCallback(() => {
-    setRefreshing(true);
-    load();
-  }, [load]);
+  useFocusEffect(useCallback(() => { load(); }, [load]));
 
-  useFocusEffect(
-    useCallback(() => {
-      load();
-    }, [load])
-  );
-
-  const commitAvailability = async (status: string, availableFrom: string | null) => {
-    if (!worker) return;
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
-    setUpdating(true);
-    setWorker({ ...worker, availability_status: status as any, available_from: availableFrom });
-    try {
-      await apiFetch("/workers/me/availability", {
-        method: "PATCH",
-        body: { availability_status: status, available_from: availableFrom },
-      });
-    } catch (e: any) {
-      show(e.message || t("genericError"), "error");
-    } finally {
-      setUpdating(false);
-    }
+  const changeTrendPeriod = (period: TrendPeriod) => {
+    if (period === trendPeriod) return;
+    setTrendPeriod(period);
+    load(period);
   };
 
-  const onPickAvailability = (status: string) => {
-    if (status === "available_from") {
-      setPickerOpen((p) => !p);
-      return;
-    }
-    setPickerOpen(false);
-    if (!worker || status === worker.availability_status) return;
-    commitAvailability(status, null);
-  };
+  if (loading || !a) return <View style={styles.container}><Loader /></View>;
 
-  if (loading) return <View style={styles.container}><Loader /></View>;
-  if (!worker) return null;
-
-  const completion = profileCompletion(worker);
-  const missingFields = getMissingFields(worker);
-  const isComplete = completion === 100;
-  const lang = i18n.language;
-  const notifTitle = (n: any) => n[`title_${lang}`] || n.title_en;
-  const unread = notifs.filter((n) => !n.is_read).length;
+  const k = a.kpis;
+  const topLoc = a.location_distribution[0];
 
   return (
     <View style={styles.container}>
       <ScrollView
-        contentContainerStyle={{ paddingTop: insets.top + SPACING.md, paddingBottom: SPACING["2xl"] }}
+        contentContainerStyle={{ paddingBottom: SPACING["3xl"] }}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor={COLORS.brandPrimary}
-            colors={[COLORS.brandPrimary]}
-            progressBackgroundColor={COLORS.surfaceSecondary}
-          />
+          <RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(); }} tintColor={COLORS.brandPrimary} />
         }
       >
-        {/* Header */}
-        <View style={styles.headerRow}>
-          <View style={{ flex: 1 }}>
-            <AppText size="sm" color={COLORS.muted}>
-              {t("hello")} 👋
-            </AppText>
-            <AppText weight="bold" size="2xl" numberOfLines={1}>
-              {worker.full_name}
-            </AppText>
-          </View>
-          <Pressable
-            testID="dashboard-bell"
-            onPress={() => router.push("/(artisan)/notifications")}
-            style={styles.bell}
-          >
-            <Ionicons name="notifications" size={22} color={COLORS.onSurface} />
-            {unread > 0 && (
-              <View style={styles.bellBadge}>
-                <AppText size="sm" color="#fff" weight="bold" style={{ fontSize: 10 }}>
-                  {unread}
-                </AppText>
-              </View>
-            )}
-          </Pressable>
-        </View>
-
-        <View style={{ paddingHorizontal: SPACING.lg, marginTop: SPACING.md }}>
-          <StatusBadge
-            label={t(verificationKey(worker.verification_status))}
-            color={verificationColor(worker.verification_status)}
-            testID="verification-badge"
-          />
-        </View>
-
-        {/* Availability hero */}
-        <Card style={styles.heroCard} testID="availability-card">
-          <AppText weight="bold" size="lg">
-            {t("yourAvailability")}
-          </AppText>
-          <AppText size="sm" color={COLORS.muted} style={{ marginTop: 2, marginBottom: SPACING.md }}>
-            {t("tapToChange")}
-          </AppText>
-          <View style={{ gap: SPACING.sm }}>
-            {AVAILABILITY_OPTIONS.map((o) => {
-              const active = worker.availability_status === o.value;
-              const c = availabilityColor(o.value);
-              return (
-                <View key={o.value}>
-                  <Pressable
-                    onPress={() => onPickAvailability(o.value)}
-                    disabled={updating}
-                    style={[
-                      styles.availBtn,
-                      {
-                        borderColor: active ? c : COLORS.border,
-                        backgroundColor: active ? c + "14" : COLORS.surface,
-                      },
-                    ]}
-                    testID={`dash-avail-${o.value}`}
-                  >
-                    <View style={[styles.availDot, { backgroundColor: c }]} />
-                    <View style={{ flex: 1 }}>
-                      <AppText
-                        weight={active ? "bold" : "medium"}
-                        size="lg"
-                        color={active ? c : COLORS.onSurface}
-                      >
-                        {t(o.key)}
-                      </AppText>
-                      {o.value === "available_from" && active && worker.available_from ? (
-                        <AppText size="sm" weight="semibold" color={c}>
-                          {formatDate(worker.available_from)}
-                        </AppText>
-                      ) : null}
-                    </View>
-                    {o.value === "available_from" ? (
-                      <Ionicons
-                        name={pickerOpen ? "chevron-up" : "calendar-outline"}
-                        size={20}
-                        color={active ? c : COLORS.muted}
-                      />
-                    ) : active ? (
-                      <Ionicons name="checkmark-circle" size={22} color={c} />
-                    ) : null}
-                  </Pressable>
-                  {o.value === "available_from" && pickerOpen && (
-                    <View style={{ marginTop: SPACING.sm }}>
-                      <AppText size="sm" color={COLORS.muted} style={{ marginBottom: SPACING.xs }}>
-                        {t("pickAvailableDate")}
-                      </AppText>
-                      <Calendar
-                        value={worker.available_from || null}
-                        onSelect={(iso) => {
-                          commitAvailability("available_from", iso);
-                          setPickerOpen(false);
-                        }}
-                        testID="dash-availfrom-calendar"
-                      />
-                    </View>
-                  )}
-                </View>
-              );
-            })}
-          </View>
-        </Card>
-
-        {/* ── Profile Completion Card ── */}
-        <Card style={styles.sectionCard}>
-          <View style={styles.rowBetween}>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: SPACING.sm }}>
-              <AppText weight="semibold">{t("profileCompletion")}</AppText>
-              {/* ✅ Completion Badge — shows when profile is 100% complete */}
-              {isComplete && (
-                <View style={styles.completeBadge} testID="profile-complete-badge">
-                  <Ionicons name="checkmark-circle" size={18} color={COLORS.success} />
-                  <AppText size="sm" weight="bold" color={COLORS.success}>
-                    Complete!
-                  </AppText>
-                </View>
-              )}
-            </View>
-            <AppText weight="bold" color={completionColor(completion)}>
-              {completion}%
-            </AppText>
-          </View>
-
-          {/* Progress bar with dynamic color */}
-          <View style={{ marginTop: SPACING.sm }}>
-            <ProgressBar value={completion} color={completionColor(completion)} />
-          </View>
-
-          {/* Missing fields list */}
-          {!isComplete && missingFields.length > 0 && (
-            <View style={styles.missingList}>
-              <AppText size="sm" color={COLORS.muted} style={{ marginBottom: 4 }}>
-                Complete your profile by adding:
+        {/* Dark header band */}
+        <View style={[styles.hero, { paddingTop: insets.top + SPACING.md }]}>
+          <View style={styles.heroRow}>
+            <View style={{ flex: 1 }}>
+              <AppText size="sm" color="rgba(255,255,255,0.6)" weight="semibold" style={{ letterSpacing: 1 }}>
+                {t("workforceIntelligence").toUpperCase()}
               </AppText>
-              {missingFields.map((field) => (
-                <View key={field} style={styles.missingItem}>
-                  <Ionicons name="alert-circle-outline" size={14} color={COLORS.warning} />
-                  <AppText size="sm" color={COLORS.warning}>{field}</AppText>
-                </View>
-              ))}
+              <AppText weight="bold" size="2xl" color="#fff" style={{ marginTop: 2 }}>
+                {t("adminDashboard")}
+              </AppText>
+              <AppText size="sm" color="rgba(255,255,255,0.55)" style={{ textTransform: "capitalize", marginTop: 2 }}>
+                {t("administrator")}
+              </AppText>
             </View>
-          )}
-
-          {/* Edit profile link */}
-          {!isComplete && (
             <Pressable
-              onPress={() => router.push("/profile-form?mode=edit")}
-              style={{ marginTop: SPACING.md }}
-              testID="complete-profile-link"
+              onPress={async () => { await logout(); router.replace("/admin/login"); }}
+              testID="admin-logout-btn"
+              style={({ pressed }) => [
+                styles.logoutBtn,
+                { backgroundColor: pressed ? "#EF4444" : "rgba(255,255,255,0.12)",
+                  transform: [{ scale: pressed ? 0.93 : 1 }] }
+              ]}
             >
-              <AppText color={COLORS.brandPrimary} weight="semibold">
-                {t("editProfile")} →
-              </AppText>
+              <Ionicons name="log-out-outline" size={20} color="#fff" />
+            </Pressable>
+          </View>
+
+          {/* KPI tiles — 2 rows x 3 columns */}
+          <View style={styles.kpiRow}>
+            <StatTile
+              label={t("totalWorkers")}
+              value={k.total_workers}
+              delta={`+${k.new_this_week}`}
+              icon="people"
+              tint={SERIES[0]}
+              testID="kpi-total"
+              onPress={() => router.push({ pathname: "/admin/search", params: { verification: "all", availability: "all" } })}
+            />
+            <StatTile
+              label={t("availableWorkers")}
+              value={k.available_workers}
+              icon="flash"
+              tint={SERIES[1]}
+              testID="kpi-available"
+              onPress={() => router.push({ pathname: "/admin/search", params: { availability: "available_now" } })}
+            />
+            <StatTile
+              label={t("verifiedWorkers")}
+              value={k.verified_workers}
+              icon="shield-checkmark"
+              tint={SERIES[2]}
+              testID="kpi-verified"
+              onPress={() => router.push({ pathname: "/admin/search", params: { verification: "approved" } })}
+            />
+          </View>
+          <View style={styles.kpiRow}>
+            <StatTile
+              label={t("pendingVerification")}
+              value={k.pending_verification}
+              icon="hourglass"
+              tint={SERIES[3]}
+              testID="kpi-pending"
+              onPress={() => router.push("/admin/verify")}
+            />
+            <StatTile
+              label="Referrals"
+              value={k.total_referrals}
+              icon="gift"
+              tint={SERIES[4]}
+              testID="kpi-referrals"
+              onPress={() => router.push("/admin/referrals")}
+            />
+            <StatTile
+              label="Rejected Profiles"
+              value={k.rejected_profiles}
+              icon="close-circle"
+              tint={COLORS.error}
+              testID="kpi-rejected"
+              onPress={() => router.push("/admin/rejected-profiles")}
+            />
+          </View>
+        </View>
+
+        <View style={{ height: SPACING.lg }} />
+
+        {/* Location concentration — headline */}
+        <Panel
+          title={t("locationConcentration")}
+          subtitle={t("whereRegistering")}
+          icon="location"
+          iconTint={SERIES[0]}
+          testID="panel-location"
+        >
+          {topLoc && (
+            <Pressable
+              style={styles.hotspot}
+              onPress={() => router.push({ pathname: "/admin/search", params: { area: topLoc.area, view: "table" } })}
+              testID="hotspot-card"
+            >
+              <View style={styles.hotspotIcon}>
+                <Ionicons name="flame" size={16} color={SERIES[0]} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <AppText size="sm" color={COLORS.muted}>{t("topHotspot")}</AppText>
+                <AppText weight="bold" size="lg">{topLoc.area}</AppText>
+              </View>
+              <View style={{ alignItems: "flex-end" }}>
+                <AppText weight="bold" size="2xl" color={SERIES[0]}>{topLoc.pct}%</AppText>
+                <AppText size="sm" color={COLORS.muted}>{t("ofWorkforce")}</AppText>
+              </View>
             </Pressable>
           )}
-
-          {/* 🎉 Completion message */}
-          {isComplete && (
-            <View style={styles.completeMessage}>
-              <Ionicons name="trophy" size={20} color={COLORS.success} />
-              <AppText size="sm" color={COLORS.success} weight="semibold">
-                Great job! Your profile is fully complete. You're more likely to get hired!
-              </AppText>
-            </View>
-          )}
-        </Card>
-
-        {/* Referral */}
-        <Pressable
-          onPress={() => router.push("/referral")}
-          style={styles.referralWrap}
-          testID="referral-card"
-        >
-          <Image
-            source={{ uri: REFERRAL_BG }}
-            style={StyleSheet.absoluteFill}
-            contentFit="cover"
+          <BarList
+            data={a.location_distribution.slice(0, 7).map((l) => ({ label: l.area, value: l.count, pct: l.pct }))}
+            showPct
+            colorFor={(i) => (i === 0 ? SERIES[0] : COLORS.brandSecondary)}
+            testID="location-bars"
+            onItemPress={(item) => {
+              router.push({
+                pathname: "/admin/search",
+                params: { area: item.label, view: "table" },
+              });
+            }}
           />
-          <View style={styles.referralOverlay} />
-          <View style={{ padding: SPACING.lg }}>
-            <AppText weight="bold" size="lg" color="#fff">
-              {t("referFriends")}
-            </AppText>
-            <AppText
-              size="sm"
-              color="rgba(255,255,255,0.85)"
-              style={{ marginTop: 4, marginBottom: SPACING.md }}
-            >
-              {t("referDesc")}
-            </AppText>
-            <View style={styles.codePill}>
-              <Ionicons name="gift" size={16} color={COLORS.brandPrimary} />
-              <AppText weight="bold" color={COLORS.brandPrimary}>
-                {worker.referral_code}
-              </AppText>
+        </Panel>
+
+        {/* Registration trend */}
+        <Panel
+          title={t("registrationTrend")}
+          subtitle={
+            trendPeriod === "day" ? "Since 25 Jun"
+            : trendPeriod === "week" ? "Last 12 weeks"
+            : "Last 12 months"
+          }
+          icon="trending-up"
+          iconTint={SERIES[1]}
+          testID="panel-trend"
+          right={
+            <View style={styles.periodToggle}>
+              {(["day", "week", "month"] as TrendPeriod[]).map((p) => (
+                <Pressable
+                  key={p}
+                  onPress={() => changeTrendPeriod(p)}
+                  style={[styles.periodBtn, trendPeriod === p && styles.periodBtnActive]}
+                  testID={`trend-period-${p}`}
+                >
+                  <AppText
+                    size="sm"
+                    weight="semibold"
+                    color={trendPeriod === p ? COLORS.onBrandPrimary : COLORS.muted}
+                    style={{ textTransform: "capitalize" }}
+                  >
+                    {p}
+                  </AppText>
+                </Pressable>
+              ))}
             </View>
-            {referralSummary && (referralSummary.total_paid_rs > 0 || referralSummary.pending_rs > 0) && (
-              <View style={{ flexDirection: "row", gap: 8, marginTop: 8 }}>
-                <View style={styles.codePill}>
-                  <Ionicons name="checkmark-circle" size={14} color={COLORS.success} />
-                  <AppText size="sm" weight="bold" color={COLORS.success}>₹{referralSummary.total_paid_rs} Paid</AppText>
-                </View>
-                {referralSummary.pending_rs > 0 && (
-                  <View style={styles.codePill}>
-                    <Ionicons name="time" size={14} color={COLORS.warning} />
-                    <AppText size="sm" weight="bold" color={COLORS.warning}>₹{referralSummary.pending_rs} Pending</AppText>
-                  </View>
-                )}
-              </View>
-            )}
+          }
+        >
+          <ColumnChart
+            data={a.registration_trend.map((d) => ({ label: d.label, value: d.count }))}
+            tint={SERIES[1]}
+            testID="trend-chart"
+            onBarPress={(_bar, i) => {
+              const bucket = a.registration_trend[i];
+              if (!bucket) return;
+              if (bucket.date_from === bucket.date_to) {
+                router.push(`/admin/registrations/${bucket.date_from}`);
+              } else {
+                router.push({
+                  pathname: `/admin/registrations/${bucket.date_from}`,
+                  params: { to: bucket.date_to, label: bucket.label },
+                });
+              }
+            }}
+          />
+        </Panel>
+
+        {/* Skill distribution */}
+        <Panel title={t("skillDistribution")} subtitle={t("topSkillsSubtitle")} icon="construct" iconTint={SERIES[4]} testID="panel-skills">
+          <BarList
+            data={a.skill_distribution.slice(0, 8).map((s) => ({ label: s.skill, value: s.count }))}
+            colorFor={(i) => SERIES[i % SERIES.length]}
+            testID="skill-bars"
+          />
+        </Panel>
+
+        {/* Verification + availability */}
+        <Panel title={t("verificationFunnel")} icon="shield-checkmark" iconTint={SERIES[2]} testID="panel-verification">
+          <SegmentBar
+            segments={[
+              { label: t("verified"), value: a.verification_funnel.approved, color: COLORS.success },
+              { label: t("pending"), value: a.verification_funnel.pending, color: COLORS.warning },
+              { label: t("rejected"), value: a.verification_funnel.rejected, color: COLORS.error },
+            ]}
+            testID="verification-segments"
+          />
+        </Panel>
+
+        <Panel
+          title={t("availabilitySplit")}
+          subtitle="Tap “Available From” to see who's coming available and when"
+          icon="flash"
+          iconTint={SERIES[1]}
+          testID="panel-availability"
+        >
+          <SegmentBar
+            segments={[
+              { label: t("avail_now"), value: a.availability_distribution.available_now, color: COLORS.success, key: "available_now" },
+              { label: t("avail_from"), value: a.availability_distribution.available_from, color: COLORS.warning, key: "available_from" },
+              { label: t("avail_no"), value: a.availability_distribution.not_available, color: COLORS.error, key: "not_available" },
+            ]}
+            testID="availability-segments"
+            onSegmentPress={(key) => {
+              if (key === "available_from") router.push("/admin/availability");
+              else router.push({ pathname: "/admin/search", params: { availability: key, view: "table" } });
+            }}
+          />
+        </Panel>
+
+        {/* Experience mix */}
+        <Panel title={t("experienceMix")} icon="bar-chart" iconTint={SERIES[5]} testID="panel-experience">
+          <BarList
+            data={a.experience_buckets.map((b) => ({ label: b.label, value: b.count }))}
+            colorFor={(i) => SERIES[(i + 2) % SERIES.length]}
+            testID="experience-bars"
+            onItemPress={(_item, i) => {
+              const range = EXP_RANGES[i];
+              if (!range) return;
+              router.push({
+                pathname: "/admin/search",
+                params: {
+                  min_exp: String(range.min_exp),
+                  ...(range.max_exp != null ? { max_exp: String(range.max_exp) } : {}),
+                  view: "table",
+                },
+              });
+            }}
+          />
+        </Panel>
+
+        {/* Verification queue CTA */}
+        <Pressable
+          onPress={() => router.push("/admin/verify")}
+          testID="verify-queue-cta"
+          style={({ pressed }) => [
+            styles.queueCard,
+            {
+              backgroundColor: pressed ? "#FFF3E0" : COLORS.surfaceSecondary,
+              borderColor: pressed ? COLORS.warning : COLORS.border,
+              transform: [{ scale: pressed ? 0.98 : 1 }],
+              shadowOpacity: pressed ? 0.14 : 0.06,
+              shadowRadius: pressed ? 12 : 8,
+              elevation: pressed ? 5 : 2,
+            }
+          ]}
+        >
+          <View style={[styles.queueIcon, { backgroundColor: COLORS.warning + "1A" }]}>
+            <Ionicons name="shield-checkmark" size={24} color={COLORS.warning} />
           </View>
+          <View style={{ flex: 1 }}>
+            <AppText weight="bold" size="lg">{t("verificationQueue")}</AppText>
+            <AppText size="sm" color={COLORS.muted}>{t("pendingReviews", { count: k.pending_verification })}</AppText>
+          </View>
+          <Ionicons name="chevron-forward" size={22} color={COLORS.muted} />
         </Pressable>
 
-        {/* Notifications preview */}
-        <View style={styles.rowBetween2}>
-          <AppText weight="bold" size="lg">
-            {t("recentNotifications")}
-          </AppText>
-          <Pressable onPress={() => router.push("/(artisan)/notifications")}>
-            <AppText color={COLORS.brandPrimary} weight="semibold">
-              {t("viewAll")}
+        {/* Quick actions */}
+        <View style={{ paddingHorizontal: SPACING.lg, gap: SPACING.md, marginTop: SPACING.sm }}>
+          <Button title={t("viewDirectory")} variant="secondary" onPress={() => router.push("/admin/search")} icon="search" testID="view-directory-btn" />
+          <Button title={t("registerWorker")} onPress={() => router.push("/admin/register")} icon="person-add" testID="register-worker-btn" />
+          <Button title={t("skillManagement")} variant="ghost" onPress={() => router.push("/admin/skills")} icon="construct" testID="skills-btn" />
+          <Button title={t("manageAdmins")} variant="ghost" onPress={() => router.push("/admin/manage-admins")} icon="people-circle" testID="manage-admins-btn" />
+          <Button title="Availability" variant="ghost" onPress={() => router.push("/admin/availability")} icon="time" testID="availability-btn" />
+          <Button title="Referral Dashboard" variant="ghost" onPress={() => router.push("/admin/referrals")} icon="gift" testID="referrals-dashboard-btn" />
+
+          {/* Send Summary Email Button */}
+          <Pressable
+            onPress={sendSummaryEmail}
+            disabled={sendingEmail}
+            testID="send-summary-btn"
+            style={[
+              styles.summaryBtn,
+              emailStatus === "success" && styles.summaryBtnSuccess,
+              emailStatus === "error"   && styles.summaryBtnError,
+            ]}
+          >
+            <Ionicons
+              name={
+                sendingEmail ? "time-outline"
+                : emailStatus === "success" ? "checkmark-circle"
+                : emailStatus === "error"   ? "alert-circle"
+                : "mail"
+              }
+              size={20}
+              color="#fff"
+            />
+            <AppText weight="semibold" size="sm" color="#fff" style={{ marginLeft: 8 }}>
+              {sendingEmail
+                ? "Sending..."
+                : emailStatus === "success"
+                ? "Email Sent to Manager 2713"
+                : emailStatus === "error"
+                ? "Failed — Try Again"
+                : "Send Summary Email to Manager"}
             </AppText>
           </Pressable>
         </View>
-        <View style={{ paddingHorizontal: SPACING.lg, gap: SPACING.sm }}>
-          {notifs.length === 0 ? (
-            <Card>
-              <AppText color={COLORS.muted}>{t("noNotifications")}</AppText>
-            </Card>
-          ) : (
-            notifs.slice(0, 3).map((n) => (
-              <Card key={n.id} style={styles.notifRow}>
-                <View style={[styles.notifIcon, { backgroundColor: COLORS.brandTertiary }]}>
-                  <Ionicons name={notifIcon(n.type)} size={18} color={COLORS.brandPrimary} />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <AppText weight="semibold" numberOfLines={1}>
-                    {notifTitle(n)}
-                  </AppText>
-                  <AppText size="sm" color={COLORS.muted}>
-                    {timeAgo(n.created_at)}
-                  </AppText>
-                </View>
-              </Card>
-            ))
-          )}
-        </View>
-
-        {/* Support */}
-        <Pressable
-          onPress={() => router.push("/support")}
-          style={styles.supportLink}
-          testID="support-link"
-        >
-          <Ionicons name="headset" size={20} color={COLORS.brandPrimary} />
-          <AppText weight="semibold" color={COLORS.brandPrimary}>
-            {t("getSupport")}
-          </AppText>
-        </Pressable>
       </ScrollView>
     </View>
   );
 }
 
-function verificationKey(s: string) {
-  return s === "approved" ? "verified" : s === "pending" ? "pending" : "rejected";
-}
-
-function notifIcon(type: string): keyof typeof Ionicons.glyphMap {
-  switch (type) {
-    case "job_alert": return "briefcase";
-    case "referral_reward": return "gift";
-    case "training": return "school";
-    case "verification_update": return "shield-checkmark";
-    default: return "megaphone";
-  }
-}
-
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.surface },
-  headerRow: {
+  hero: {
+    backgroundColor: COLORS.surfaceInverse,
+    paddingHorizontal: SPACING.lg,
+    paddingBottom: SPACING.lg,
+    borderBottomLeftRadius: RADIUS.lg,
+    borderBottomRightRadius: RADIUS.lg,
+  },
+  heroRow: { flexDirection: "row", alignItems: "flex-start", marginBottom: SPACING.lg },
+  logoutBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(255,255,255,0.12)", alignItems: "center", justifyContent: "center" },
+  kpiRow: { flexDirection: "row", gap: SPACING.md, marginBottom: SPACING.md },
+  hotspot: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: SPACING.lg,
     gap: SPACING.md,
+    backgroundColor: COLORS.brandTertiary,
+    borderRadius: RADIUS.md,
+    padding: SPACING.md,
+    marginBottom: SPACING.lg,
   },
-  bell: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+  hotspotIcon: { width: 36, height: 36, borderRadius: 10, backgroundColor: "#fff", alignItems: "center", justifyContent: "center" },
+  queueCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: SPACING.md,
     backgroundColor: COLORS.surfaceSecondary,
-    alignItems: "center",
-    justifyContent: "center",
-    ...shadow,
-  },
-  bellBadge: {
-    position: "absolute",
-    top: 6,
-    right: 6,
-    minWidth: 18,
-    height: 18,
-    paddingHorizontal: 4,
-    borderRadius: 9,
-    backgroundColor: COLORS.error,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  heroCard: { marginHorizontal: SPACING.lg, marginTop: SPACING.md },
-  sectionCard: { marginHorizontal: SPACING.lg, marginTop: SPACING.md },
-  availBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    height: 56,
-    borderRadius: RADIUS.md,
-    borderWidth: 1.5,
-    paddingHorizontal: SPACING.lg,
-    gap: SPACING.md,
-  },
-  availDot: { width: 16, height: 16, borderRadius: 8 },
-  rowBetween: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  rowBetween2: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: SPACING.lg,
-    marginTop: SPACING.xl,
-    marginBottom: SPACING.sm,
-  },
-
-  // Profile completion styles
-  completeBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    backgroundColor: COLORS.success + "15",
-    paddingHorizontal: SPACING.sm,
-    paddingVertical: 2,
-    borderRadius: RADIUS.pill,
-  },
-  missingList: {
-    marginTop: SPACING.md,
-    padding: SPACING.md,
-    backgroundColor: COLORS.warning + "10",
-    borderRadius: RADIUS.md,
-    borderLeftWidth: 3,
-    borderLeftColor: COLORS.warning,
-    gap: 4,
-  },
-  missingItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: SPACING.sm,
-  },
-  completeMessage: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: SPACING.sm,
-    marginTop: SPACING.md,
-    padding: SPACING.md,
-    backgroundColor: COLORS.success + "10",
-    borderRadius: RADIUS.md,
-    borderLeftWidth: 3,
-    borderLeftColor: COLORS.success,
-  },
-
-  referralWrap: {
-    marginHorizontal: SPACING.lg,
-    marginTop: SPACING.md,
     borderRadius: RADIUS.lg,
-    overflow: "hidden",
-    minHeight: 150,
-  },
-  referralOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(40,25,18,0.7)",
-  },
-  codePill: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    alignSelf: "flex-start",
-    backgroundColor: "#fff",
-    paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.sm,
-    borderRadius: RADIUS.pill,
-  },
-  notifRow: { flexDirection: "row", alignItems: "center", gap: SPACING.md },
-  notifIcon: {
-    width: 38,
-    height: 38,
-    borderRadius: RADIUS.md,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  supportLink: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: SPACING.sm,
-    marginTop: SPACING.xl,
+    padding: SPACING.lg,
     marginHorizontal: SPACING.lg,
-    padding: SPACING.md,
+    marginTop: SPACING.sm,
+    marginBottom: SPACING.md,
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
+  queueIcon: { width: 48, height: 48, borderRadius: RADIUS.md, alignItems: "center", justifyContent: "center" },
+  summaryBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#7A2E1D",
+    borderRadius: RADIUS.md,
+    paddingVertical: SPACING.md,
+    paddingHorizontal: SPACING.lg,
+    marginTop: SPACING.sm,
+  },
+  summaryBtnSuccess: { backgroundColor: "#2D7A4F" },
+  summaryBtnError:   { backgroundColor: "#B91C1C" },
+  periodToggle: { flexDirection: "row", gap: 2, backgroundColor: COLORS.surfaceTertiary, borderRadius: RADIUS.sm, padding: 2 },
+  periodBtn: { paddingHorizontal: SPACING.sm, paddingVertical: 5, borderRadius: RADIUS.sm - 2 },
+  periodBtnActive: { backgroundColor: COLORS.brandPrimary },
 });
