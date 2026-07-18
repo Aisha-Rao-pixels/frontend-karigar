@@ -310,7 +310,7 @@ export default function AdminDashboard() {
 
         <Panel
           title={t("availabilitySplit")}
-          subtitle="Tap "Available From" to see who's coming available and when"
+          subtitle={`Tap "Available From" to see who's coming available and when`}
           icon="flash"
           iconTint={SERIES[1]}
           testID="panel-availability"
