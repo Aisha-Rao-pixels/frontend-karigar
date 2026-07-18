@@ -17,12 +17,14 @@ export default function RegisterWorker() {
   const insets = useSafeAreaInsets();
   const [busy, setBusy] = useState(false);
 
+  const goBack = () => (router.canGoBack() ? router.back() : router.replace("/admin/(tabs)/dashboard"));
+
   const onSubmit = async (v: WorkerFormValues) => {
     setBusy(true);
     try {
       await apiFetch("/admin/workers", { method: "POST", body: { ...toPayload(v), mobile: v.mobile } });
       show(t("workerRegistered"), "success");
-      router.canGoBack() ? router.back() : router.replace("/admin/(tabs)/dashboard");
+      goBack();
     } catch (e: any) {
       show(e.message || t("genericError"), "error");
     } finally {
@@ -32,7 +34,7 @@ export default function RegisterWorker() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      <ScreenHeader title={t("registerNewWorker")} onBack={() => router.back()} />
+      <ScreenHeader title={t("registerNewWorker")} onBack={goBack} />
       <WorkerForm
         initial={emptyValues()}
         submitLabel={t("registerWorker")}
