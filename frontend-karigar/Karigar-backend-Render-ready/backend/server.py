@@ -1015,6 +1015,12 @@ async def set_referrer_paid_amount(worker_id: str, payload: SetPaidAmountPayload
     amount_rs = min(payload.amount_rs, total_earned_rs)  # can't mark more paid than earned
     prev_amount_rs = referrer.get("manual_paid_rs", 0)
     await db.workers.update_one({"id": worker_id}, {"$set": {"manual_paid_rs": amount_rs}})
+    # Mark all reward_triggered referrals as paid if full amount is covered
+    if amount_rs >= total_earned_rs and total_earned_rs > 0:
+        await db.referrals.update_many(
+            {"referrer_worker_id": worker_id, "status": "reward_triggered"},
+            {"$set": {"status": "paid"}}
+        )
 
     if amount_rs > prev_amount_rs and referrer.get("upi_id"):
         newly_paid = amount_rs - prev_amount_rs
