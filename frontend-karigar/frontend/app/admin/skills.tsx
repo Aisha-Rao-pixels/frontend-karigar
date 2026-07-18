@@ -21,6 +21,8 @@ export default function SkillManagement() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
 
+  const goBack = () => (router.canGoBack() ? router.back() : router.replace("/admin/(tabs)/dashboard"));
+
   const load = useCallback(async () => {
     try {
       const s = await apiFetch<{ id: string; name: string }[]>("/skills");
@@ -59,7 +61,7 @@ export default function SkillManagement() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      <ScreenHeader title={t("skillManagement")} onBack={() => (router.canGoBack() ? router.back() : router.replace("/admin/(tabs)/dashboard"))}
+      <ScreenHeader title={t("skillManagement")} onBack={goBack} />
       <View style={styles.addRow}>
         <TextInput
           value={name}
