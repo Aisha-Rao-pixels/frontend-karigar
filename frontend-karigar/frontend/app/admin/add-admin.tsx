@@ -21,6 +21,8 @@ export default function AddAdmin() {
   const [showPwd, setShowPwd] = useState(false);
   const [busy, setBusy] = useState(false);
 
+  const goBack = () => (router.canGoBack() ? router.back() : router.replace("/admin/(tabs)/dashboard"));
+
   const handleCancel = () => {
     const hasData = name || adminRole || phone || password;
     if (hasData) {
@@ -29,11 +31,11 @@ export default function AddAdmin() {
         "The details you entered will not be saved.",
         [
           { text: "Keep editing", style: "cancel" },
-          { text: "Discard", style: "destructive", onPress: () => router.back() },
+          { text: "Discard", style: "destructive", onPress: goBack },
         ]
       );
     } else {
-      router.back();
+      goBack();
     }
   };
 
@@ -55,7 +57,7 @@ export default function AddAdmin() {
         },
       });
       show("Admin added successfully", "success");
-      router.back();
+      goBack();
     } catch (e: any) {
       show(e.message || "Something went wrong. Please try again.", "error");
     } finally {
