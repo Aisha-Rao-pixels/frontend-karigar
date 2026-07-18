@@ -1,10 +1,8 @@
 /**
  * referrals.tsx — Admin Referral Dashboard
  *
- * Table is now the shared ResizableTable component (see
- * @/src/components/ResizableTable): full-space, sticky header, vertical +
- * horizontal scrollbars, drag-to-resize columns (web), widths persisted.
- * The KPI strip sits fixed above it so the table gets all remaining height.
+ * Reloads data every time admin navigates back from referral-detail,
+ * so Paid/Pending columns always reflect the latest saved values.
  */
 import React, { useCallback, useMemo, useState } from "react";
 import { View, StyleSheet, ScrollView, Pressable } from "react-native";
@@ -30,7 +28,6 @@ interface ReferralRow {
   pending_amount_rs: number;
 }
 
-// ── Main screen ────────────────────────────────────────────────────────────
 export default function AdminReferrals() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -49,7 +46,12 @@ export default function AdminReferrals() {
     }
   }, []);
 
-  useFocusEffect(useCallback(() => { load(); }, [load]));
+  // Reload every time this screen comes into focus (e.g. coming back from
+  // referral-detail after changing paid amount) so Paid/Pending are fresh.
+  useFocusEffect(useCallback(() => {
+    setLoading(true);
+    load();
+  }, [load]));
 
   const openBreakdown = (category: string, label: string) => {
     router.push({ pathname: "/admin/referral-breakdown", params: { category, label } });
@@ -116,7 +118,7 @@ export default function AdminReferrals() {
     },
     {
       key: "pending", label: "Pending (₹)", width: 110,
-      render: (r) => <AppText size="sm" color={COLORS.warning}>₹{r.pending_amount_rs}</AppText>,
+      render: (r) => <AppText size="sm" color={r.pending_amount_rs > 0 ? COLORS.warning : COLORS.muted}>₹{r.pending_amount_rs}</AppText>,
     },
   ];
 
@@ -131,7 +133,7 @@ export default function AdminReferrals() {
         <Loader />
       ) : (
         <>
-          {/* KPI strip — fixed above the table so the table gets all remaining height */}
+          {/* KPI strip */}
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -139,15 +141,14 @@ export default function AdminReferrals() {
             style={{ flexGrow: 0 }}
           >
             <Kpi label="Total Referrers"  value={rows.length} />
-            <Kpi label="Total Referred"   value={totals.referred}      onPress={() => openBreakdown("referred",      "Total Referred")} />
-            <Kpi label="Registered"       value={totals.registered}    color={COLORS.success}  onPress={() => openBreakdown("registered",  "Registered")} />
-            <Kpi label="Logged In Only"   value={totals.loggedIn}      color={COLORS.warning}  onPress={() => openBreakdown("logged_in",   "Logged In Only")} />
-            <Kpi label="Not Registered"   value={totals.notRegistered} color={COLORS.error}    onPress={() => openBreakdown("not_registered", "Not Registered")} />
-            <Kpi label="Total Paid"       value={`₹${totals.paid}`}   color={COLORS.success}  onPress={() => openBreakdown("paid",        "Total Paid")} />
-            <Kpi label="Total Pending"    value={`₹${totals.pending}`} color={COLORS.warning}  onPress={() => openBreakdown("pending",     "Total Pending")} />
+            <Kpi label="Total Referred"   value={totals.referred}      onPress={() => openBreakdown("referred",       "Total Referred")} />
+            <Kpi label="Registered"       value={totals.registered}    color={COLORS.success}  onPress={() => openBreakdown("registered",    "Registered")} />
+            <Kpi label="Logged In Only"   value={totals.loggedIn}      color={COLORS.warning}  onPress={() => openBreakdown("logged_in",     "Logged In Only")} />
+            <Kpi label="Not Registered"   value={totals.notRegistered} color={COLORS.error}    onPress={() => openBreakdown("not_registered","Not Registered")} />
+            <Kpi label="Total Paid"       value={`₹${totals.paid}`}   color={COLORS.success}  onPress={() => openBreakdown("paid",          "Total Paid")} />
+            <Kpi label="Total Pending"    value={`₹${totals.pending}`} color={COLORS.warning}  onPress={() => openBreakdown("pending",       "Total Pending")} />
           </ScrollView>
 
-          {/* Table takes all remaining space: sticky header, dual scrollbars, resizable columns */}
           <View style={{ flex: 1, paddingHorizontal: SPACING.lg, paddingBottom: SPACING.lg }}>
             <ResizableTable
               columns={columns}
@@ -166,7 +167,6 @@ export default function AdminReferrals() {
   );
 }
 
-// ── Helpers ────────────────────────────────────────────────────────────────
 function Kpi({ label, value, color = COLORS.onSurface, onPress }: {
   label: string; value: number | string; color?: string; onPress?: () => void;
 }) {
