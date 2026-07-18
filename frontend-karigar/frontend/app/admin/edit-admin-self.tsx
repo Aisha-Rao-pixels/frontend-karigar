@@ -31,6 +31,8 @@ export default function EditAdminSelf() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
 
+  const goBack = () => (router.canGoBack() ? router.back() : router.replace("/admin/(tabs)/dashboard"));
+
   useFocusEffect(
     useCallback(() => {
       let active = true;
@@ -64,11 +66,11 @@ export default function EditAdminSelf() {
         "Your edits will not be saved.",
         [
           { text: "Keep editing", style: "cancel" },
-          { text: "Discard", style: "destructive", onPress: () => router.back() },
+          { text: "Discard", style: "destructive", onPress: goBack },
         ]
       );
     } else {
-      router.back();
+      goBack();
     }
   };
 
@@ -83,7 +85,7 @@ export default function EditAdminSelf() {
         body: { name: name.trim(), admin_role: adminRole.trim() },
       });
       show("Your details were updated", "success");
-      router.back();
+      goBack();
     } catch (e: any) {
       show(e.message || "Something went wrong. Please try again.", "error");
     } finally {
