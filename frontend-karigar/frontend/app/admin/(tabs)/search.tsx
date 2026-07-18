@@ -398,6 +398,11 @@ export default function WorkerSearch() {
       ),
     },
     {
+      key: "verified_by", label: "Verified By", width: 140,
+      filterable: true, filterMatch: (w: any, f) => (w.verified_by ?? "").toLowerCase().includes(f.toLowerCase()),
+      render: (item: any) => <AppText size="sm" color={COLORS.muted} numberOfLines={1}>{item.verified_by || "—"}</AppText>,
+    },
+    {
       key: "exp", label: "Experience", width: 100,
       sortable: true, sortValue: (w) => w.years_experience ?? 0,
       // Exact match, not "contains" — typing "1" should only match workers
