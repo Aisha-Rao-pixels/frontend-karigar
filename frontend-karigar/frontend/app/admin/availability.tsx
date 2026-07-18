@@ -119,7 +119,7 @@ export default function AdminAvailability() {
       <ScreenHeader
         title="Availability"
         subtitle={`${total} worker${total !== 1 ? "s" : ""} becoming available soon`}
-        onBack={() => router.back()}
+        onBack={() => (router.canGoBack() ? router.back() : router.replace("/admin/(tabs)/dashboard"))}
       />
 
       <View style={styles.noteBar}>
