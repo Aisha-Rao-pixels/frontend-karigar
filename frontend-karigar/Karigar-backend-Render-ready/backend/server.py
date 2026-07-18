@@ -1897,17 +1897,18 @@ async def seed_data():
             logger.info("Auth pivot: wiped legacy users/workers/demo data")
 
         if not await db.meta.find_one({"key": "referral_data_reset_v1"}):
-            # One-time reset requested by admin: clear out all existing
-            # referral records and click-tracking so the ₹50-per-successful-
-            # registration reward program starts from a clean slate. This
-            # does NOT touch workers/users — only the referrals and
-            # referral_clicks collections. Existing referral_code values on
-            # worker profiles are left untouched so old invite links keep
-            # working, they simply have no referral history behind them.
             await db.referrals.delete_many({})
             await db.referral_clicks.delete_many({})
             await db.meta.insert_one({"key": "referral_data_reset_v1", "done_at": now_iso()})
-            logger.info("Referral reset: cleared referrals + referral_clicks collections")
+            logger.info("Referral reset v1: cleared referrals + referral_clicks collections")
+
+        if not await db.meta.find_one({"key": "referral_data_reset_v2"}):
+            # Fresh start from today — clears all referral history and click
+            # counts so the count goes back to 0 for all users.
+            await db.referrals.delete_many({})
+            await db.referral_clicks.delete_many({})
+            await db.meta.insert_one({"key": "referral_data_reset_v2", "done_at": now_iso()})
+            logger.info("Referral reset v2: counts cleared to 0 for fresh campaign start")
 
         await _ensure_indexes()
 
