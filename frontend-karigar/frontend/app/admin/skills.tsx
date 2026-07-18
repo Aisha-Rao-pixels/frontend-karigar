@@ -59,7 +59,7 @@ export default function SkillManagement() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      <ScreenHeader title={t("skillManagement")} onBack={() => router.back()} />
+      <ScreenHeader title={t("skillManagement")} onBack={() => (router.canGoBack() ? router.back() : router.replace("/admin/(tabs)/dashboard"))}
       <View style={styles.addRow}>
         <TextInput
           value={name}
