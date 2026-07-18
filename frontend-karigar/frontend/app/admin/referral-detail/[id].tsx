@@ -1,6 +1,5 @@
 import React, { useCallback, useState } from "react";
 import { View, StyleSheet, ScrollView, RefreshControl, Pressable, TextInput, ActivityIndicator } from "react-native";
-import { ResizableTable, ResizableTableColumn } from "@/src/components/ResizableTable";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -38,7 +37,16 @@ const STATUS_LABELS: Record<string, { label: string; color: string }> = {
   paid:             { label: "Paid",           color: COLORS.success },
 };
 
-// columns defined inside component so we have access to router & statusInfo
+const COLS = [
+  { key: "sino",     label: "S.No",     width: 50 },
+  { key: "name",     label: "Name",     width: 160 },
+  { key: "phone",    label: "Phone",    width: 120 },
+  { key: "status",   label: "Status",   width: 130 },
+  { key: "verified", label: "Verified", width: 100 },
+  { key: "paid",     label: "Paid (₹)", width: 100 },
+  { key: "date",     label: "Date",     width: 110 },
+];
+const TABLE_WIDTH = COLS.reduce((s, c) => s + c.width, 0);
 
 export default function AdminReferralDetail() {
   const router = useRouter();
@@ -50,6 +58,8 @@ export default function AdminReferralDetail() {
   const [refreshing, setRefreshing] = useState(false);
   const [paidInput, setPaidInput] = useState("");
   const [saving, setSaving] = useState(false);
+
+  const goBack = () => (router.canGoBack() ? router.back() : router.replace("/admin/referrals"));
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -68,7 +78,7 @@ export default function AdminReferralDetail() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      <ScreenHeader title="Referred Users" onBack={() => router.back()} />
+      <ScreenHeader title="Referred Users" onBack={goBack} />
 
       {loading || !data ? (
         <Loader />
@@ -137,54 +147,62 @@ export default function AdminReferralDetail() {
             </View>
           </View>
 
-         <View style={{ flex: 1, minHeight: 300 }}>
-            <ResizableTable<ReferredPerson>
-              storageKey="referral_detail_table"
-              data={data.people}
-              keyExtractor={(p) => p.phone}
-              emptyText="No referrals yet from this person"
-              onRowPress={(p) => { if (p.worker_id) router.push(`/admin/review/${p.worker_id}?from=referral`); }}
-              columns={[
-                {
-                  key: "sino", label: "S.No", width: 50, resizable: false,
-                  render: (_p, i) => <AppText size="sm">{i + 1}</AppText>,
-                },
-                {
-                  key: "name", label: "Name", width: 160, sortable: true, filterable: true,
-                  render: (p) => <AppText size="sm" weight="semibold">{p.name}</AppText>,
-                  sortValue: (p) => p.name,
-                  filterMatch: (p, f) => p.name.toLowerCase().includes(f.toLowerCase()),
-                },
-                {
-                  key: "phone", label: "Phone", width: 130,
-                  render: (p) => <AppText size="sm" color={COLORS.muted}>{p.phone}</AppText>,
-                },
-                {
-                  key: "status", label: "Status", width: 130, sortable: true,
-                  render: (p) => {
-                    const s = STATUS_LABELS[p.status] || { label: p.status, color: COLORS.muted };
-                    return <AppText size="sm" weight="semibold" color={s.color}>{s.label}</AppText>;
-                  },
-                  sortValue: (p) => p.status,
-                },
-                {
-                  key: "verified", label: "Verified", width: 110,
-                  render: (p) => p.worker_id
-                    ? <AppText size="sm" weight="semibold" color={p.verified ? COLORS.success : COLORS.warning}>{p.verified ? "Verified" : "Not Verified"}</AppText>
-                    : <AppText size="sm" color={COLORS.muted}>—</AppText>,
-                },
-                {
-                  key: "paid", label: "Paid (₹)", width: 100,
-                  render: (p) => <AppText size="sm" color={COLORS.success}>₹{p.payout_amount_rs}</AppText>,
-                },
-                {
-                  key: "date", label: "Date", width: 120, sortable: true,
-                  render: (p) => <AppText size="sm" color={COLORS.muted}>{new Date(p.created_at).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}</AppText>,
-                  sortValue: (p) => p.created_at,
-                },
-              ]}
-            />
-          </View>
+          <ScrollView horizontal showsHorizontalScrollIndicator>
+            <View style={{ width: "100%", minWidth: TABLE_WIDTH, borderWidth: 1, borderColor: COLORS.border, borderRadius: RADIUS.md, overflow: "hidden" }}>
+              {/* Header */}
+              <View style={styles.headerRow}>
+                {COLS.map((c) => (
+                  <View key={c.key} style={{ flex: 1, minWidth: c.width, paddingVertical: SPACING.sm, paddingHorizontal: SPACING.sm }}>
+                    <AppText size="sm" weight="bold" color="#fff">{c.label}</AppText>
+                  </View>
+                ))}
+              </View>
+
+              {/* Rows */}
+              {data.people.map((p, i) => {
+                const statusInfo = STATUS_LABELS[p.status] || { label: p.status, color: COLORS.muted };
+                const canReview = !!p.worker_id;
+                const row = (
+                  <View
+                    style={[styles.dataRow, { backgroundColor: i % 2 === 0 ? COLORS.surface : COLORS.surfaceSecondary }]}
+                  >
+                    <Cell width={COLS[0].width}><AppText size="sm">{i + 1}</AppText></Cell>
+                    <Cell width={COLS[1].width}><AppText size="sm" weight="semibold">{p.name}</AppText></Cell>
+                    <Cell width={COLS[2].width}><AppText size="sm" color={COLORS.muted}>{p.phone}</AppText></Cell>
+                    <Cell width={COLS[3].width}><AppText size="sm" weight="semibold" color={statusInfo.color}>{statusInfo.label}</AppText></Cell>
+                    <Cell width={COLS[4].width}>
+                      {canReview ? (
+                        <AppText size="sm" weight="semibold" color={p.verified ? COLORS.success : COLORS.warning}>
+                          {p.verified ? "Verified" : "Not Verified"}
+                        </AppText>
+                      ) : (
+                        <AppText size="sm" color={COLORS.muted}>—</AppText>
+                      )}
+                    </Cell>
+                    <Cell width={COLS[5].width}><AppText size="sm" color={COLORS.success}>₹{p.payout_amount_rs}</AppText></Cell>
+                    <Cell width={COLS[6].width}>
+                      <AppText size="sm" color={COLORS.muted}>
+                        {new Date(p.created_at).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
+                      </AppText>
+                    </Cell>
+                  </View>
+                );
+                return canReview ? (
+                  <Pressable key={i} onPress={() => router.push(`/admin/review/${p.worker_id}?from=referral`)}>
+                    {row}
+                  </Pressable>
+                ) : (
+                  <View key={i}>{row}</View>
+                );
+              })}
+
+              {data.people.length === 0 && (
+                <View style={{ padding: SPACING.xl, alignItems: "center" }}>
+                  <AppText color={COLORS.muted}>No referrals yet from this person</AppText>
+                </View>
+              )}
+            </View>
+          </ScrollView>
         </ScrollView>
       )}
     </View>
