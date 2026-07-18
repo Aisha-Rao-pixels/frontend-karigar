@@ -1,13 +1,4 @@
 // ── Availability (Available From) admin page ───────────────────────────────
-// Reached from the dashboard's "Available From" segment tap, or the
-// "Availability" quick-action button (same pattern as Manage Admins).
-//
-// Shows every worker currently marked availability_status = "available_from",
-// sorted soonest-first, with a live "days remaining" countdown. The backend
-// (`/admin/workers`) auto-flips any worker whose available_from date has
-// already arrived back to "available_now" on every request AND on a 30-min
-// background loop — so a worker simply disappears from this list once their
-// date passes, no manual admin action required.
 import React, { useCallback, useState } from "react";
 import { View, StyleSheet, Pressable } from "react-native";
 import { useRouter } from "expo-router";
@@ -22,9 +13,6 @@ import { apiFetch } from "@/src/api/client";
 import { Worker } from "@/src/utils/profile";
 import { useToast } from "@/src/components/Toast";
 
-/** Days between today (local) and an "available_from" YYYY-MM-DD date.
- *  0 = today, 1 = tomorrow, negative = already passed (edge case — the
- *  backend should have flipped these already, but we still render sanely). */
 function daysUntil(dateStr?: string | null): number | null {
   if (!dateStr) return null;
   const target = new Date(dateStr + "T00:00:00");
@@ -63,13 +51,14 @@ export default function AdminAvailability() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
+  const goBack = () => (router.canGoBack() ? router.back() : router.replace("/admin/(tabs)/dashboard"));
+
   const load = useCallback(async () => {
     try {
       const q = new URLSearchParams();
       q.set("availability", "available_from");
       q.set("page_size", "200");
       const res = await apiFetch<{ items: Worker[]; total: number }>(`/admin/workers?${q.toString()}`);
-      // Soonest available_from date first.
       const sorted = [...res.items].sort((a, b) => (a.available_from || "9999").localeCompare(b.available_from || "9999"));
       setItems(sorted);
       setTotal(res.total);
@@ -119,7 +108,7 @@ export default function AdminAvailability() {
       <ScreenHeader
         title="Availability"
         subtitle={`${total} worker${total !== 1 ? "s" : ""} becoming available soon`}
-        onBack={() => (router.canGoBack() ? router.back() : router.replace("/admin/(tabs)/dashboard"))}
+        onBack={goBack}
       />
 
       <View style={styles.noteBar}>
