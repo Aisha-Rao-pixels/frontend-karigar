@@ -1862,8 +1862,16 @@ async def export_workers_csv(
     area: Optional[str] = None,
     min_exp: Optional[int] = None,
     max_exp: Optional[int] = None,
+    ids: Optional[str] = None,
 ):
-    query = _apply_filters(search, skill, availability, verification, city, area, min_exp, max_exp)
+    # `ids` = comma-separated worker ids the admin manually checked in the UI.
+    # When present it wins over every other filter — the admin explicitly
+    # picked these records, so we export exactly that set.
+    if ids:
+        id_list = [i for i in ids.split(",") if i]
+        query = {"id": {"$in": id_list}}
+    else:
+        query = _apply_filters(search, skill, availability, verification, city, area, min_exp, max_exp)
     workers = await db.workers.find(query).sort("created_at", -1).to_list(5000)
 
     # Referral lookup: map referral_code -> "Name (+91 phone)" so each row can
@@ -1906,8 +1914,15 @@ async def export_workers_pdf(
     min_exp: Optional[int] = None,
     max_exp: Optional[int] = None,
     limit: Optional[int] = None,
+    ids: Optional[str] = None,
 ):
-    query = _apply_filters(search, skill, availability, verification, city, area, min_exp, max_exp)
+    # `ids` = comma-separated worker ids the admin manually checked in the UI.
+    # When present it wins over every other filter — export exactly that set.
+    if ids:
+        id_list = [i for i in ids.split(",") if i]
+        query = {"id": {"$in": id_list}}
+    else:
+        query = _apply_filters(search, skill, availability, verification, city, area, min_exp, max_exp)
     fetch_cap = min(limit, 5000) if limit else 5000
     workers = await db.workers.find(query).sort("created_at", -1).to_list(fetch_cap)
     async def _hydrate_one(w):
