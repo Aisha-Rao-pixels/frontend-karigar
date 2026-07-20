@@ -50,6 +50,8 @@ export type ResizableTableColumn<T> = {
   render: (item: T, index: number) => React.ReactNode;
   /** Optional custom header content (e.g. a select-all checkbox). Overrides `label` rendering when set. */
   headerRender?: () => React.ReactNode;
+  /** Optional custom content for the filter-row cell of a non-filterable column (otherwise left empty). */
+  filterCellRender?: () => React.ReactNode;
   /** If true, clicking this column header cycles sort asc → desc → off */
   sortable?: boolean;
   /** Returns the primitive value used for sorting. Required when sortable=true. */
@@ -507,6 +509,8 @@ export function ResizableTable<T>({
                         testID={`${testIDPrefix}-filter-${col.key}`}
                         clearButtonMode="while-editing"
                       />
+                    ) : col.filterCellRender ? (
+                      col.filterCellRender()
                     ) : (
                       // Empty spacer for non-filterable columns (like S.No)
                       <View />
