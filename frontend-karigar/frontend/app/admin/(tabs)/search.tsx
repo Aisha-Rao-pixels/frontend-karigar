@@ -207,14 +207,16 @@ export default function WorkerSearch() {
     [buildQuery]
   );
 
-  const load = useCallback(
+const load = useCallback(
     async (overrides?: any) => {
       setLoading(true);
+      setPage(1);
       try {
         const q = buildQuery(overrides);
-        const res = await apiFetch<{ items: Worker[]; total: number }>(`/admin/workers?${q}`);
+        const res = await apiFetch<{ items: Worker[]; total: number; page_size: number }>(`/admin/workers?${q}&page=1`);
         setItems(res.items);
         setTotal(res.total);
+        setHasMore(res.items.length === PAGE_SIZE && res.total > PAGE_SIZE);
       } catch (e: any) {
         show(e.message || t("genericError"), "error");
       } finally {
@@ -223,6 +225,23 @@ export default function WorkerSearch() {
     },
     [buildQuery]
   );
+
+  const loadMore = useCallback(async () => {
+    if (loading || !hasMore) return;
+    const nextPage = page + 1;
+    setLoading(true);
+    try {
+      const q = buildQuery();
+      const res = await apiFetch<{ items: Worker[]; total: number }>(`/admin/workers?${q}&page=${nextPage}`);
+      setItems((prev) => [...prev, ...res.items]);
+      setPage(nextPage);
+      setHasMore(res.items.length === PAGE_SIZE && items.length + res.items.length < res.total);
+    } catch (e: any) {
+      show(e.message || t("genericError"), "error");
+    } finally {
+      setLoading(false);
+    }
+  }, [loading, hasMore, page, buildQuery, items.length]);
 
   // Re-sync local filter state whenever the incoming route params change —
   // not just on first mount. Expo Router keeps this tab screen mounted
