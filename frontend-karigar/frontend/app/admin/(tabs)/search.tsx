@@ -170,22 +170,50 @@ export default function WorkerSearch() {
   // param (in addition to the normal header) specifically so this can be a
   // plain link — a bare hyperlink/window.open/Linking.openURL can't attach
   // an Authorization header the way apiFetch does.
+  // Worker ids the admin has manually checked via the row/card checkboxes.
+  // When non-empty, exports default to exactly this set instead of filters.
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  const toggleSelect = useCallback((id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const selectAllVisible = useCallback(() => {
+    setSelectedIds(new Set(items.map((w) => w.id)));
+  }, [items]);
+
+  const clearSelection = useCallback(() => setSelectedIds(new Set()), []);
+
   const handleExport = useCallback(
-    async (kind: "csv" | "pdf", scope: "filtered" | "all" = "filtered") => {
+    async (kind: "csv" | "pdf", scope: "filtered" | "all" | "selected" = "filtered") => {
       setExportMenuVisible(false);
       setExporting(true);
       try {
         const token = await getToken();
-        // "all" ignores every active filter and exports the whole directory;
-        // "filtered" reuses buildQuery so the export matches exactly what's on screen.
-        const params = new URLSearchParams(scope === "all" ? "" : buildQuery());
+        // "selected" exports exactly the checked worker ids (wins over any
+        // filter). "all" ignores every active filter and exports the whole
+        // directory. "filtered" reuses buildQuery so the export matches
+        // exactly what's on screen.
+        let params: URLSearchParams;
+        if (scope === "selected") {
+          params = new URLSearchParams();
+          params.set("ids", Array.from(selectedIds).join(","));
+        } else {
+          params = new URLSearchParams(scope === "all" ? "" : buildQuery());
+        }
         // page_size in buildQuery caps the on-screen list at 100; exports
         // should cover every matching worker, not just the current page.
         params.delete("page_size");
         if (token) params.set("token", token);
         const path = kind === "csv" ? "/admin/export" : "/admin/export/full";
         const url = `${BASE}${path}?${params.toString()}`;
-        const filename = `${scope === "all" ? "all_" : ""}${kind === "csv" ? "workers.csv" : "karigar_worker_report.pdf"}`;
+        const prefix = scope === "all" ? "all_" : scope === "selected" ? "selected_" : "";
+        const filename = `${prefix}${kind === "csv" ? "workers.csv" : "karigar_worker_report.pdf"}`;
 
         if (Platform.OS === "web") {
           // Trigger a real browser download rather than navigating away.
@@ -206,7 +234,7 @@ export default function WorkerSearch() {
         setExporting(false);
       }
     },
-    [buildQuery]
+    [buildQuery, selectedIds]
   );
 
   const load = useCallback(
@@ -324,6 +352,22 @@ export default function WorkerSearch() {
   };
 
   const tableColumns: ResizableTableColumn<Worker>[] = [
+    {
+      key: "select", label: "", width: 40, resizable: false,
+      render: (item) => (
+        <Pressable
+          onPress={(e: any) => { e?.stopPropagation?.(); toggleSelect(item.id); }}
+          hitSlop={8}
+          testID={`select-worker-row-${item.id}`}
+        >
+          <Ionicons
+            name={selectedIds.has(item.id) ? "checkbox" : "square-outline"}
+            size={20}
+            color={selectedIds.has(item.id) ? COLORS.brandPrimary : COLORS.muted}
+          />
+        </Pressable>
+      ),
+    },
     {
       key: "sno", label: "S.No", width: 56, resizable: false,
       render: (_item, index) => <AppText size="sm" color={COLORS.muted}>{index + 1}</AppText>,
@@ -518,6 +562,33 @@ export default function WorkerSearch() {
               <>
                 <Pressable style={styles.exportBackdrop} onPress={() => setExportMenuVisible(false)} />
                 <View style={styles.exportDropdown}>
+                  {selectedIds.size > 0 && (
+                    <>
+                      <Pressable
+                        style={styles.exportOption}
+                        onPress={() => handleExport("csv", "selected")}
+                        testID="export-selected-csv-btn"
+                      >
+                        <Ionicons name="checkbox-outline" size={16} color={COLORS.onSurface} />
+                        <View style={{ marginLeft: SPACING.sm }}>
+                          <AppText weight="semibold">CSV (Selected)</AppText>
+                          <AppText size="sm" color={COLORS.muted}>{selectedIds.size} record{selectedIds.size !== 1 ? "s" : ""} checked</AppText>
+                        </View>
+                      </Pressable>
+                      <Pressable
+                        style={styles.exportOption}
+                        onPress={() => handleExport("pdf", "selected")}
+                        testID="export-selected-pdf-btn"
+                      >
+                        <Ionicons name="checkbox-outline" size={16} color={COLORS.onSurface} />
+                        <View style={{ marginLeft: SPACING.sm }}>
+                          <AppText weight="semibold">PDF (Selected)</AppText>
+                          <AppText size="sm" color={COLORS.muted}>With photos, {selectedIds.size} checked</AppText>
+                        </View>
+                      </Pressable>
+                      <View style={{ height: 1, backgroundColor: COLORS.border, marginVertical: 4 }} />
+                    </>
+                  )}
                   <Pressable
                     style={styles.exportOption}
                     onPress={() => handleExport("csv")}
@@ -526,7 +597,7 @@ export default function WorkerSearch() {
                     <Ionicons name="document-text-outline" size={16} color={COLORS.onSurface} />
                     <View style={{ marginLeft: SPACING.sm }}>
                       <AppText weight="semibold">CSV</AppText>
-                      <AppText size="sm" color={COLORS.muted}>Data only, fast</AppText>
+                      <AppText size="sm" color={COLORS.muted}>Filtered results, data only</AppText>
                     </View>
                   </Pressable>
                   <Pressable
@@ -537,7 +608,7 @@ export default function WorkerSearch() {
                     <Ionicons name="document-outline" size={16} color={COLORS.onSurface} />
                     <View style={{ marginLeft: SPACING.sm }}>
                       <AppText weight="semibold">PDF</AppText>
-                      <AppText size="sm" color={COLORS.muted}>With photos</AppText>
+                      <AppText size="sm" color={COLORS.muted}>Filtered results, with photos</AppText>
                     </View>
                   </Pressable>
                   <View style={{ height: 1, backgroundColor: COLORS.border, marginVertical: 4 }} />
@@ -560,7 +631,7 @@ export default function WorkerSearch() {
                     <Ionicons name="document-outline" size={16} color={COLORS.onSurface} />
                     <View style={{ marginLeft: SPACING.sm }}>
                       <AppText weight="semibold">PDF (All)</AppText>
-                      <AppText size="sm" color={COLORS.muted}>Ignores filters, whole directory</AppText>
+                      <AppText size="sm" color={COLORS.muted}>Ignores filters, whole directory, with photos</AppText>
                     </View>
                   </Pressable>
                 </View>
@@ -648,6 +719,21 @@ export default function WorkerSearch() {
 
       <View style={styles.resultsBar}>
         <AppText size="sm" color={COLORS.muted}>{t("resultsCount", { count: total })}</AppText>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: SPACING.md }}>
+          {selectedIds.size > 0 && (
+            <AppText size="sm" weight="semibold" color={COLORS.brandPrimary}>
+              {selectedIds.size} selected
+            </AppText>
+          )}
+          <Pressable onPress={selectAllVisible} testID="select-all-visible-btn" hitSlop={6}>
+            <AppText size="sm" color={COLORS.brandPrimary} weight="semibold">Select All</AppText>
+          </Pressable>
+          {selectedIds.size > 0 && (
+            <Pressable onPress={clearSelection} testID="clear-selection-btn" hitSlop={6}>
+              <AppText size="sm" color={COLORS.muted} weight="semibold">Clear</AppText>
+            </Pressable>
+          )}
+        </View>
       </View>
 
       <View style={{ flex: 1 }}>
@@ -660,6 +746,18 @@ export default function WorkerSearch() {
             renderItem={({ item }) => (
               <Tooltip text={`View ${item.full_name}'s full profile`}>
                 <Pressable onPress={() => router.push(`/admin/worker/${item.id}?from=search`)} style={[styles.workerCard, shadow]} testID={`worker-card-${item.id}`}>
+                  <Pressable
+                    onPress={(e: any) => { e?.stopPropagation?.(); toggleSelect(item.id); }}
+                    hitSlop={8}
+                    testID={`select-worker-${item.id}`}
+                    style={{ marginRight: SPACING.xs }}
+                  >
+                    <Ionicons
+                      name={selectedIds.has(item.id) ? "checkbox" : "square-outline"}
+                      size={22}
+                      color={selectedIds.has(item.id) ? COLORS.brandPrimary : COLORS.muted}
+                    />
+                  </Pressable>
                   <Avatar name={item.full_name} size={48} />
                   <View style={{ flex: 1 }}>
                     <AppText weight="bold" size="base" numberOfLines={1}>{item.full_name}</AppText>
