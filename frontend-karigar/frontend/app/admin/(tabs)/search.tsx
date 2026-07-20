@@ -540,6 +540,29 @@ export default function WorkerSearch() {
                       <AppText size="sm" color={COLORS.muted}>With photos</AppText>
                     </View>
                   </Pressable>
+                  <View style={{ height: 1, backgroundColor: COLORS.border, marginVertical: 4 }} />
+                  <Pressable
+                    style={styles.exportOption}
+                    onPress={() => handleExport("csv", "all")}
+                    testID="export-all-csv-btn"
+                  >
+                    <Ionicons name="document-text-outline" size={16} color={COLORS.onSurface} />
+                    <View style={{ marginLeft: SPACING.sm }}>
+                      <AppText weight="semibold">CSV (All)</AppText>
+                      <AppText size="sm" color={COLORS.muted}>Ignores filters, whole directory</AppText>
+                    </View>
+                  </Pressable>
+                  <Pressable
+                    style={styles.exportOption}
+                    onPress={() => handleExport("pdf", "all")}
+                    testID="export-all-pdf-btn"
+                  >
+                    <Ionicons name="document-outline" size={16} color={COLORS.onSurface} />
+                    <View style={{ marginLeft: SPACING.sm }}>
+                      <AppText weight="semibold">PDF (All)</AppText>
+                      <AppText size="sm" color={COLORS.muted}>Ignores filters, whole directory</AppText>
+                    </View>
+                  </Pressable>
                 </View>
               </>
             )}
