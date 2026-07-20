@@ -90,9 +90,14 @@ export default function AdminReferralDetail() {
       const res = await apiFetch<{ total_earned_rs: number; paid_rs: number; pending_rs: number }>(
         `/admin/referrals/${id}/paid-amount`, { method: "PATCH", body: { amount_rs: n } }
       );
-      setData((d) => d ? { ...d, total_earned_rs: res.total_earned_rs, paid_rs: res.paid_rs, pending_rs: res.pending_rs } : d);
+      setData((d) => d ? {
+        ...d,
+        total_earned_rs: res.total_earned_rs,
+        paid_rs: res.paid_rs,
+        pending_rs: res.pending_rs,
+      } : d);
       setPaidInput(String(res.paid_rs));
-      show("Saved — pending updated ✓", "success");
+      show(`Saved ✓  Paid: ₹${res.paid_rs}  Pending: ₹${res.pending_rs}`, "success");
     } catch (e: any) {
       show(e.message || "Could not save", "error");
     } finally {
