@@ -18,6 +18,19 @@ export default function Root({ children }: PropsWithChildren) {
           set `overflow: auto` on the body style below.
         */}
         <ScrollViewStyleReset />
+        {/* Microsoft Clarity — session recordings & heatmaps for spotting
+            where users struggle (e.g. on the registration form). */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function(c,l,a,r,i,t,y){
+                  c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+                  t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+                  y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+              })(window, document, "clarity", "script", "xpca6hfkaf");
+            `,
+          }}
+        />
         <style
           dangerouslySetInnerHTML={{
             __html: `
