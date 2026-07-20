@@ -190,29 +190,22 @@ export default function WorkerSearch() {
   const clearSelection = useCallback(() => setSelectedIds(new Set()), []);
 
   const handleExport = useCallback(
-    async (kind: "csv" | "pdf", scope: "filtered" | "all" | "selected" = "filtered") => {
+    async (kind: "csv" | "pdf") => {
       setExportMenuVisible(false);
       setExporting(true);
       try {
         const token = await getToken();
-        // "selected" exports exactly the checked worker ids (wins over any
-        // filter). "all" ignores every active filter and exports the whole
-        // directory. "filtered" reuses buildQuery so the export matches
-        // exactly what's on screen.
-        let params: URLSearchParams;
-        if (scope === "selected") {
-          params = new URLSearchParams();
+        // If the admin has checked any records, export exactly those.
+        // Otherwise export the entire directory (every record, filters ignored).
+        const hasSelection = selectedIds.size > 0;
+        const params = new URLSearchParams();
+        if (hasSelection) {
           params.set("ids", Array.from(selectedIds).join(","));
-        } else {
-          params = new URLSearchParams(scope === "all" ? "" : buildQuery());
         }
-        // page_size in buildQuery caps the on-screen list at 100; exports
-        // should cover every matching worker, not just the current page.
-        params.delete("page_size");
         if (token) params.set("token", token);
         const path = kind === "csv" ? "/admin/export" : "/admin/export/full";
         const url = `${BASE}${path}?${params.toString()}`;
-        const prefix = scope === "all" ? "all_" : scope === "selected" ? "selected_" : "";
+        const prefix = hasSelection ? "selected_" : "all_";
         const filename = `${prefix}${kind === "csv" ? "workers.csv" : "karigar_worker_report.pdf"}`;
 
         if (Platform.OS === "web") {
@@ -234,7 +227,7 @@ export default function WorkerSearch() {
         setExporting(false);
       }
     },
-    [buildQuery, selectedIds]
+    [selectedIds]
   );
 
   const load = useCallback(
@@ -562,33 +555,6 @@ export default function WorkerSearch() {
               <>
                 <Pressable style={styles.exportBackdrop} onPress={() => setExportMenuVisible(false)} />
                 <View style={styles.exportDropdown}>
-                  {selectedIds.size > 0 && (
-                    <>
-                      <Pressable
-                        style={styles.exportOption}
-                        onPress={() => handleExport("csv", "selected")}
-                        testID="export-selected-csv-btn"
-                      >
-                        <Ionicons name="checkbox-outline" size={16} color={COLORS.onSurface} />
-                        <View style={{ marginLeft: SPACING.sm }}>
-                          <AppText weight="semibold">CSV (Selected)</AppText>
-                          <AppText size="sm" color={COLORS.muted}>{selectedIds.size} record{selectedIds.size !== 1 ? "s" : ""} checked</AppText>
-                        </View>
-                      </Pressable>
-                      <Pressable
-                        style={styles.exportOption}
-                        onPress={() => handleExport("pdf", "selected")}
-                        testID="export-selected-pdf-btn"
-                      >
-                        <Ionicons name="checkbox-outline" size={16} color={COLORS.onSurface} />
-                        <View style={{ marginLeft: SPACING.sm }}>
-                          <AppText weight="semibold">PDF (Selected)</AppText>
-                          <AppText size="sm" color={COLORS.muted}>With photos, {selectedIds.size} checked</AppText>
-                        </View>
-                      </Pressable>
-                      <View style={{ height: 1, backgroundColor: COLORS.border, marginVertical: 4 }} />
-                    </>
-                  )}
                   <Pressable
                     style={styles.exportOption}
                     onPress={() => handleExport("csv")}
@@ -597,7 +563,9 @@ export default function WorkerSearch() {
                     <Ionicons name="document-text-outline" size={16} color={COLORS.onSurface} />
                     <View style={{ marginLeft: SPACING.sm }}>
                       <AppText weight="semibold">CSV</AppText>
-                      <AppText size="sm" color={COLORS.muted}>Filtered results, data only</AppText>
+                      <AppText size="sm" color={COLORS.muted}>
+                        {selectedIds.size > 0 ? `${selectedIds.size} selected record${selectedIds.size !== 1 ? "s" : ""}` : "All records"}
+                      </AppText>
                     </View>
                   </Pressable>
                   <Pressable
@@ -608,30 +576,9 @@ export default function WorkerSearch() {
                     <Ionicons name="document-outline" size={16} color={COLORS.onSurface} />
                     <View style={{ marginLeft: SPACING.sm }}>
                       <AppText weight="semibold">PDF</AppText>
-                      <AppText size="sm" color={COLORS.muted}>Filtered results, with photos</AppText>
-                    </View>
-                  </Pressable>
-                  <View style={{ height: 1, backgroundColor: COLORS.border, marginVertical: 4 }} />
-                  <Pressable
-                    style={styles.exportOption}
-                    onPress={() => handleExport("csv", "all")}
-                    testID="export-all-csv-btn"
-                  >
-                    <Ionicons name="document-text-outline" size={16} color={COLORS.onSurface} />
-                    <View style={{ marginLeft: SPACING.sm }}>
-                      <AppText weight="semibold">CSV (All)</AppText>
-                      <AppText size="sm" color={COLORS.muted}>Ignores filters, whole directory</AppText>
-                    </View>
-                  </Pressable>
-                  <Pressable
-                    style={styles.exportOption}
-                    onPress={() => handleExport("pdf", "all")}
-                    testID="export-all-pdf-btn"
-                  >
-                    <Ionicons name="document-outline" size={16} color={COLORS.onSurface} />
-                    <View style={{ marginLeft: SPACING.sm }}>
-                      <AppText weight="semibold">PDF (All)</AppText>
-                      <AppText size="sm" color={COLORS.muted}>Ignores filters, whole directory, with photos</AppText>
+                      <AppText size="sm" color={COLORS.muted}>
+                        {selectedIds.size > 0 ? `${selectedIds.size} selected record${selectedIds.size !== 1 ? "s" : ""}, with photos` : "All records, with photos"}
+                      </AppText>
                     </View>
                   </Pressable>
                 </View>
