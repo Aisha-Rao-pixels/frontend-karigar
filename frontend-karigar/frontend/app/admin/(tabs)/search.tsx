@@ -158,7 +158,7 @@ export default function WorkerSearch() {
       if (s.area) p.set("area", s.area);
       if (s.minExp) p.set("min_exp", s.minExp);
       if (s.maxExp) p.set("max_exp", s.maxExp);
-      p.set("page_size", "100");
+      p.set("page_size", String(PAGE_SIZE));
       return p.toString();
     },
     [skill, availability, verification, city, area, minExp, maxExp, search]
