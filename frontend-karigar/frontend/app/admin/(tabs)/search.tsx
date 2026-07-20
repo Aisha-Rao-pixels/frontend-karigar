@@ -351,19 +351,19 @@ export default function WorkerSearch() {
   const tableColumns: ResizableTableColumn<Worker>[] = [
     {
       key: "sno", label: "S.No", width: 70, resizable: false,
-      headerRender: () => (
+      filterCellRender: () => (
         <Pressable
           onPress={() => (allVisibleSelected ? clearSelection() : selectAllVisible())}
           hitSlop={8}
           testID="select-all-header-checkbox"
-          style={{ flexDirection: "row", alignItems: "center", gap: 6 }}
+          style={{ flexDirection: "row", alignItems: "center", gap: 4 }}
         >
           <Ionicons
             name={allVisibleSelected ? "checkbox" : "square-outline"}
             size={18}
-            color={COLORS.onBrandPrimary}
+            color={allVisibleSelected ? COLORS.brandPrimary : COLORS.muted}
           />
-          <AppText weight="bold" size="sm" color={COLORS.onBrandPrimary}>S.No</AppText>
+          <AppText size="sm" color={COLORS.muted}>All</AppText>
         </Pressable>
       ),
       render: (item, index) => (
