@@ -14,7 +14,6 @@ import { COLORS, SPACING, RADIUS, shadow } from "@/src/theme";
 import { ScreenHeader, AppText, Loader } from "@/src/components/ui";
 import { ResizableTable, ResizableTableColumn } from "@/src/components/ResizableTable";
 import { apiFetch, getToken, BASE } from "@/src/api/client";
-import { Platform, Linking } from "react-native";
 
 interface ReferralRow {
   worker_id: string;
