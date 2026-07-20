@@ -1843,7 +1843,7 @@ async def export_workers_csv(
     workers = await db.workers.find(query).sort("created_at", -1).to_list(5000)
     buf = io.StringIO()
     w = csv.writer(buf)
-   w.writerow(["Name", "Mobile", "Skills", "City", "Area",
+    w.writerow(["Name", "Mobile", "Skills", "City", "Area",
                 "Availability", "Verification Status", "Registration Date", "Wage Expectation"])
     for d in workers:
         raw_date = d.get("created_at", "")
@@ -1858,7 +1858,7 @@ async def export_workers_csv(
             d.get("verification_status"), formatted_date,
             d.get("wage_expectation") or "—",
         ])
-    return PlainTextResponse(content=buf.getvalue(), media_type="text/csv",
+     return PlainTextResponse(content=buf.getvalue(), media_type="text/csv",
                              headers={"Content-Disposition": "attachment; filename=workers.csv"})
 
 
