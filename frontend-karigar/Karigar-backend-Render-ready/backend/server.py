@@ -1865,9 +1865,18 @@ async def export_workers_csv(
 ):
     query = _apply_filters(search, skill, availability, verification, city, area, min_exp, max_exp)
     workers = await db.workers.find(query).sort("created_at", -1).to_list(5000)
+
+    # Referral lookup: map referral_code -> "Name (+91 phone)" so each row can
+    # show WHO referred that worker, without a DB query per row.
+    all_workers = await db.workers.find({}, {"referral_code": 1, "full_name": 1, "phone": 1}).to_list(20000)
+    code_to_referrer = {
+        rw["referral_code"]: f"{rw.get('full_name', '')} (+91 {rw.get('phone', '')})"
+        for rw in all_workers if rw.get("referral_code")
+    }
+
     buf = io.StringIO()
     w = csv.writer(buf)
-    w.writerow(["Name", "Mobile", "Skills", "City", "Area", "Availability", "Verification Status", "Registration Date", "Wage Expectation"])
+    w.writerow(["Name", "Mobile", "Skills", "City", "Area", "Availability", "Verification Status", "Registration Date", "Wage Expectation", "Referral Code", "Referred By"])
     for d in workers:
         raw_date = d.get("created_at", "")
         try:
@@ -1875,7 +1884,9 @@ async def export_workers_csv(
             formatted_date = f"{parts[2]}-{parts[1]}-{parts[0]}"
         except Exception:
             formatted_date = raw_date
-        w.writerow([d.get("full_name"), d.get("phone"), ", ".join(d.get("skills", [])), d.get("city"), d.get("area"), d.get("availability_status"), d.get("verification_status"), formatted_date, d.get("wage_expectation") or ""])
+        referred_by_code = d.get("referred_by_code")
+        referred_by = code_to_referrer.get(referred_by_code, "") if referred_by_code else ""
+        w.writerow([d.get("full_name"), d.get("phone"), ", ".join(d.get("skills", [])), d.get("city"), d.get("area"), d.get("availability_status"), d.get("verification_status"), formatted_date, d.get("wage_expectation") or "", d.get("referral_code") or "", referred_by])
     return PlainTextResponse(content=buf.getvalue(), media_type="text/csv", headers={"Content-Disposition": "attachment; filename=workers.csv"})
 
 
