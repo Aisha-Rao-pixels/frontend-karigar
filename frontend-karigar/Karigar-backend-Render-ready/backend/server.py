@@ -930,8 +930,9 @@ async def admin_referrals_overview(user: dict = Depends(require_roles(*ADMIN_ROL
         registered_count = sum(1 for r in referrer_refs if r["status"] in ("pending", "reward_triggered", "paid"))
         total_referred = max(total_clicks, len(referrer_refs))
         not_registered = max(total_referred - registered_count - account_created_count, 0)
-        paid_amount = sum(r["payout_amount_rs"] for r in referrer_refs if r["status"] == "paid")
-        pending_amount = sum(r["payout_amount_rs"] for r in referrer_refs if r["status"] in ("pending", "reward_triggered"))
+        total_earned = sum(r["payout_amount_rs"] for r in referrer_refs if r["status"] in ("reward_triggered", "paid"))
+        paid_amount = min(w.get("manual_paid_rs", 0), total_earned)
+        pending_amount = max(total_earned - paid_amount, 0)
         rows.append({
             "worker_id": w["id"],
             "full_name": w.get("full_name") or "Unknown",
