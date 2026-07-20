@@ -5,7 +5,7 @@
  * so Paid/Pending columns always reflect the latest saved values.
  */
 import React, { useCallback, useMemo, useState } from "react";
-import { View, StyleSheet, ScrollView, Pressable } from "react-native";
+import { View, StyleSheet, ScrollView, Pressable, Platform, Linking } from "react-native";
 import { useRouter } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
