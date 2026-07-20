@@ -48,6 +48,8 @@ export type ResizableTableColumn<T> = {
   /** Set false for narrow index-style columns that shouldn't be draggable. */
   resizable?: boolean;
   render: (item: T, index: number) => React.ReactNode;
+  /** Optional custom header content (e.g. a select-all checkbox). Overrides `label` rendering when set. */
+  headerRender?: () => React.ReactNode;
   /** If true, clicking this column header cycles sort asc → desc → off */
   sortable?: boolean;
   /** Returns the primitive value used for sorting. Required when sortable=true. */
@@ -466,9 +468,11 @@ export function ResizableTable<T>({
                       </Pressable>
                     ) : (
                       <View style={styles.headerCellInner}>
-                        <AppText weight="bold" size="sm" numberOfLines={1} color={COLORS.onBrandPrimary}>
-                          {col.label}
-                        </AppText>
+                        {col.headerRender ? col.headerRender() : (
+                          <AppText weight="bold" size="sm" numberOfLines={1} color={COLORS.onBrandPrimary}>
+                            {col.label}
+                          </AppText>
+                        )}
                       </View>
                     )}
                     {col.resizable !== false && (
