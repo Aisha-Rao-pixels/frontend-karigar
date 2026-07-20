@@ -171,25 +171,27 @@ export default function WorkerSearch() {
   // plain link — a bare hyperlink/window.open/Linking.openURL can't attach
   // an Authorization header the way apiFetch does.
   const handleExport = useCallback(
-    async (kind: "csv" | "pdf") => {
+    async (kind: "csv" | "pdf", scope: "filtered" | "all" = "filtered") => {
       setExportMenuVisible(false);
       setExporting(true);
       try {
         const token = await getToken();
-        const q = buildQuery();
+        // "all" ignores every active filter and exports the whole directory;
+        // "filtered" reuses buildQuery so the export matches exactly what's on screen.
+        const params = new URLSearchParams(scope === "all" ? "" : buildQuery());
         // page_size in buildQuery caps the on-screen list at 100; exports
         // should cover every matching worker, not just the current page.
-        const params = new URLSearchParams(q);
         params.delete("page_size");
         if (token) params.set("token", token);
         const path = kind === "csv" ? "/admin/export" : "/admin/export/full";
         const url = `${BASE}${path}?${params.toString()}`;
+        const filename = `${scope === "all" ? "all_" : ""}${kind === "csv" ? "workers.csv" : "karigar_worker_report.pdf"}`;
 
         if (Platform.OS === "web") {
           // Trigger a real browser download rather than navigating away.
           const a = document.createElement("a");
           a.href = url;
-          a.download = kind === "csv" ? "workers.csv" : "karigar_worker_report.pdf";
+          a.download = filename;
           document.body.appendChild(a);
           a.click();
           document.body.removeChild(a);
