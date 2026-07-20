@@ -1843,23 +1843,16 @@ async def export_workers_csv(
     workers = await db.workers.find(query).sort("created_at", -1).to_list(5000)
     buf = io.StringIO()
     w = csv.writer(buf)
-    w.writerow(["Name", "Mobile", "Skills", "City", "Area",
-                "Availability", "Verification Status", "Registration Date", "Wage Expectation"])
+    w.writerow(["Name", "Mobile", "Skills", "City", "Area", "Availability", "Verification Status", "Registration Date", "Wage Expectation"])
     for d in workers:
         raw_date = d.get("created_at", "")
         try:
-            formatted_date = raw_date[:10].split("-")
-            formatted_date = f"{formatted_date[2]}-{formatted_date[1]}-{formatted_date[0]}"
+            parts = raw_date[:10].split("-")
+            formatted_date = f"{parts[2]}-{parts[1]}-{parts[0]}"
         except Exception:
             formatted_date = raw_date
-        w.writerow([
-            d.get("full_name"), d.get("phone"), ", ".join(d.get("skills", [])),
-            d.get("city"), d.get("area"), d.get("availability_status"),
-            d.get("verification_status"), formatted_date,
-            d.get("wage_expectation") or "—",
-        ])
-     return PlainTextResponse(content=buf.getvalue(), media_type="text/csv",
-                             headers={"Content-Disposition": "attachment; filename=workers.csv"})
+        w.writerow([d.get("full_name"), d.get("phone"), ", ".join(d.get("skills", [])), d.get("city"), d.get("area"), d.get("availability_status"), d.get("verification_status"), formatted_date, d.get("wage_expectation") or ""])
+    return PlainTextResponse(content=buf.getvalue(), media_type="text/csv", headers={"Content-Disposition": "attachment; filename=workers.csv"})
 
 
 # ── PDF Export with embedded images ─────────────────────────────────────────
