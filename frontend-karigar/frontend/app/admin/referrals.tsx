@@ -147,6 +147,12 @@ export default function AdminReferrals() {
       <ScreenHeader
         title="Referral Dashboard"
         onBack={() => (router.canGoBack() ? router.back() : router.replace("/admin/(tabs)/dashboard"))}
+        right={
+          <Pressable onPress={handleExport} style={{ flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 10, paddingVertical: 6, backgroundColor: COLORS.surfaceSecondary, borderRadius: RADIUS.md, borderWidth: 1, borderColor: COLORS.border }}>
+            <Ionicons name="download-outline" size={16} color={COLORS.onSurface} />
+            <AppText size="sm" weight="semibold">Export CSV</AppText>
+          </Pressable>
+        }
       />
 
       {loading ? (
