@@ -36,6 +36,7 @@ export default function AdminReferrals() {
   const [rows, setRows] = useState<ReferralRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const { show } = useToast();
 
   const handleExport = useCallback(async () => {
     try {
