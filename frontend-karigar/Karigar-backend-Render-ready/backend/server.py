@@ -1042,7 +1042,7 @@ async def set_referrer_paid_amount(worker_id: str, payload: SetPaidAmountPayload
 @api_router.get("/admin/referrals/export", response_class=PlainTextResponse)
 async def export_referrals_csv(
     token: Optional[str] = None,
-    user: dict = Depends(require_admin_token_or_header),
+    user: dict = Depends(require_roles(*ADMIN_ROLES)),
 ):
     workers = await db.workers.find({"referral_code": {"$exists": True}}).to_list(10000)
     clicks = await db.referral_clicks.find().to_list(100000)
