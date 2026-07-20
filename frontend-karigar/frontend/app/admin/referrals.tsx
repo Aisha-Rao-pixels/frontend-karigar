@@ -42,20 +42,16 @@ export default function AdminReferrals() {
     try {
       const token = await getToken();
       const url = `${BASE}/admin/referrals/export?token=${token}`;
-      if (Platform.OS === "web") {
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = "referrals.csv";
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-      } else {
-        await Linking.openURL(url);
-      }
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "referrals.csv";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
     } catch (e: any) {
       show(e.message || "Export failed", "error");
     }
-  }, []);
+  }, [show]);
 
  
   const load = useCallback(async () => {
