@@ -54,6 +54,21 @@ export default function AdminReferrals() {
     }
   }, []);
 
+ const handleExport = useCallback(async () => {
+    try {
+      const token = await getToken();
+      const url = `${BASE}/admin/referrals/export?token=${token}`;
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "referrals.csv";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    } catch (e: any) {
+      show(e.message || "Export failed", "error");
+    }
+  }, []);
+
   const load = useCallback(async () => {
     try {
       const data = await apiFetch<{ rows: ReferralRow[] }>("/admin/referrals/overview");
