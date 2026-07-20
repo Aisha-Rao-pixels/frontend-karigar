@@ -76,13 +76,15 @@ export default function RejectedProfileDetail() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      <ScreenHeader title={profile.full_name} onBack={goBack} />
+      <ScreenHeader title={profile.full_name} subtitle="Review Profile" onBack={goBack} />
 
       <View style={styles.reasonBanner}>
-        <AppText size="sm" weight="semibold" color={COLORS.error}>Rejection Reason</AppText>
+        <AppText size="sm" weight="semibold" color={COLORS.error}>
+          {profile.rejection_reason === "Deleted by admin" ? "Deletion Reason" : "Rejection Reason"}
+        </AppText>
         <AppText size="sm" style={{ marginTop: 2 }}>{profile.rejection_reason || "No reason given"}</AppText>
         <AppText size="sm" color={COLORS.muted} style={{ marginTop: 6 }}>
-          Rejected by {profile.rejected_by} on {formatDDMMYYYY(profile.rejected_at)}
+          By {profile.rejected_by} on {formatDDMMYYYY(profile.rejected_at)}
         </AppText>
       </View>
 
