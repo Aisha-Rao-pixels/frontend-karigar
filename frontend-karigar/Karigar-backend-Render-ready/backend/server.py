@@ -1843,7 +1843,7 @@ async def export_workers_csv(
     workers = await db.workers.find(query).sort("created_at", -1).to_list(5000)
     buf = io.StringIO()
     w = csv.writer(buf)
-    w.writerow(["Worker ID", "Name", "Mobile", "Skills", "City", "Area",
+    w.writerow(["Name", "Mobile", "Skills", "City", "Area",
                 "Availability", "Verification Status", "Registration Date", "Wage Expectation"])
     for d in workers:
         w.writerow([
