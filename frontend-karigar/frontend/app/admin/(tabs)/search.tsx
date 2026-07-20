@@ -344,26 +344,43 @@ export default function WorkerSearch() {
     load({ area: "", minExp: "", maxExp: "" });
   };
 
+  // True only when every currently-loaded (filtered) row is checked — drives
+  // the header checkbox's checked/unchecked state.
+  const allVisibleSelected = items.length > 0 && items.every((w) => selectedIds.has(w.id));
+
   const tableColumns: ResizableTableColumn<Worker>[] = [
     {
-      key: "select", label: "", width: 40, resizable: false,
-      render: (item) => (
+      key: "sno", label: "S.No", width: 70, resizable: false,
+      headerRender: () => (
+        <Pressable
+          onPress={() => (allVisibleSelected ? clearSelection() : selectAllVisible())}
+          hitSlop={8}
+          testID="select-all-header-checkbox"
+          style={{ flexDirection: "row", alignItems: "center", gap: 6 }}
+        >
+          <Ionicons
+            name={allVisibleSelected ? "checkbox" : "square-outline"}
+            size={18}
+            color={COLORS.onBrandPrimary}
+          />
+          <AppText weight="bold" size="sm" color={COLORS.onBrandPrimary}>S.No</AppText>
+        </Pressable>
+      ),
+      render: (item, index) => (
         <Pressable
           onPress={(e: any) => { e?.stopPropagation?.(); toggleSelect(item.id); }}
           hitSlop={8}
           testID={`select-worker-row-${item.id}`}
+          style={{ flexDirection: "row", alignItems: "center", gap: 6 }}
         >
           <Ionicons
             name={selectedIds.has(item.id) ? "checkbox" : "square-outline"}
-            size={20}
+            size={18}
             color={selectedIds.has(item.id) ? COLORS.brandPrimary : COLORS.muted}
           />
+          <AppText size="sm" color={COLORS.muted}>{index + 1}</AppText>
         </Pressable>
       ),
-    },
-    {
-      key: "sno", label: "S.No", width: 56, resizable: false,
-      render: (_item, index) => <AppText size="sm" color={COLORS.muted}>{index + 1}</AppText>,
     },
     {
       key: "name", label: "Name", width: 160,
