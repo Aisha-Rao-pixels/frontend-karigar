@@ -1039,6 +1039,53 @@ async def set_referrer_paid_amount(worker_id: str, payload: SetPaidAmountPayload
     }
 
 
+@api_router.get("/admin/referrals/export", response_class=PlainTextResponse)
+async def export_referrals_csv(
+    token: Optional[str] = None,
+    user: dict = Depends(require_admin_token_or_header),
+):
+    workers = await db.workers.find({"referral_code": {"$exists": True}}).to_list(10000)
+    clicks = await db.referral_clicks.find().to_list(100000)
+    click_counts: dict = {}
+    for c in clicks:
+        click_counts[c["referral_code"]] = click_counts.get(c["referral_code"], 0) + 1
+
+    buf = io.StringIO()
+    w = csv.writer(buf)
+    w.writerow(["Name", "Phone", "Referral Code", "Total Referred", "Registered", "Logged In Only", "Not Registered", "Total Earned (₹)", "Paid (₹)", "Pending (₹)"])
+
+    for worker in workers:
+        code = worker.get("referral_code")
+        if not code:
+            continue
+        refs = await db.referrals.find({"referrer_worker_id": worker["id"]}).to_list(10000)
+        total_clicks = click_counts.get(code, 0)
+        registered_count = sum(1 for r in refs if r["status"] in ("pending", "reward_triggered", "paid"))
+        account_created_count = sum(1 for r in refs if r["status"] == "account_created")
+        total_referred = max(total_clicks, len(refs))
+        not_registered = max(total_referred - registered_count - account_created_count, 0)
+        total_earned = sum(r.get("payout_amount_rs", 50) for r in refs if r["status"] in ("reward_triggered", "paid"))
+        paid = min(worker.get("manual_paid_rs", 0), total_earned)
+        pending = max(total_earned - paid, 0)
+        w.writerow([
+            worker.get("full_name", ""),
+            worker.get("phone", ""),
+            code,
+            total_referred,
+            registered_count,
+            account_created_count,
+            not_registered,
+            total_earned,
+            paid,
+            pending,
+        ])
+
+    return PlainTextResponse(
+        content=buf.getvalue(),
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=referrals.csv"},
+    )
+
 @api_router.post("/admin/referrals/reset-all-paid-amounts")
 async def reset_all_paid_amounts(user: dict = Depends(require_roles("manager"))):
     """Reset all manual_paid_rs to 0 for a fresh campaign start."""
