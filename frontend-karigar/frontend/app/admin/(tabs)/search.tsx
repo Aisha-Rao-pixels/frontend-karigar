@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import {
   View, StyleSheet, FlatList, Pressable, TextInput,
-  Modal, Image, ScrollView, Platform, Linking, ActivityIndicator,
+  Modal, Image, ScrollView, Platform, Linking,
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
@@ -18,8 +18,6 @@ import { Worker, availabilityColor, verificationColor } from "@/src/utils/profil
 import { AVAILABILITY_OPTIONS } from "@/src/constants/app";
 import { SKILL_CATEGORIES, ALL_SKILLS } from "@/src/constants/skills";
 import { useToast } from "@/src/components/Toast";
-
-const PAGE_SIZE = 50;
 
 const VERIF_OPTIONS = [
   { value: "all", key: "all" },
@@ -57,9 +55,6 @@ export default function WorkerSearch() {
   const [items, setItems] = useState<Worker[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [hasMore, setHasMore] = useState(false);
   const [viewMode, setViewModeState] = useState<"card" | "table">(params.view === "table" ? "table" : "card");
   const [viewModeLoaded, setViewModeLoaded] = useState(false);
   const [gallerySkill, setGallerySkill] = useState<string | null>(null);
@@ -67,6 +62,11 @@ export default function WorkerSearch() {
   const [galleryLoading, setGalleryLoading] = useState(false);
   const [galleryVisible, setGalleryVisible] = useState(false);
 
+  // Inline Status editing (Approve / Reject) for the table view — kept
+  // separate from ResizableTable's generic editable-column mechanism
+  // because approving/rejecting call dedicated endpoints with side effects
+  // (referral rewards, notifications, moving rejected workers out of the
+  // workers collection) rather than a plain field update.
   const [statusEditKey, setStatusEditKey] = useState<string | null>(null);
   const [statusSavingKey, setStatusSavingKey] = useState<string | null>(null);
 
@@ -106,6 +106,8 @@ export default function WorkerSearch() {
     }
   }, [show]);
 
+  // Saves whichever editable cells changed in a row (Phone / Area / Skills /
+  // City / Experience) via the lightweight quick-edit endpoint.
   const saveQuickEdit = useCallback(async (worker: Worker, changes: Record<string, string>) => {
     const body: any = {};
     if (changes.phone !== undefined) body.phone = changes.phone.trim();
@@ -129,6 +131,8 @@ export default function WorkerSearch() {
     show("Saved", "success");
   }, [patchWorker, show]);
 
+  // Restore last-used view mode (card/table) on mount — unless a drill-down
+  // link explicitly requested a view (?view=table), which takes priority.
   useEffect(() => {
     if (params.view === "table") { setViewModeLoaded(true); return; }
     storage.getItem("admin_search_view_mode", "card").then((v) => {
@@ -154,12 +158,18 @@ export default function WorkerSearch() {
       if (s.area) p.set("area", s.area);
       if (s.minExp) p.set("min_exp", s.minExp);
       if (s.maxExp) p.set("max_exp", s.maxExp);
-     p.set("page_size", "5000");
+      p.set("page_size", "5000");
       return p.toString();
     },
     [skill, availability, verification, city, area, minExp, maxExp, search]
   );
 
+  // Downloads the currently-filtered directory as CSV or a photo-embedded
+  // PDF. Reuses buildQuery so the export always matches exactly what's on
+  // screen. The export endpoints accept the auth token as a `?token=` query
+  // param (in addition to the normal header) specifically so this can be a
+  // plain link — a bare hyperlink/window.open/Linking.openURL can't attach
+  // an Authorization header the way apiFetch does.
   const handleExport = useCallback(
     async (kind: "csv" | "pdf") => {
       setExportMenuVisible(false);
@@ -167,6 +177,8 @@ export default function WorkerSearch() {
       try {
         const token = await getToken();
         const q = buildQuery();
+        // page_size in buildQuery caps the on-screen list at 100; exports
+        // should cover every matching worker, not just the current page.
         const params = new URLSearchParams(q);
         params.delete("page_size");
         if (token) params.set("token", token);
@@ -174,6 +186,7 @@ export default function WorkerSearch() {
         const url = `${BASE}${path}?${params.toString()}`;
 
         if (Platform.OS === "web") {
+          // Trigger a real browser download rather than navigating away.
           const a = document.createElement("a");
           a.href = url;
           a.download = kind === "csv" ? "workers.csv" : "karigar_worker_report.pdf";
@@ -181,6 +194,8 @@ export default function WorkerSearch() {
           a.click();
           document.body.removeChild(a);
         } else {
+          // No in-app file/share pipeline yet on native — hand off to the
+          // system browser, which will download or preview it there.
           await Linking.openURL(url);
         }
       } catch (e: any) {
@@ -192,17 +207,14 @@ export default function WorkerSearch() {
     [buildQuery]
   );
 
-  // ── Initial load — always starts from page 1 ──────────────────────────
   const load = useCallback(
     async (overrides?: any) => {
       setLoading(true);
-      setCurrentPage(1);
       try {
         const q = buildQuery(overrides);
-        const res = await apiFetch<{ items: Worker[]; total: number }>(`/admin/workers?${q}&page=1`);
+        const res = await apiFetch<{ items: Worker[]; total: number }>(`/admin/workers?${q}`);
         setItems(res.items);
         setTotal(res.total);
-        setHasMore(res.items.length === PAGE_SIZE && res.total > PAGE_SIZE);
       } catch (e: any) {
         show(e.message || t("genericError"), "error");
       } finally {
@@ -212,25 +224,13 @@ export default function WorkerSearch() {
     [buildQuery]
   );
 
-  // ── Load More — appends next page to existing list ────────────────────
-  const loadMore = useCallback(async () => {
-    if (loadingMore || !hasMore) return;
-    const nextPage = currentPage + 1;
-    setLoadingMore(true);
-    try {
-      const q = buildQuery();
-      const res = await apiFetch<{ items: Worker[]; total: number }>(`/admin/workers?${q}&page=${nextPage}`);
-      setItems((prev) => [...prev, ...res.items]);
-      setCurrentPage(nextPage);
-      setTotal(res.total);
-      setHasMore(res.items.length === PAGE_SIZE && (items.length + res.items.length) < res.total);
-    } catch (e: any) {
-      show(e.message || t("genericError"), "error");
-    } finally {
-      setLoadingMore(false);
-    }
-  }, [loadingMore, hasMore, currentPage, buildQuery, items.length]);
-
+  // Re-sync local filter state whenever the incoming route params change —
+  // not just on first mount. Expo Router keeps this tab screen mounted
+  // across navigations, so without this, a second drill-down click from the
+  // Dashboard (e.g. a different Experience Mix bar, or "Not Available"
+  // after already having opened the directory once) would land on the same
+  // screen instance but be silently ignored, because the filter state was
+  // only ever initialized once via useState's initial value.
   const paramsKey = [
     params.availability ?? "",
     params.verification ?? "",
@@ -264,6 +264,9 @@ export default function WorkerSearch() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [paramsKey]);
 
+  // Refresh the current results whenever this tab regains focus (e.g. after
+  // verifying a worker and coming back), using whatever filters are
+  // currently active — does not reset them.
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
   const openGallery = useCallback(async (selectedSkill: string) => {
@@ -402,6 +405,8 @@ export default function WorkerSearch() {
     {
       key: "exp", label: "Experience", width: 100,
       sortable: true, sortValue: (w) => w.years_experience ?? 0,
+      // Exact match, not "contains" — typing "1" should only match workers
+      // with exactly 1 year of experience, not 11, 12, 13, 21, etc.
       filterable: true, filterMatch: (w, f) => String(w.years_experience ?? 0) === f.trim(),
       editable: true, getEditValue: (w) => String(w.years_experience || 0), editKeyboardType: "numeric",
       render: (item) => <AppText size="sm">{item.years_experience || 0} yrs</AppText>,
@@ -474,6 +479,7 @@ export default function WorkerSearch() {
             )}
           <AppText weight="bold" size="2xl">Worker Directory</AppText>
         </View>
+        {/* View Toggle with tooltips */}
         <View style={styles.viewToggle}>
             <Tooltip text="Card View">
               <Pressable
@@ -570,7 +576,7 @@ export default function WorkerSearch() {
         </View>
       </View>
 
-      {/* Skill chips */}
+      {/* Skill chips with tooltips */}
       <View style={styles.chipRowWrap}>
         <FlatList
           horizontal
@@ -602,7 +608,7 @@ export default function WorkerSearch() {
         </Pressable>
       )}
 
-      {/* Drill-down filter banner */}
+      {/* Drill-down filter banner (from dashboard Location / Experience Mix clicks) */}
       {drillDownLabel && (
         <View style={styles.drillDownBanner} testID="drilldown-banner">
           <Ionicons name="filter" size={16} color={COLORS.brandPrimary} />
@@ -615,13 +621,8 @@ export default function WorkerSearch() {
         </View>
       )}
 
-      {/* Results count */}
       <View style={styles.resultsBar}>
-        <AppText size="sm" color={COLORS.muted}>
-          {items.length < total
-            ? `Showing ${items.length} of ${total} workers`
-            : t("resultsCount", { count: total })}
-        </AppText>
+        <AppText size="sm" color={COLORS.muted}>{t("resultsCount", { count: total })}</AppText>
       </View>
 
       <View style={{ flex: 1 }}>
@@ -631,23 +632,6 @@ export default function WorkerSearch() {
             keyExtractor={(w) => w.id}
             contentContainerStyle={{ padding: SPACING.lg, paddingTop: SPACING.sm, gap: SPACING.sm, paddingBottom: SPACING["2xl"] }}
             ListEmptyComponent={<EmptyState image="https://images.unsplash.com/photo-1521401415461-83e7162b8e64?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2Nzd8MHwxfHNlYXJjaHwxfHxpbmRpYW4lMjBhcnRpc2FuJTIwZW1icm9pZGVyeSUyMHRhaWxvcmluZyUyMHdvcmtlcnxlbnwwfHx8fDE3ODEyNTk4MTd8MA&ixlib=rb-4.1.0&q=85" title={t("noWorkers")} />}
-            ListFooterComponent={
-              hasMore ? (
-                <Pressable
-                  onPress={loadMore}
-                  style={styles.loadMoreBtn}
-                  testID="load-more-btn"
-                >
-                  {loadingMore ? (
-                    <ActivityIndicator color={COLORS.brandPrimary} />
-                  ) : (
-                    <AppText weight="semibold" color={COLORS.brandPrimary}>
-                      Load More ({items.length} of {total})
-                    </AppText>
-                  )}
-                </Pressable>
-              ) : null
-            }
             renderItem={({ item }) => (
               <Tooltip text={`View ${item.full_name}'s full profile`}>
                 <Pressable onPress={() => router.push(`/admin/worker/${item.id}?from=search`)} style={[styles.workerCard, shadow]} testID={`worker-card-${item.id}`}>
@@ -668,34 +652,16 @@ export default function WorkerSearch() {
             )}
           />
         ) : (
-          <>
-            <ResizableTable
-              columns={tableColumns}
-              data={items}
-              keyExtractor={(w) => w.id}
-              testIDPrefix="table"
-              storageKey="admin_search_table"
-              emptyText={t("noWorkers")}
-              onSaveRow={saveQuickEdit}
-            />
-            {/* Load More for table view */}
-            {hasMore && (
-              <Pressable
-                onPress={loadMore}
-                style={styles.loadMoreBtn}
-                testID="load-more-table-btn"
-              >
-                {loadingMore ? (
-                  <ActivityIndicator color={COLORS.brandPrimary} />
-                ) : (
-                  <AppText weight="semibold" color={COLORS.brandPrimary}>
-                    Load More ({items.length} of {total})
-                  </AppText>
-                )}
-              </Pressable>
-            )}
-          </>
-        )}
+          <ResizableTable
+            columns={tableColumns}
+            data={items}
+            keyExtractor={(w) => w.id}
+            testIDPrefix="table"
+            storageKey="admin_search_table"
+            emptyText={t("noWorkers")}
+            onSaveRow={saveQuickEdit}
+          />
+      )}
       </View>
 
       <Modal
@@ -713,6 +679,7 @@ export default function WorkerSearch() {
           </View>
 
           <ScrollView contentContainerStyle={{ padding: SPACING.lg, paddingBottom: SPACING["2xl"] }}>
+            {/* Skills — category → sub-skill, same picker as the registration form */}
             <AppText weight="semibold" style={{ marginBottom: SPACING.sm }}>{t("filterSkill")}</AppText>
             <View style={{ gap: SPACING.sm, marginBottom: SPACING.lg }}>
               <Chip label={t("all")} selected={skill === "all"} onPress={() => { setSkill("all"); setExpandedCat(null); }} testID="skillcat-all" />
@@ -821,6 +788,12 @@ export default function WorkerSearch() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.surface },
+  // zIndex here matters: this header wraps the Filter/Search/View-toggle
+  // tooltips, which are absolutely-positioned children that need to render
+  // above the skill chip row below them. A child's zIndex only lifts it
+  // above unrelated *later* siblings if its own positioned ancestor also
+  // out-ranks those siblings — so the header itself needs a zIndex higher
+  // than chipRowWrap's, not just the tooltip box.
   header: { paddingHorizontal: SPACING.lg, paddingTop: SPACING.md, zIndex: 20, position: "relative" },
   titleRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: SPACING.md, zIndex: 10 },
   viewToggle: { flexDirection: "row", gap: 4, backgroundColor: COLORS.surfaceSecondary, borderRadius: RADIUS.md, padding: 4 },
@@ -862,16 +835,6 @@ const styles = StyleSheet.create({
   resultsBar: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: SPACING.lg, paddingVertical: SPACING.sm },
   workerCard: { flexDirection: "row", alignItems: "center", gap: SPACING.md, backgroundColor: COLORS.surfaceSecondary, borderRadius: RADIUS.lg, padding: SPACING.md },
   miniDot: { width: 10, height: 10, borderRadius: 5 },
-  loadMoreBtn: {
-    marginHorizontal: SPACING.lg,
-    marginVertical: SPACING.md,
-    paddingVertical: 12,
-    borderRadius: RADIUS.md,
-    backgroundColor: COLORS.surfaceSecondary,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    alignItems: "center",
-  },
   wrap: { flexDirection: "row", flexWrap: "wrap", gap: SPACING.sm },
   sheetInput: { height: 48, borderWidth: 1, borderColor: COLORS.border, borderRadius: RADIUS.md, paddingHorizontal: SPACING.md, fontSize: FONT.base, color: COLORS.onSurface, backgroundColor: COLORS.surface },
   galleryContainer: { flex: 1, backgroundColor: COLORS.surface },
