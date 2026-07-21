@@ -21,6 +21,7 @@ export default function ReferralScreen() {
   const router = useRouter();
   const { t } = useTranslation();
   const { show } = useToast();
+  const { user, loading: authLoading } = useAuth();
   const insets = useSafeAreaInsets();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -35,7 +36,12 @@ export default function ReferralScreen() {
     }
   }, []);
 
-  useFocusEffect(useCallback(() => { load(); }, [load]));
+  useFocusEffect(
+    useCallback(() => {
+      if (authLoading || !user) return;
+      load();
+    }, [load, authLoading, user])
+  );
 
   const onShare = async () => {
     if (!data) return;
