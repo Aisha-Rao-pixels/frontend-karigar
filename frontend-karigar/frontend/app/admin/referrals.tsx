@@ -121,7 +121,11 @@ export default function AdminReferrals() {
     },
     {
       key: "registered", label: "Registered", width: 100,
-      render: (r) => <AppText size="sm" color={COLORS.success} weight="semibold">{r.registered_count}</AppText>,
+      render: (r) => (
+        <Pressable onPress={() => router.push(`/admin/referral-detail/${r.worker_id}`)}>
+          <AppText size="sm" color={COLORS.success} weight="semibold">{r.registered_count}</AppText>
+        </Pressable>
+      ),
     },
     {
       key: "loggedIn", label: "Logged In Only", width: 130,
