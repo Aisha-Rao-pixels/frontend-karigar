@@ -9,6 +9,7 @@ import { COLORS, SPACING, RADIUS, shadow } from "@/src/theme";
 import { AppText, Avatar, EmptyState, Loader } from "@/src/components/ui";
 import { Ionicons } from "@expo/vector-icons";
 import { apiFetch } from "@/src/api/client";
+import { useAuth } from "@/src/context/AuthContext";
 import { useToast } from "@/src/components/Toast";
 import { Worker, timeAgo } from "@/src/utils/profile";
 
@@ -16,6 +17,7 @@ export default function VerificationCenter() {
   const router = useRouter();
   const { t } = useTranslation();
   const { show } = useToast();
+  const { user, loading: authLoading } = useAuth();
   const insets = useSafeAreaInsets();
   const [items, setItems] = useState<Worker[]>([]);
   const [loading, setLoading] = useState(true);
