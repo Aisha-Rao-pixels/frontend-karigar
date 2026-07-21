@@ -8,12 +8,14 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { COLORS, SPACING, RADIUS } from "@/src/theme";
 import { AppText, Card, ScreenHeader, EmptyState, Loader } from "@/src/components/ui";
 import { apiFetch } from "@/src/api/client";
+import { useAuth } from "@/src/context/AuthContext";
 import { timeAgo } from "@/src/utils/profile";
 import i18n from "@/src/i18n";
 
 export default function NotificationsScreen() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
+  const { user, loading: authLoading } = useAuth();
   const [notifs, setNotifs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -29,10 +31,10 @@ export default function NotificationsScreen() {
 
   useFocusEffect(
     useCallback(() => {
+      if (authLoading || !user) return;
       load();
-    }, [load])
+    }, [load, authLoading, user])
   );
-
   const markAll = async () => {
     await apiFetch("/notifications/read-all", { method: "POST" });
     setNotifs((ns) => ns.map((n) => ({ ...n, is_read: true })));
