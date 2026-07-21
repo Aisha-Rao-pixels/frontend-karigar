@@ -114,7 +114,10 @@ export default function LoginScreen() {
       style={styles.container}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
-      <View style={[styles.inner, { paddingTop: insets.top + SPACING["3xl"] }]}>
+      <ScrollView
+        contentContainerStyle={[styles.inner, { paddingTop: insets.top + SPACING["3xl"], paddingBottom: SPACING["3xl"] }]}
+        keyboardShouldPersistTaps="handled"
+      >
         <View style={styles.logoBadge}>
           <Ionicons name="cut" size={32} color={COLORS.onBrandPrimary} />
         </View>
