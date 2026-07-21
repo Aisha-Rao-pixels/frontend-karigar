@@ -29,6 +29,7 @@ function formatDate(iso?: string) {
 export default function ManageAdmins() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { user, loading: authLoading } = useAuth();
   const [admins, setAdmins] = useState<Admin[]>([]);
   const [loading, setLoading] = useState(true);
   const [slowLoad, setSlowLoad] = useState(false);
