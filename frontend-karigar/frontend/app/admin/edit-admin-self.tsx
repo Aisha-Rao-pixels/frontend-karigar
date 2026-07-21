@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { COLORS, SPACING, RADIUS, FONT, shadow } from "@/src/theme";
 import { AppText } from "@/src/components/ui";
 import { apiFetch } from "@/src/api/client";
+import { useAuth } from "@/src/context/AuthContext";
 import { useToast } from "@/src/components/Toast";
 
 interface Admin {
