@@ -25,6 +25,9 @@ interface DetailResponse {
   referrer_phone: string;
   referral_code: string;
   people: ReferredPerson[];
+  registered_count: number;
+  account_created_count: number;
+  not_registered_count: number;
   total_earned_rs: number;
   paid_rs: number;
   pending_rs: number;
