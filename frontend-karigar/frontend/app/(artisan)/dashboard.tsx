@@ -15,6 +15,7 @@ import { apiFetch } from "@/src/api/client";
 import { Worker, profileCompletion, availabilityColor, verificationColor, timeAgo, formatDate } from "@/src/utils/profile";
 import { AVAILABILITY_OPTIONS } from "@/src/constants/app";
 import { useToast } from "@/src/components/Toast";
+import { useAuth } from "@/src/context/AuthContext";
 import i18n from "@/src/i18n";
 
 const REFERRAL_BG =
