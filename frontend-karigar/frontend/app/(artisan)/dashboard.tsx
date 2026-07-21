@@ -77,8 +77,9 @@ export default function ArtisanDashboard() {
 
   useFocusEffect(
     useCallback(() => {
+      if (authLoading || !user) return;
       load();
-    }, [load])
+    }, [load, authLoading, user])
   );
 
   const commitAvailability = async (status: string, availableFrom: string | null) => {
