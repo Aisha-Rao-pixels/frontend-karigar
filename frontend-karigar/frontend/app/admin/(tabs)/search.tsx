@@ -18,6 +18,7 @@ import { Worker, availabilityColor, verificationColor } from "@/src/utils/profil
 import { AVAILABILITY_OPTIONS } from "@/src/constants/app";
 import { SKILL_CATEGORIES, ALL_SKILLS } from "@/src/constants/skills";
 import { useToast } from "@/src/components/Toast";
+import { useAuth } from "@/src/context/AuthContext";
 
 const VERIF_OPTIONS = [
   { value: "all", key: "all" },
