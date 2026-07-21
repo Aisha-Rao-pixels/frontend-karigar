@@ -54,7 +54,12 @@ export default function ManageAdmins() {
     }
   }, []);
 
-  useFocusEffect(useCallback(() => { load(); }, [load]));
+  useFocusEffect(
+    useCallback(() => {
+      if (authLoading || !user) return;
+      load();
+    }, [load, authLoading, user])
+  );
 
   // The logged-in admin's own row tells us their admin_role.
  const me = admins.find((a) => a.is_you);
