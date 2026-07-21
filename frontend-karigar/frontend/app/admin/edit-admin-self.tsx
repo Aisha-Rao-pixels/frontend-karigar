@@ -23,6 +23,7 @@ export default function EditAdminSelf() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { show } = useToast();
+  const { user, loading: authLoading } = useAuth();
 
   const [phone, setPhone] = useState("");
   const [name, setName] = useState("");
