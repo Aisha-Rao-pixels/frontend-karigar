@@ -35,8 +35,13 @@ export default function VerificationCenter() {
     }
   }, []);
 
-  useFocusEffect(useCallback(() => { load(); }, [load]));
-
+  useFocusEffect(
+    useCallback(() => {
+      if (authLoading || !user) return;
+      load();
+    }, [load, authLoading, user])
+  );
+  
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.header}>
