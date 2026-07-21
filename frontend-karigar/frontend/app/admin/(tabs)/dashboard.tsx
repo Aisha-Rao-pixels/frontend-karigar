@@ -50,7 +50,7 @@ export default function AdminDashboard() {
   const router = useRouter();
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
-  const { logout } = useAuth();
+  const { logout, user, loading: authLoading } = useAuth();
   const [a, setA] = useState<Analytics | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
