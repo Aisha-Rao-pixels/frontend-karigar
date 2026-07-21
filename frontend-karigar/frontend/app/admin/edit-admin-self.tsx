@@ -57,7 +57,7 @@ export default function EditAdminSelf() {
         }
       })();
       return () => { active = false; };
-    }, [])
+    }, [ authLoading, user ])
   );
 
   const hasChanges = name.trim() !== initialName || adminRole.trim() !== initialRole;
