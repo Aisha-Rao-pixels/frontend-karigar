@@ -1555,7 +1555,7 @@ async def admin_search_workers(
         raise HTTPException(status_code=400, detail="date_to must be YYYY-MM-DD")
     # Keep availability_status accurate the moment an admin looks at it,
     # rather than waiting for the 30-min background loop.
-    await _refresh_availability_statuses()
+    # await _refresh_availability_statuses()
     query = _apply_filters(search, skill, availability, verification, city, area, min_exp, max_exp, registered_date, date_from, date_to)
     total = await db.workers.count_documents(query)
     cursor = db.workers.find(
