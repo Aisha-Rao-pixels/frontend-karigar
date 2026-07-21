@@ -31,6 +31,7 @@ export default function WorkerSearch() {
   const router = useRouter();
   const { t } = useTranslation();
   const { show } = useToast();
+  const { user, loading: authLoading } = useAuth();
   const insets = useSafeAreaInsets();
   const [filtersVisible, setFiltersVisible] = useState(false);
   const [exportMenuVisible, setExportMenuVisible] = useState(false);
