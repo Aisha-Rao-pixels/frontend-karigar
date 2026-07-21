@@ -46,6 +46,7 @@ export default function ArtisanDashboard() {
   const router = useRouter();
   const { t } = useTranslation();
   const { show } = useToast();
+  const { user, loading: authLoading } = useAuth();
   const insets = useSafeAreaInsets();
   const [worker, setWorker] = useState<Worker | null>(null);
   const [notifs, setNotifs] = useState<any[]>([]);
