@@ -1983,6 +1983,7 @@ async def _ensure_indexes():
     await db.workers.create_index("availability_status")
     await db.workers.create_index("verification_status")
     await db.workers.create_index("referral_code", unique=True)
+    await db.workers.create_index("created_at")
     await db["worker_images.files"].create_index("metadata.phone")
 
 
