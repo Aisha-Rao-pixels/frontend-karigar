@@ -1146,6 +1146,7 @@ async def mark_referral_paid(referral_id: str, user: dict = Depends(require_role
         "status": "paid", "paid_by": user["id"], "paid_at": now_iso(),
         "payout_amount_rs": amount,
     }})
+    await db.workers.update_one({"id": referrer["id"]}, {"$inc": {"manual_paid_rs": amount}})
     await _notify_worker(referrer, "referral_reward",
         "Referral Reward Paid ₹" + str(amount), "रेफ़रल इनाम ₹" + str(amount) + " भेजा गया",
         "రెఫరల్ రివార్డ్ ₹" + str(amount) + " చెల్లించబడింది",
