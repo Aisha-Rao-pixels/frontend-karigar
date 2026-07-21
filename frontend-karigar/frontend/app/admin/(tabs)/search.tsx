@@ -288,13 +288,17 @@ export default function WorkerSearch() {
       area: nextArea,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [paramsKey]);
+  }, [paramsKey, authLoading, user]);
 
   // Refresh the current results whenever this tab regains focus (e.g. after
   // verifying a worker and coming back), using whatever filters are
   // currently active — does not reset them.
-  useFocusEffect(useCallback(() => { load(); }, [load]));
-
+  useFocusEffect(
+    useCallback(() => {
+      if (authLoading || !user) return;
+      load();
+    }, [load, authLoading, user])
+  );
   const openGallery = useCallback(async (selectedSkill: string) => {
     if (selectedSkill === "all") return;
     setGallerySkill(selectedSkill);
