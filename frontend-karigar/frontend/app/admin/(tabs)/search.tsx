@@ -266,6 +266,7 @@ export default function WorkerSearch() {
   ].join("|");
 
   useEffect(() => {
+    if (authLoading || !user) return;
     const nextAvailability = params.availability || "all";
     const nextVerification = params.verification || "all";
     const nextMinExp = params.min_exp || "";
