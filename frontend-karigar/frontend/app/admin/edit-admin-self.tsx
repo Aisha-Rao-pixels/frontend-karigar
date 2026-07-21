@@ -37,6 +37,7 @@ export default function EditAdminSelf() {
 
   useFocusEffect(
     useCallback(() => {
+      if (authLoading || !user) return;
       let active = true;
       (async () => {
         try {
