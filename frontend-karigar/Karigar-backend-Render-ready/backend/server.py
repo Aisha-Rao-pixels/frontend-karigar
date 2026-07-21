@@ -1181,6 +1181,7 @@ async def bulk_mark_referrals_paid(payload: BulkMarkPaidPayload, user: dict = De
             "status": "paid", "paid_by": user["id"], "paid_at": now_iso(),
             "payout_amount_rs": amount,
         }})
+        await db.workers.update_one({"id": referrer["id"]}, {"$inc": {"manual_paid_rs": amount}})
         try:
             await _notify_worker(referrer, "referral_reward",
                 "Referral Reward Paid ₹" + str(amount), "रेफ़रल इनाम ₹" + str(amount) + " भेजा गया",
