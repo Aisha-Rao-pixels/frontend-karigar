@@ -1572,7 +1572,7 @@ async def admin_search_workers(
 
 @api_router.get("/admin/workers/{worker_id}")
 async def admin_worker_detail(worker_id: str, user: dict = Depends(require_roles(*ADMIN_ROLES))):
-    await _refresh_availability_statuses()
+    # await _refresh_availability_statuses()
     worker = await db.workers.find_one({"id": worker_id})
     if not worker:
         raise HTTPException(status_code=404, detail="Worker not found")
