@@ -982,11 +982,21 @@ async def admin_referral_detail(worker_id: str, user: dict = Depends(require_rol
     total_earned_rs = sum(r.get("payout_amount_rs", 50) for r in refs_earned)
     paid_rs = min(referrer.get("manual_paid_rs", 0), total_earned_rs)
 
+    code = referrer.get("referral_code")
+    total_clicks = await db.referral_clicks.count_documents({"referral_code": code}) if code else 0
+    account_created_count = sum(1 for r in refs if r.get("status") == "account_created")
+    registered_count = sum(1 for r in refs if r.get("status") in ("pending", "reward_triggered", "paid"))
+    total_referred = max(total_clicks, len(refs))
+    not_registered_count = max(total_referred - registered_count - account_created_count, 0)
+
     return {
         "referrer_name": referrer.get("full_name") or "Unknown",
         "referrer_phone": referrer.get("phone"),
         "referral_code": referrer.get("referral_code"),
         "people": people,
+        "registered_count": registered_count,
+        "account_created_count": account_created_count,
+        "not_registered_count": not_registered_count,
         "total_earned_rs": total_earned_rs,
         "paid_rs": paid_rs,
         "pending_rs": max(total_earned_rs - paid_rs, 0),
