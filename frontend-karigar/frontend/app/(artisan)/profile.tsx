@@ -20,7 +20,7 @@ export default function ArtisanProfile() {
   const router = useRouter();
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
-  const { logout } = useAuth();
+  const { logout, user, loading: authLoading } = useAuth();
   const [worker, setWorker] = useState<Worker | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -34,7 +34,12 @@ export default function ArtisanProfile() {
     }
   }, []);
 
-  useFocusEffect(useCallback(() => { load(); }, [load]));
+  useFocusEffect(
+    useCallback(() => {
+      if (authLoading || !user) return;
+      load();
+    }, [load, authLoading, user])
+  );
 
   const changeLang = async (code: string) => {
     await setLanguage(code);
