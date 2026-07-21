@@ -223,11 +223,10 @@ export default function LoginScreen() {
             {t("staffAdminLogin")}
           </AppText>
         </Pressable>
-      </View>
+      </ScrollView>
     </KeyboardAvoidingView>
   );
 }
-
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.surface },
   inner: { flex: 1, paddingHorizontal: SPACING.xl },
