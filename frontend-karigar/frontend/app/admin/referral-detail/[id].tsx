@@ -126,6 +126,18 @@ export default function AdminReferralDetail() {
             {data.referrer_phone} · {data.referral_code} · {data.people.length} referred
           </AppText>
 
+          {/* ── KPI tiles ─────────────────────────────────────────────── */}
+          <View style={styles.kpiRow}>
+            <View style={styles.kpiBox}>
+              <AppText weight="bold" size="lg" color={COLORS.warning}>{data.account_created_count}</AppText>
+              <AppText size="xs" color={COLORS.muted}>Logged In Only</AppText>
+            </View>
+            <View style={styles.kpiBox}>
+              <AppText weight="bold" size="lg" color={COLORS.error}>{data.not_registered_count}</AppText>
+              <AppText size="xs" color={COLORS.muted}>Not Registered</AppText>
+            </View>
+          </View>
+
           {/* ── Payment card ─────────────────────────────────────────── */}
           <View style={styles.paymentCard}>
 
