@@ -9,6 +9,7 @@ import { COLORS, SPACING, RADIUS, FONT, shadow } from "@/src/theme";
 import { AppText, Loader } from "@/src/components/ui";
 import { ResizableTable, ResizableTableColumn } from "@/src/components/ResizableTable";
 import { apiFetch } from "@/src/api/client";
+import { useAuth } from "@/src/context/AuthContext";
 
 interface Admin {
   id: string;
