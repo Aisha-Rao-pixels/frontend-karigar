@@ -261,6 +261,14 @@ function Cell({ width, children }: { width: number; children: React.ReactNode })
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.surface },
 
+  kpiRow: { flexDirection: "row", gap: SPACING.sm, marginBottom: SPACING.lg },
+  kpiBox: {
+    flex: 1,
+    backgroundColor: COLORS.surfaceSecondary,
+    borderRadius: RADIUS.md,
+    padding: SPACING.md,
+  },
+
   paymentCard: {
     backgroundColor: COLORS.surfaceSecondary,
     borderRadius: RADIUS.md,
