@@ -83,7 +83,12 @@ export default function AdminDashboard() {
     }
   }, [trendPeriod]);
 
-  useFocusEffect(useCallback(() => { load(); }, [load]));
+  useFocusEffect(
+    useCallback(() => {
+      if (authLoading || !user) return;
+      load();
+    }, [load, authLoading, user])
+  );
 
   const changeTrendPeriod = (period: TrendPeriod) => {
     if (period === trendPeriod) return;
