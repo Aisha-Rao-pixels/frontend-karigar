@@ -958,6 +958,26 @@ async def admin_referral_detail(worker_id: str, user: dict = Depends(require_rol
 
     refs = await db.referrals.find({"referrer_worker_id": worker_id}).sort("created_at", -1).to_list(10000)
 
+    # ── Single source of truth: "Amount Paid So Far" (manual_paid_rs) ──
+    # Instead of trusting each referral's own status flag (which can drift
+    # out of sync if it's changed from elsewhere), we recompute which
+    # referrals are "covered" by that one number — oldest first — so the
+    # per-row Paid/Pending display always matches the total exactly.
+    refs_earned_asc = sorted(
+        [r for r in refs if r.get("status") in ("reward_triggered", "paid")],
+        key=lambda r: r.get("created_at") or "",
+    )
+    total_earned_rs = sum(r.get("payout_amount_rs", 50) for r in refs_earned_asc)
+    paid_rs = min(referrer.get("manual_paid_rs", 0), total_earned_rs)
+
+    remaining = paid_rs
+    covered_ids = set()
+    for r in refs_earned_asc:
+        amt = r.get("payout_amount_rs", 50)
+        if remaining >= amt:
+            covered_ids.add(r["id"])
+            remaining -= amt
+
     people = []
     for r in refs:
         name = None
@@ -967,20 +987,21 @@ async def admin_referral_detail(worker_id: str, user: dict = Depends(require_rol
             if w:
                 name = w.get("full_name")
                 verification_status = w.get("verification_status")
+
+        is_covered = r["id"] in covered_ids
+        display_status = "paid" if is_covered else ("reward_triggered" if r.get("status") == "paid" else r.get("status"))
+        display_paid_rs = r.get("payout_amount_rs", 0) if is_covered else 0
+
         people.append({
             "worker_id": r.get("referred_worker_id"),
             "name": name or "Not registered yet",
             "phone": r.get("referred_phone") or "—",
-            "status": r.get("status"),
+            "status": display_status,
             "verification_status": verification_status,
             "verified": verification_status == "approved",
-            "payout_amount_rs": r.get("payout_amount_rs", 0),
+            "payout_amount_rs": display_paid_rs,
             "created_at": r.get("created_at"),
         })
-
-    refs_earned = [r for r in refs if r.get("status") in ("reward_triggered", "paid")]
-    total_earned_rs = sum(r.get("payout_amount_rs", 50) for r in refs_earned)
-    paid_rs = min(referrer.get("manual_paid_rs", 0), total_earned_rs)
 
     code = referrer.get("referral_code")
     total_clicks = await db.referral_clicks.count_documents({"referral_code": code}) if code else 0
@@ -988,7 +1009,6 @@ async def admin_referral_detail(worker_id: str, user: dict = Depends(require_rol
     registered_count = sum(1 for r in refs if r.get("status") in ("pending", "reward_triggered", "paid"))
     total_referred = max(total_clicks, len(refs))
     not_registered_count = max(total_referred - registered_count - account_created_count, 0)
-
     return {
         "referrer_name": referrer.get("full_name") or "Unknown",
         "referrer_phone": referrer.get("phone"),
