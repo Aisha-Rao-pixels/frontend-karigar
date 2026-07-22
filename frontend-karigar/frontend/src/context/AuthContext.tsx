@@ -7,6 +7,7 @@ export interface AuthUser {
   id: string;
   phone: string;
   role: Role;
+  name?: string;
   has_profile: boolean;
 }
 
