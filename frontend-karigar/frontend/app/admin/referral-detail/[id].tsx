@@ -43,6 +43,7 @@ const STATUS_LABELS: Record<string, { label: string; color: string }> = {
 
 const COLS = [
   { key: "sino",     label: "S.No",     width: 50 },
+  { key: "emp_id",   label: "EMP_ID",   width: 80 },
   { key: "name",     label: "Name",     width: 160 },
   { key: "phone",    label: "Phone",    width: 120 },
   { key: "status",   label: "Status",   width: 130 },
