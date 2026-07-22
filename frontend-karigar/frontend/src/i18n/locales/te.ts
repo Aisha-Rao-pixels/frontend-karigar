@@ -171,6 +171,7 @@ export default {
 
   myProfile: "నా ప్రొఫైల్",
   rejectionReason: "కారణం",
+  empId: "ఉద్యోగి ఐడి",
   duplicateFlagsTitle: "నకిలీ కావచ్చు — దయచేసి నిర్ధారించండి",
 
   adminDashboard: "అడ్మిన్ డాష్‌బోర్డ్",
