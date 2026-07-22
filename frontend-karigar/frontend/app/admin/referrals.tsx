@@ -96,6 +96,9 @@ export default function AdminReferrals() {
       render: (_r, i) => <AppText size="sm">{i + 1}</AppText>,
     },
     {
+      key: "emp_id", label: "EMP_ID", width: 80, resizable: false,
+      render: (r: any) => <AppText size="sm">{r.emp_id}</AppText>,
+    }, {
       key: "name", label: "Name", width: 160,
       render: (r) => (
         <Pressable onPress={() => router.push(`/admin/worker/${r.worker_id}?from=referral`)}>
