@@ -62,6 +62,11 @@ export default function ArtisanProfile() {
           </AppText>
           {worker.worker_id && (
             <AppText size="sm" weight="semibold" color={COLORS.primary} style={{ marginTop: 4 }}>
+              {t("empId")}: {worker.worker_id}
+            </AppText>
+          )}
+          {worker.worker_id && (
+            <AppText size="sm" weight="semibold" color={COLORS.primary} style={{ marginTop: 4 }}>
               {t("empId") || "Employee ID"}: {worker.worker_id}
             </AppText>
           )}
