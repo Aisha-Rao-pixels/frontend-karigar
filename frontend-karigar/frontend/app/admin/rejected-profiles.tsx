@@ -80,6 +80,9 @@ export default function RejectedProfiles() {
       render: (_item, index) => <AppText size="sm" color={COLORS.muted}>{index + 1}</AppText>,
     },
     {
+      key: "emp_id", label: "EMP_ID", width: 80, resizable: false,
+      render: (item: any) => <AppText size="sm" numberOfLines={1}>{item.worker_id}</AppText>,
+    }, {
       key: "name", label: "Name", width: 170,
       sortable: true, sortValue: (p) => p.full_name?.toLowerCase() ?? "",
       filterable: true, filterMatch: (p, f) => p.full_name?.toLowerCase().includes(f.toLowerCase()) ?? false,
