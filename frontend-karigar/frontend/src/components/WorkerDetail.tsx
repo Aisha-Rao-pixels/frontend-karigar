@@ -22,6 +22,11 @@ export default function WorkerDetail({ worker, contentBottom = 40 }: { worker: W
         <Avatar name={worker.full_name} size={64} />
         <View style={{ flex: 1 }}>
           <AppText weight="bold" size="xl" numberOfLines={1}>{worker.full_name}</AppText>
+          {worker.worker_id && (
+            <AppText size="sm" weight="semibold" color={COLORS.brandPrimary}>
+              EMP_ID: {worker.worker_id}
+            </AppText>
+          )}
           <AppText size="sm" color={COLORS.muted}>+91 {worker.phone}</AppText>
         </View>
       </View>
