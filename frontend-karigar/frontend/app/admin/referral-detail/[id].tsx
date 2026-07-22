@@ -210,10 +210,11 @@ export default function AdminReferralDetail() {
                 const row = (
                   <View style={[styles.dataRow, { backgroundColor: i % 2 === 0 ? COLORS.surface : COLORS.surfaceSecondary }]}>
                     <Cell width={COLS[0].width}><AppText size="sm">{i + 1}</AppText></Cell>
-                    <Cell width={COLS[1].width}><AppText size="sm" weight="semibold">{p.name}</AppText></Cell>
-                    <Cell width={COLS[2].width}><AppText size="sm" color={COLORS.muted}>{p.phone}</AppText></Cell>
-                    <Cell width={COLS[3].width}><AppText size="sm" weight="semibold" color={statusInfo.color}>{statusInfo.label}</AppText></Cell>
-                    <Cell width={COLS[4].width}>
+                    <Cell width={COLS[1].width}><AppText size="sm">{p.emp_id || "—"}</AppText></Cell>
+                    <Cell width={COLS[2].width}><AppText size="sm" weight="semibold">{p.name}</AppText></Cell>
+                    <Cell width={COLS[3].width}><AppText size="sm" color={COLORS.muted}>{p.phone}</AppText></Cell>
+                    <Cell width={COLS[4].width}><AppText size="sm" weight="semibold" color={statusInfo.color}>{statusInfo.label}</AppText></Cell>
+                    <Cell width={COLS[5].width}>
                       {canReview ? (
                         <AppText size="sm" weight="semibold" color={p.verified ? COLORS.success : COLORS.warning}>
                           {p.verified ? "Verified" : "Not Verified"}
@@ -222,8 +223,8 @@ export default function AdminReferralDetail() {
                         <AppText size="sm" color={COLORS.muted}>—</AppText>
                       )}
                     </Cell>
-                    <Cell width={COLS[5].width}><AppText size="sm" color={COLORS.success}>₹{p.payout_amount_rs}</AppText></Cell>
-                    <Cell width={COLS[6].width}>
+                    <Cell width={COLS[6].width}><AppText size="sm" color={COLORS.success}>₹{p.payout_amount_rs}</AppText></Cell>
+                    <Cell width={COLS[7].width}>
                       <AppText size="sm" color={COLORS.muted}>
                         {new Date(p.created_at).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
                       </AppText>
