@@ -480,6 +480,7 @@ async def auth_me(user: dict = Depends(get_current_user)):
         "id": user["id"],
         "phone": user["phone"],
         "role": user["role"],
+        "name": user.get("name", ""),
         "has_profile": worker is not None,
     }
 
