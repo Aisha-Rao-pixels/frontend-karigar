@@ -13,6 +13,7 @@ import { useToast } from "@/src/components/Toast";
 
 const COLS = [
   { key: "sino",   label: "S.No",   width: 50 },
+  { key: "emp_id", label: "EMP_ID", width: 80 },
   { key: "name",   label: "Name",   width: 160 },
   { key: "phone",  label: "Phone",  width: 130 },
   { key: "skill",  label: "Skill",  width: 220 },
