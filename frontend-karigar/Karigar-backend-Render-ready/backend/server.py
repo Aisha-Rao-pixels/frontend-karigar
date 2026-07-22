@@ -1441,9 +1441,9 @@ async def admin_analytics(user: dict = Depends(require_roles(*ADMIN_ROLES)), per
     avail_from = sum(1 for w in workers if w.get("availability_status") == "available_from")
     avail_no = sum(1 for w in workers if w.get("availability_status") == "not_available")
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-    week_ago = (datetime.now(timezone.utc) - timedelta(days=7)).strftime("%Y-%m-%d")
+    this_monday = (datetime.now(timezone.utc).date() - timedelta(days=datetime.now(timezone.utc).weekday())).strftime("%Y-%m-%d")
     new_today = sum(1 for w in workers if (w.get("created_at") or "")[:10] >= today)
-    new_week = sum(1 for w in workers if (w.get("created_at") or "")[:10] >= week_ago)
+    new_week = sum(1 for w in workers if (w.get("created_at") or "")[:10] >= this_monday)
     loc: dict = {}
     for w in workers:
         area = (w.get("area") or "Unknown").strip() or "Unknown"
