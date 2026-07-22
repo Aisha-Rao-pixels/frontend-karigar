@@ -560,6 +560,7 @@ async def _build_worker_doc(payload: WorkerProfilePayload, phone: str, user_id: 
 
     return {
         "id": new_id(),
+        "worker_id": await next_worker_id(),
         "phone": phone,
         "user_id": user_id,
         "full_name": payload.full_name.strip(),
