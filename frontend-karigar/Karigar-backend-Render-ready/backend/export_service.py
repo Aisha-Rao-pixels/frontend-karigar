@@ -190,7 +190,7 @@ def build_workers_pdf(workers: List[dict]) -> bytes:
     for sno, w in enumerate(workers, start=1):
         # ── Worker heading ────────────────────────────────────────────────────
         story.append(Paragraph(
-            f"<b>{sno}.</b> &nbsp; {w.get('full_name', '—')}",
+            f"<b>{sno}.</b> &nbsp; {w.get('full_name', '—')} &nbsp; <font size=9 color='#666'>(EMP_ID: {w.get('worker_id', '—')})</font>",
             worker_name_style,
         ))
 
