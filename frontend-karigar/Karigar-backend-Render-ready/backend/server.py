@@ -108,6 +108,13 @@ ARTISAN_ROLES = {"karigar"}
 ADMIN_ROLES = {"admin"}
 VERIFY_ROLES = {"admin"}
 
+# Only these two accounts can permanently, irreversibly delete a
+# rejected/deleted profile (record + photos, no restore possible).
+PERMANENT_DELETE_PHONES = {
+    "9959602258",  # Ravichandra
+    "9491106575",  # Shashank
+}
+
 
 class RegisterPayload(BaseModel):
     phone: str
