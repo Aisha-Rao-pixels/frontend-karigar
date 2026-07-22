@@ -928,17 +928,17 @@ async def admin_referrals_overview(user: dict = Depends(require_roles(*ADMIN_ROL
         click_counts[c["referral_code"]] = click_counts.get(c["referral_code"], 0) + 1
 
     reg_by_referrer: dict = {}
-    for r in refs:
-        reg_by_referrer.setdefault(r["referrer_worker_id"], []).append(r)
-
-    rows = []
-    for w in workers:
-        code = w.get("referral_code")
-        if not code:
-            continue
-        total_clicks = click_counts.get(code, 0)
-        referrer_refs = reg_by_referrer.get(w["id"], [])
-        account_created_count = sum(1 for r in referrer_refs if r["status"] == "account_created")
+    w.writerow(["EMP_ID", "Name", "Mobile", "Skills", "City", "Area", "Availability", "Verification Status", "Registration Date", "Wage Expectation", "Referral Code", "Referred By"])
+    for d in workers:
+        raw_date = d.get("created_at", "")
+        try:
+            parts = raw_date[:10].split("-")
+            formatted_date = f"{parts[2]}-{parts[1]}-{parts[0]}"
+        except Exception:
+            formatted_date = raw_date
+        referred_by_code = d.get("referred_by_code")
+        referred_by = code_to_referrer.get(referred_by_code, "") if referred_by_code else ""
+        w.writerow([d.get("worker_id") or "", d.get("full_name"), d.get("phone"), ", ".join(d.get("skills", [])), d.get("city"), d.get("area"), d.get("availability_status"), d.get("verification_status"), formatted_date, d.get("wage_expectation") or "", d.get("referral_code") or "", referred_by])
         registered_count = sum(1 for r in referrer_refs if r["status"] in ("pending", "reward_triggered", "paid"))
         total_referred = max(total_clicks, len(referrer_refs))
         not_registered = max(total_referred - registered_count - account_created_count, 0)
