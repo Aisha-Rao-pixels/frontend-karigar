@@ -74,9 +74,12 @@ export default function AdminAvailability() {
 
   const columns: ResizableTableColumn<Worker>[] = [
     {
+      key: "sno", label: "S.No", width: 56, resizable: false,
+      key: "worker_id", label: "ID", width: 70, resizable: false,
+      render: (item) => <AppText size="sm" numberOfLines={1}>{item.worker_id}</AppText>,
+    }, {
       key: "name", label: "Name", width: 170,
       render: (item) => <AppText size="sm" weight="semibold" numberOfLines={1}>{item.full_name}</AppText>,
-      render: (_item, index) => <AppText size="sm" color={COLORS.muted}>{index + 1}</AppText>,
     },
     {
       key: "name", label: "Name", width: 170,
