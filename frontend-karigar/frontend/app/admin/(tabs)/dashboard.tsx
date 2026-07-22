@@ -118,7 +118,7 @@ export default function AdminDashboard() {
                 {t("workforceIntelligence").toUpperCase()}
               </AppText>
               <AppText weight="bold" size="2xl" color="#fff" style={{ marginTop: 2 }}>
-                {t("adminDashboard")}
+                {user?.name ? `Welcome, ${user.name}` : t("adminDashboard")}
               </AppText>
               <AppText size="sm" color="rgba(255,255,255,0.55)" style={{ textTransform: "capitalize", marginTop: 2 }}>
                 {t("administrator")}
