@@ -9,6 +9,7 @@ import WorkerDetail from "@/src/components/WorkerDetail";
 import { apiFetch } from "@/src/api/client";
 import { Worker } from "@/src/utils/profile";
 import { useToast } from "@/src/components/Toast";
+import { useAuth } from "@/src/context/AuthContext";
 
 function formatDDMMYYYY(dateStr: string) {
   const d = new Date(dateStr);
