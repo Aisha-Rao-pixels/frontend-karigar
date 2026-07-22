@@ -205,16 +205,18 @@ export default function AdminRegistrationsByDate() {
                     <View key={w.id} style={[styles.dataRow, { backgroundColor: rowBg }]} testID={`registration-row-${w.id}`}>
                       <Cell width={COLS[0].width}><AppText size="sm">{i + 1}</AppText></Cell>
 
+                      <Cell width={COLS[1].width}><AppText size="sm">{(w as any).worker_id}</AppText></Cell>
+
                       <Pressable
                         onPress={() => router.push(`/admin/worker/${w.id}?from=search`)}
-                        style={{ width: COLS[1].width, paddingVertical: SPACING.sm, paddingHorizontal: SPACING.sm, borderRightWidth: 1, borderRightColor: COLORS.divider }}
+                        style={{ width: COLS[2].width, paddingVertical: SPACING.sm, paddingHorizontal: SPACING.sm, borderRightWidth: 1, borderRightColor: COLORS.divider }}
                         testID={`registration-name-${w.id}`}
                       >
                         <AppText size="sm" weight="semibold" numberOfLines={1} color={COLORS.brandPrimary}>{w.full_name}</AppText>
                       </Pressable>
 
                       <EditableCell
-                        width={COLS[2].width}
+                        width={COLS[3].width}
                         editing={editingKey === `${w.id}:phone`}
                         saving={savingKey === `${w.id}:phone`}
                         draft={draft}
@@ -227,7 +229,7 @@ export default function AdminRegistrationsByDate() {
                       />
 
                       <EditableCell
-                        width={COLS[3].width}
+                        width={COLS[4].width}
                         editing={editingKey === `${w.id}:skill`}
                         saving={savingKey === `${w.id}:skill`}
                         draft={draft}
@@ -239,7 +241,7 @@ export default function AdminRegistrationsByDate() {
                       />
 
                       <EditableCell
-                        width={COLS[4].width}
+                        width={COLS[5].width}
                         editing={editingKey === `${w.id}:city`}
                         saving={savingKey === `${w.id}:city`}
                         draft={draft}
@@ -252,7 +254,7 @@ export default function AdminRegistrationsByDate() {
 
                       <Pressable
                         onPress={() => setEditingKey(editingKey === `${w.id}:status` ? null : `${w.id}:status`)}
-                        style={{ width: COLS[5].width, paddingVertical: SPACING.sm, paddingHorizontal: SPACING.sm, borderRightWidth: 1, borderRightColor: COLORS.divider }}
+                        style={{ width: COLS[6].width, paddingVertical: SPACING.sm, paddingHorizontal: SPACING.sm, borderRightWidth: 1, borderRightColor: COLORS.divider }}
                       >
                         {editingKey === `${w.id}:status` ? (
                           savingKey === `${w.id}:status` ? (
@@ -277,7 +279,7 @@ export default function AdminRegistrationsByDate() {
                       </Pressable>
 
                       <EditableCell
-                        width={COLS[6].width}
+                        width={COLS[7].width}
                         editing={editingKey === `${w.id}:exp`}
                         saving={savingKey === `${w.id}:exp`}
                         draft={draft}
@@ -289,7 +291,7 @@ export default function AdminRegistrationsByDate() {
                         display={<AppText size="sm">{w.years_experience || 0} yrs</AppText>}
                       />
 
-                      <Cell width={COLS[7].width}>
+                      <Cell width={COLS[8].width}>
                         <AppText size="sm" color={COLORS.muted}>
                           {new Date(w.created_at).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}
                         </AppText>
