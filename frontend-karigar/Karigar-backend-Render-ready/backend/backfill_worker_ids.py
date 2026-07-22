@@ -1,9 +1,10 @@
 """
-Run this ONCE, BEFORE deploying the new server.py, to give every
-existing worker a 5-digit worker_id, oldest registration = 00001.
+Run this ONCE to give EMP_IDs to profiles that were already rejected/deleted
+(archived in the `rejected_profiles` collection) BEFORE the main backfill ran.
+Continues the same counter used for the `workers` collection, so IDs never clash.
 
 Usage:
-    python backfill_worker_ids.py
+    python backfill_rejected_ids.py
 """
 import asyncio
 import os
@@ -19,26 +20,24 @@ async def main():
     client = AsyncIOMotorClient(os.environ['MONGO_URL'])
     db = client[os.environ['DB_NAME']]
 
-    workers = await db.workers.find(
+    profiles = await db.rejected_profiles.find(
         {"worker_id": {"$exists": False}}
     ).sort("created_at", 1).to_list(length=None)
 
-    seq = 0
     counter = await db.counters.find_one({"_id": "worker_id"})
-    if counter:
-        seq = counter["seq"]
+    seq = counter["seq"] if counter else 0
 
-    for w in workers:
+    for p in profiles:
         seq += 1
-        await db.workers.update_one(
-            {"_id": w["_id"]},
+        await db.rejected_profiles.update_one(
+            {"_id": p["_id"]},
             {"$set": {"worker_id": str(seq).zfill(5)}},
         )
 
     await db.counters.update_one(
         {"_id": "worker_id"}, {"$set": {"seq": seq}}, upsert=True
     )
-    print(f"Assigned IDs to {len(workers)} workers. Counter now at {seq}.")
+    print(f"Assigned IDs to {len(profiles)} rejected/deleted profiles. Counter now at {seq}.")
 
 
 if __name__ == "__main__":
