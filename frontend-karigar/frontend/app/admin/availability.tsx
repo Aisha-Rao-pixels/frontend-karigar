@@ -77,14 +77,11 @@ export default function AdminAvailability() {
       key: "sno", label: "S.No", width: 56, resizable: false,
       key: "worker_id", label: "ID", width: 70, resizable: false,
       render: (item) => <AppText size="sm" numberOfLines={1}>{item.worker_id}</AppText>,
+    }, key: "emp_id", label: "EMP_ID", width: 80, resizable: false,
+      render: (item) => <AppText size="sm" numberOfLines={1}>{item.worker_id}</AppText>,
     }, {
       key: "name", label: "Name", width: 170,
       render: (item) => <AppText size="sm" weight="semibold" numberOfLines={1}>{item.full_name}</AppText>,
-    },
-    {
-      key: "name", label: "Name", width: 170,
-      render: (item) => <AppText size="sm" weight="semibold" numberOfLines={1}>{item.full_name}</AppText>,
-    },
     {
       key: "phone", label: "Phone", width: 130,
       render: (item) => <AppText size="sm" numberOfLines={1} color={COLORS.muted}>{item.phone || "—"}</AppText>,
