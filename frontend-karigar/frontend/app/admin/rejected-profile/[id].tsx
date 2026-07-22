@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { View, StyleSheet } from "react-native";
+import { View, StyleSheet, Alert } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -56,17 +56,30 @@ export default function RejectedProfileDetail() {
     }
   };
 
-  const purgePermanently = async () => {
-    setBusy(true);
-    try {
-      await apiFetch(`/admin/rejected-profiles/${id}/purge`, { method: "DELETE" });
-      show("Profile permanently deleted", "success");
-      goBack();
-    } catch (e: any) {
-      show(e.message || "Something went wrong", "error");
-    } finally {
-      setBusy(false);
-    }
+  const purgePermanently = () => {
+    Alert.alert(
+      "Delete Permanently?",
+      `This will permanently delete ${profile?.full_name}'s profile and all photos. This cannot be undone — not even you will be able to restore it.`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete Permanently",
+          style: "destructive",
+          onPress: async () => {
+            setBusy(true);
+            try {
+              await apiFetch(`/admin/rejected-profiles/${id}/purge`, { method: "DELETE" });
+              show("Profile permanently deleted", "success");
+              goBack();
+            } catch (e: any) {
+              show(e.message || "Something went wrong", "error");
+            } finally {
+              setBusy(false);
+            }
+          },
+        },
+      ]
+    );
   };
 
   if (notFound) {
@@ -105,7 +118,7 @@ export default function RejectedProfileDetail() {
 
       <WorkerDetail worker={profile} contentBottom={100} />
 
-     <View style={[styles.footer, { paddingBottom: insets.bottom + SPACING.md }]}>
+      <View style={[styles.footer, { paddingBottom: insets.bottom + SPACING.md }]}>
         <Button
           title="Move Back to Pending Verification"
           onPress={restore}
