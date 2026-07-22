@@ -56,6 +56,19 @@ export default function RejectedProfileDetail() {
     }
   };
 
+  const purgePermanently = async () => {
+    setBusy(true);
+    try {
+      await apiFetch(`/admin/rejected-profiles/${id}/purge`, { method: "DELETE" });
+      show("Profile permanently deleted", "success");
+      goBack();
+    } catch (e: any) {
+      show(e.message || "Something went wrong", "error");
+    } finally {
+      setBusy(false);
+    }
+  };
+
   if (notFound) {
     return (
       <View style={[styles.container, { paddingTop: insets.top }]}>
