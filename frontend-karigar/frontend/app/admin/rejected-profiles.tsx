@@ -81,6 +81,7 @@ export default function RejectedProfiles() {
     },
     {
       key: "emp_id", label: "EMP_ID", width: 80, resizable: false,
+      sortable: true, sortValue: (p) => p.worker_id ?? "",
       render: (item: any) => <AppText size="sm" numberOfLines={1}>{item.worker_id}</AppText>,
     }, {
       key: "name", label: "Name", width: 170,
