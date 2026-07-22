@@ -277,6 +277,7 @@ def _auth_response(user: dict, has_profile: bool) -> dict:
             "id": user["id"],
             "phone": user["phone"],
             "role": user["role"],
+            "name": user.get("name", ""),
             "has_profile": has_profile,
         },
     }
