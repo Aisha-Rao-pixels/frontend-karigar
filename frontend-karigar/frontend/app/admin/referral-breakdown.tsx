@@ -51,6 +51,7 @@ interface Row {
   name: string;
   phone: string;
   worker_id: string | null;
+  emp_id?: string | null;
   status: string;
   payout_amount_rs: number;
   created_at: string;
@@ -68,6 +69,7 @@ const STATUS_LABELS: Record<string, { label: string; color: string }> = {
 const DEFAULT_COLS = [
   { key: "check",    label: "",           width: 44  }, // checkbox col (pending only)
   { key: "sino",     label: "S.No",       width: 50  },
+  { key: "emp_id",   label: "EMP_ID",     width: 80  },
   { key: "referrer", label: "Referrer",   width: 160 },
   { key: "name",     label: "Name",       width: 160 },
   { key: "phone",    label: "Phone",      width: 120 },
@@ -508,23 +510,25 @@ export default function ReferralBreakdown() {
 
                     <Cell width={visibleWidths[isPending ? 1 : 0]}><AppText size="sm">{i + 1}</AppText></Cell>
 
-                    <Cell width={visibleWidths[isPending ? 2 : 1]}>
+                    <Cell width={visibleWidths[isPending ? 2 : 1]}><AppText size="sm">{r.emp_id || "—"}</AppText></Cell>
+
+                    <Cell width={visibleWidths[isPending ? 3 : 2]}>
                       <AppText size="sm" weight="semibold">{r.referrer_name}</AppText>
                       <AppText size="sm" color={COLORS.muted}>{r.referrer_phone}</AppText>
                     </Cell>
 
-                    <Cell width={visibleWidths[isPending ? 3 : 2]}><AppText size="sm">{r.name}</AppText></Cell>
-                    <Cell width={visibleWidths[isPending ? 4 : 3]}><AppText size="sm" color={COLORS.muted}>{r.phone}</AppText></Cell>
+                    <Cell width={visibleWidths[isPending ? 4 : 3]}><AppText size="sm">{r.name}</AppText></Cell>
+                    <Cell width={visibleWidths[isPending ? 5 : 4]}><AppText size="sm" color={COLORS.muted}>{r.phone}</AppText></Cell>
 
-                    <Cell width={visibleWidths[isPending ? 5 : 4]}>
+                    <Cell width={visibleWidths[isPending ? 6 : 5]}>
                       <AppText size="sm" weight="semibold" color={statusInfo.color}>{statusInfo.label}</AppText>
                     </Cell>
 
-                    <Cell width={visibleWidths[isPending ? 6 : 5]}>
+                    <Cell width={visibleWidths[isPending ? 7 : 6]}>
                       <AppText size="sm" color={COLORS.success}>₹{r.payout_amount_rs}</AppText>
                     </Cell>
 
-                    <Cell width={visibleWidths[isPending ? 7 : 6]}>
+                    <Cell width={visibleWidths[isPending ? 8 : 7]}>
                       <AppText size="sm" color={COLORS.muted}>
                         {new Date(r.created_at).toLocaleDateString("en-IN", {
                           day: "2-digit", month: "short", year: "numeric",
@@ -533,7 +537,7 @@ export default function ReferralBreakdown() {
                     </Cell>
 
                     {isPending && (
-                      <View style={{ width: visibleWidths[8], paddingVertical: SPACING.sm, paddingHorizontal: SPACING.sm, justifyContent: "center" }}>
+                      <View style={{ width: visibleWidths[9], paddingVertical: SPACING.sm, paddingHorizontal: SPACING.sm, justifyContent: "center" }}>
                         {!r.referrer_has_payout_number ? (
                           <AppText size="sm" color={COLORS.muted}>No payout number</AppText>
                         ) : payingId === r.referral_id ? (
