@@ -285,6 +285,7 @@ def _auth_response(user: dict, has_profile: bool) -> dict:
             "phone": user["phone"],
             "role": user["role"],
             "name": user.get("name", ""),
+            "can_delete_permanently": user["phone"] in PERMANENT_DELETE_PHONES,
             "has_profile": has_profile,
         },
     }
