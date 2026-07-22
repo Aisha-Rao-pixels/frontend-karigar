@@ -97,10 +97,15 @@ export default function ProfileFormScreen() {
         show(t("profileUpdated"), "success");
         router.back();
       } else {
-        await apiFetch("/workers", { method: "POST", body: toPayload(v) });
+        const created: any = await apiFetch("/workers", { method: "POST", body: toPayload(v) });
         setHasProfile(true);
         await refresh();
         show(t("profileSubmitted"), "success");
+        const title = created.gender === "female" ? "Mrs." : "Mr.";
+        Alert.alert(
+          "Registration Successful",
+          `${title} ${created.full_name}, this is your ID: ${created.worker_id}`
+        );
         router.replace("/(artisan)/dashboard");
       }
     } catch (e: any) {
