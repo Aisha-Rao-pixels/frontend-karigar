@@ -171,6 +171,7 @@ export default {
 
   myProfile: "मेरा प्रोफ़ाइल",
   rejectionReason: "कारण",
+  empId: "कर्मचारी आईडी",
   duplicateFlagsTitle: "डुप्लीकेट हो सकता है — कृपया जांचें",
 
   adminDashboard: "एडमिन डैशबोर्ड",
