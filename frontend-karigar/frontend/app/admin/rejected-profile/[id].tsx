@@ -28,6 +28,7 @@ interface RejectedWorker extends Worker {
 export default function RejectedProfileDetail() {
   const router = useRouter();
   const { show } = useToast();
+  const { user } = useAuth();
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [profile, setProfile] = useState<RejectedWorker | null>(null);
