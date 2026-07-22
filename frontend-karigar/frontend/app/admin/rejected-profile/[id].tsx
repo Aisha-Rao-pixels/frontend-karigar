@@ -105,7 +105,7 @@ export default function RejectedProfileDetail() {
 
       <WorkerDetail worker={profile} contentBottom={100} />
 
-      <View style={[styles.footer, { paddingBottom: insets.bottom + SPACING.md }]}>
+     <View style={[styles.footer, { paddingBottom: insets.bottom + SPACING.md }]}>
         <Button
           title="Move Back to Pending Verification"
           onPress={restore}
@@ -113,6 +113,17 @@ export default function RejectedProfileDetail() {
           icon="arrow-undo"
           testID="restore-profile-btn"
         />
+        {user?.can_delete_permanently && (
+          <Button
+            title="Delete Permanently"
+            onPress={purgePermanently}
+            loading={busy}
+            icon="trash"
+            variant="danger"
+            style={{ marginTop: SPACING.sm }}
+            testID="purge-profile-btn"
+          />
+        )}
       </View>
     </View>
   );
