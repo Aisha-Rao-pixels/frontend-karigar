@@ -137,10 +137,22 @@ import { apiFetch } from "@/src/api/client";
 import { storage } from "@/src/utils/storage";
 
 let draftSaveTimer: ReturnType<typeof setTimeout> | null = null;
-function scheduleDraftSave(data: unknown) {
+let draftSaveWarned = false;
+function scheduleDraftSave(data: any, onFail?: () => void) {
   if (draftSaveTimer) clearTimeout(draftSaveTimer);
-  draftSaveTimer = setTimeout(() => {
-    storage.setItem("form_draft", JSON.stringify(data));
+  draftSaveTimer = setTimeout(async () => {
+    const ok = await storage.setItem("form_draft", JSON.stringify(data));
+    if (!ok) {
+      // Full draft (with photos) didn't fit — retry with text fields only,
+      // so typed answers survive even if photos can't be auto-saved here.
+      const { portfolio_images, aadhar_images, employment_proof_images, ...textOnly } = data;
+      const retryOk = await storage.setItem("form_draft", JSON.stringify(textOnly));
+      if (!draftSaveWarned) {
+        draftSaveWarned = true;
+        onFail?.();
+      }
+      void retryOk;
+    }
   }, 600);
 }
 
