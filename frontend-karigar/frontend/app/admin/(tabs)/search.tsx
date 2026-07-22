@@ -391,6 +391,7 @@ export default function WorkerSearch() {
     },
     {
       key: "emp_id", label: "EMP_ID", width: 80, resizable: false,
+      sortable: true, sortValue: (w) => w.worker_id ?? "",
       render: (item) => <AppText size="sm" numberOfLines={1}>{item.worker_id}</AppText>,
     },
     {
