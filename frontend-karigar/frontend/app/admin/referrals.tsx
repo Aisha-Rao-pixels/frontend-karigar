@@ -19,6 +19,7 @@ import { apiFetch, getToken, BASE } from "@/src/api/client";
 
 interface ReferralRow {
   worker_id: string;
+  emp_id?: string;
   full_name: string;
   phone: string;
   referral_code: string;
@@ -97,8 +98,9 @@ export default function AdminReferrals() {
     },
     {
       key: "emp_id", label: "EMP_ID", width: 80, resizable: false,
-      render: (r: any) => <AppText size="sm">{r.emp_id}</AppText>,
-    }, {
+      render: (r) => <AppText size="sm">{r.emp_id}</AppText>,
+    },
+    {
       key: "name", label: "Name", width: 160,
       render: (r) => (
         <Pressable onPress={() => router.push(`/admin/worker/${r.worker_id}?from=referral`)}>
