@@ -90,6 +90,16 @@ def new_id() -> str:
     return str(uuid.uuid4())
 
 
+async def next_worker_id() -> str:
+    doc = await db.counters.find_one_and_update(
+        {"_id": "worker_id"},
+        {"$inc": {"seq": 1}},
+        upsert=True,
+        return_document=ReturnDocument.AFTER,
+    )
+    return str(doc["seq"]).zfill(5)
+
+
 def gen_referral_code() -> str:
     return "KAR-" + "".join(random.choices(string.ascii_uppercase + string.digits, k=5))
 
