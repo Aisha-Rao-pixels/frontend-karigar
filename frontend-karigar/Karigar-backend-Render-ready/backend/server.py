@@ -947,6 +947,7 @@ async def admin_referrals_overview(user: dict = Depends(require_roles(*ADMIN_ROL
         pending_amount = max(total_earned - paid_amount, 0)
         rows.append({
             "worker_id": w["id"],
+            "emp_id": w.get("worker_id") or "—",
             "full_name": w.get("full_name") or "Unknown",
             "phone": w.get("phone"),
             "referral_code": code,
