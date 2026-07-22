@@ -22,8 +22,13 @@ export default function RegisterWorker() {
   const onSubmit = async (v: WorkerFormValues) => {
     setBusy(true);
     try {
-      await apiFetch("/admin/workers", { method: "POST", body: { ...toPayload(v), mobile: v.mobile } });
+      const created: any = await apiFetch("/admin/workers", { method: "POST", body: { ...toPayload(v), mobile: v.mobile } });
       show(t("workerRegistered"), "success");
+      const title = created.gender === "female" ? "Mrs." : "Mr.";
+      Alert.alert(
+        "Registration Successful",
+        `${title} ${created.full_name}, this is your ID: ${created.worker_id}`
+      );
       goBack();
     } catch (e: any) {
       show(e.message || t("genericError"), "error");
