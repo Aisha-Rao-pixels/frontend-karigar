@@ -98,8 +98,8 @@ const PortfolioImages = React.memo(function PortfolioImages({
 });
 
 // Shrinks an image to roughly targetKB by resizing + compressing.
-async function shrinkImage(uri: string, targetKB = 60, fallbackBase64?: string | null): Promise<string> {
-  let width = 900;
+async function shrinkImage(uri: string, targetKB = 40, fallbackBase64?: string | null): Promise<string> {
+  let width = 700;
   let quality = 0.5;
 
   try {
