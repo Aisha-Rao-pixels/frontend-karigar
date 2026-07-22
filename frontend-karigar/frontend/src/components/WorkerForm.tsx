@@ -344,16 +344,19 @@ export default function WorkerForm({
   const [proofOpen, setProofOpen] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  const warnDraftFail = () =>
+    show("Photos couldn't be auto-saved on this browser — please finish in one sitting, or your typed answers only will be kept.", "info");
+
   const set = (k: keyof WorkerFormValues, val: any) => setV((p) => {
     const updated = { ...p, [k]: val };
-    scheduleDraftSave(updated);
+    scheduleDraftSave(updated, warnDraftFail);
     return updated;
   });
   const toggle = (k: "languages" | "skills", item: string) =>
     setV((p) => {
       const arr = p[k];
       const updated = { ...p, [k]: arr.includes(item) ? arr.filter((x) => x !== item) : [...arr, item] };
-      scheduleDraftSave(updated);
+      scheduleDraftSave(updated, warnDraftFail);
       return updated;
     });
 
