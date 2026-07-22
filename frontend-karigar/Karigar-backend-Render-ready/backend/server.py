@@ -489,6 +489,7 @@ async def auth_me(user: dict = Depends(get_current_user)):
         "phone": user["phone"],
         "role": user["role"],
         "name": user.get("name", ""),
+        "can_delete_permanently": user["phone"] in PERMANENT_DELETE_PHONES,
         "has_profile": worker is not None,
     }
 
