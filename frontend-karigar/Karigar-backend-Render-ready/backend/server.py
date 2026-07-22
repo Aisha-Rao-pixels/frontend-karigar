@@ -1377,6 +1377,33 @@ async def restore_rejected_profile(profile_id: str, user: dict = Depends(require
     return {"success": True, "worker_id": restored["id"]}
 
 
+@api_router.delete("/admin/rejected-profiles/{profile_id}/purge")
+async def purge_rejected_profile(profile_id: str, user: dict = Depends(require_roles(*ADMIN_ROLES))):
+    if user.get("phone") not in PERMANENT_DELETE_PHONES:
+        raise HTTPException(status_code=403, detail="You are not authorized to permanently delete profiles.")
+    doc = await db.rejected_profiles.find_one({"id": profile_id})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Rejected profile not found")
+
+    for field in gridfs_images.IMAGE_FIELDS:
+        for entry in doc.get(field) or []:
+            if isinstance(entry, str) and entry.startswith(gridfs_images.GRIDFS_PREFIX):
+                try:
+                    await image_bucket.delete(gridfs_images._ref_to_id(entry))
+                except Exception:
+                    pass
+    for snap in doc.get("history", []):
+        for field in gridfs_images.IMAGE_FIELDS:
+            for entry in snap.get(field) or []:
+                if isinstance(entry, str) and entry.startswith(gridfs_images.GRIDFS_PREFIX):
+                    try:
+                        await image_bucket.delete(gridfs_images._ref_to_id(entry))
+                    except Exception:
+                        pass
+
+    await db.rejected_profiles.delete_one({"id": profile_id})
+    return {"success": True}
+
 def _build_registration_trend(workers: list, period: str) -> list:
     """Builds registration_trend buckets for the requested granularity.
     Every bucket carries date_from/date_to (inclusive, YYYY-MM-DD) so the
