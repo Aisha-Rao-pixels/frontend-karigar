@@ -195,6 +195,7 @@ export default {
   // profile view
   myProfile: "My Profile",
   rejectionReason: "Reason",
+  empId: "Employee ID",
   duplicateFlagsTitle: "Possible duplicate — please verify",
 
   // admin dashboard
