@@ -39,16 +39,25 @@ export async function apiFetch<T = any>(path: string, opts: Options = {}): Promi
   let res: Response | null = null;
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
+      const controller = new AbortController();
+      // Profile submissions include base64 photos and can be slow on weak
+      // mobile data — give it 60s before giving up, instead of hanging forever.
+      const timeoutId = setTimeout(() => controller.abort(), 60000);
       res = await fetch(`${BASE}${path}`, {
         method,
         headers,
         body: body ? JSON.stringify(body) : undefined,
+        signal: controller.signal,
       });
+      clearTimeout(timeoutId);
       break;
     } catch (e) {
       if (attempt === 0) {
         await new Promise((r) => setTimeout(r, 3000));
         continue;
+      }
+      if ((e as any)?.name === "AbortError") {
+        throw new ApiError("Upload timed out — please check your internet connection and try again.", 0);
       }
       throw e;
     }
