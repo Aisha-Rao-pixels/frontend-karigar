@@ -11,6 +11,7 @@ import { useToast } from "@/src/components/Toast";
 
 interface ReferredPerson {
   worker_id: string | null;
+  emp_id?: string | null;
   name: string;
   phone: string;
   status: string;
