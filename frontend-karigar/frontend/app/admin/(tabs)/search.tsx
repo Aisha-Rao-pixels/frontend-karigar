@@ -390,6 +390,10 @@ export default function WorkerSearch() {
       ),
     },
     {
+      key: "emp_id", label: "EMP_ID", width: 80, resizable: false,
+      render: (item) => <AppText size="sm" numberOfLines={1}>{item.worker_id}</AppText>,
+    },
+    {
       key: "name", label: "Name", width: 160,
       sortable: true, sortValue: (w) => w.full_name?.toLowerCase() ?? "",
       filterable: true, filterMatch: (w, f) => w.full_name?.toLowerCase().includes(f.toLowerCase()) ?? false,
