@@ -377,17 +377,16 @@ export function ResizableTable<T>({
 
   // Cycle sort: none → asc → desc → none
   const handleSortPress = useCallback((key: string) => {
-    setSortKey((prev) => {
-      if (prev !== key) { setSortDir("asc"); return key; }
-      setSortDir((d) => {
-        if (d === "asc") return "desc";
-        // was desc → clear sort
-        setSortKey(null);
-        return null;
-      });
-      return key;
-    });
-  }, []);
+    if (sortKey !== key) {
+      setSortKey(key);
+      setSortDir("asc");
+    } else if (sortDir === "asc") {
+      setSortDir("desc");
+    } else {
+      setSortKey(null);
+      setSortDir(null);
+    }
+  }, [sortKey, sortDir]);
 
   // Apply column filters then sort
   const processedData = useMemo(() => {
