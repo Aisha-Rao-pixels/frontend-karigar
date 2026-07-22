@@ -1322,25 +1322,6 @@ async def admin_metrics(user: dict = Depends(require_roles(*ADMIN_ROLES))):
     }
 
 
-@api_router.get("/admin/one-time-backfill-rejected-ids")
-async def one_time_backfill_rejected_ids(secret: str):
-    if secret != "karigar-backfill-2026":
-        raise HTTPException(status_code=403, detail="Invalid secret")
-    profiles = await db.rejected_profiles.find(
-        {"worker_id": {"$exists": False}}
-    ).sort("created_at", 1).to_list(length=None)
-    counter = await db.counters.find_one({"_id": "worker_id"})
-    seq = counter["seq"] if counter else 0
-    for p in profiles:
-        seq += 1
-        await db.rejected_profiles.update_one(
-            {"_id": p["_id"]},
-            {"$set": {"worker_id": str(seq).zfill(5)}},
-        )
-    await db.counters.update_one({"_id": "worker_id"}, {"$set": {"seq": seq}}, upsert=True)
-    return {"assigned": len(profiles), "counter_now_at": seq}
-
-
 @api_router.get("/admin/rejected-profiles")
 async def list_rejected_profiles(user: dict = Depends(require_roles(*ADMIN_ROLES))):
     docs = await db.rejected_profiles.find().sort("rejected_at", -1).to_list(2000)
