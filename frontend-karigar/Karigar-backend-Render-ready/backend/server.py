@@ -789,6 +789,12 @@ async def create_my_profile(payload: WorkerProfilePayload, user: dict = Depends(
     existing = await db.workers.find_one({"phone": user["phone"]})
     if existing:
         raise HTTPException(status_code=400, detail="Profile already exists")
+    rejected_existing = await db.rejected_profiles.find_one({"phone": user["phone"]})
+    if rejected_existing:
+        raise HTTPException(
+            status_code=400,
+            detail="This mobile number was previously rejected/removed. Contact admin to re-activate your profile instead of registering again.",
+        )
     duplicate_flags = await _run_duplicate_checks(payload, user["phone"])
     doc = await _build_worker_doc(payload, user["phone"], user["id"], duplicate_flags)
     await db.workers.insert_one(dict(doc))
