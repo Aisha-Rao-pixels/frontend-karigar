@@ -8,6 +8,7 @@ export interface AuthUser {
   phone: string;
   role: Role;
   name?: string;
+  can_delete_permanently?: boolean;
   has_profile: boolean;
 }
 
