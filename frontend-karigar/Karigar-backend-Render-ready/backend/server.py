@@ -995,11 +995,13 @@ async def admin_referral_detail(worker_id: str, user: dict = Depends(require_rol
     for r in refs:
         name = None
         verification_status = None
+        emp_id = None
         if r.get("referred_worker_id"):
             w = await db.workers.find_one({"id": r["referred_worker_id"]})
             if w:
                 name = w.get("full_name")
                 verification_status = w.get("verification_status")
+                emp_id = w.get("worker_id")
 
         is_covered = r["id"] in covered_ids
         display_status = "paid" if is_covered else ("reward_triggered" if r.get("status") == "paid" else r.get("status"))
