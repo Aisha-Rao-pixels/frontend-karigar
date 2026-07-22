@@ -1999,7 +1999,11 @@ async def export_workers_pdf(
 
     # Hydrate all workers' images concurrently instead of one at a time,
     # so the request doesn't exceed Render's timeout on larger lists.
-    hydrated = await asyncio.gather(*[_hydrate_one(w) for w in workers])
+    sem = asyncio.Semaphore(5)  # only 5 workers' images hydrate at a time
+async def _hydrate_limited(w):
+    async with sem:
+        return await _hydrate_one(w)
+hydrated = await asyncio.gather(*[_hydrate_limited(w) for w in workers])
 
     try:
         pdf_bytes = export_service.build_workers_pdf(hydrated)
