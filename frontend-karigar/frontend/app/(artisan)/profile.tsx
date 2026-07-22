@@ -60,6 +60,11 @@ export default function ArtisanProfile() {
           <AppText size="base" color={COLORS.muted}>
             +91 {worker.phone} · {worker.area}, {worker.city}
           </AppText>
+          {worker.worker_id && (
+            <AppText size="sm" weight="semibold" color={COLORS.primary} style={{ marginTop: 4 }}>
+              {t("empId") || "Employee ID"}: {worker.worker_id}
+            </AppText>
+          )}
           <View style={{ flexDirection: "row", gap: SPACING.sm, marginTop: SPACING.md }}>
             <StatusBadge label={t(vKey(worker.verification_status))} color={verificationColor(worker.verification_status)} />
             <StatusBadge
