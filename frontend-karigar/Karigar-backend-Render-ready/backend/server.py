@@ -2003,20 +2003,19 @@ async def export_workers_pdf(
             logger.warning("Skipping images for worker %s: %s", w.get("id"), e)
             return clean(w)
 
-    # Hydrate all workers' images concurrently instead of one at a time,
-    # so the request doesn't exceed Render's timeout on larger lists.
-    sem = asyncio.Semaphore(5)  # only 5 workers' images hydrate at a time
-async def _hydrate_limited(w):
-    async with sem:
-        return await _hydrate_one(w)
-hydrated = await asyncio.gather(*[_hydrate_limited(w) for w in workers])
+# Hydrate workers' images with limited concurrency (not all-at-once)
+    # so we don't exceed Render's 512MB free-tier memory limit.
+    sem = asyncio.Semaphore(5)
+    async def _hydrate_limited(w):
+        async with sem:
+            return await _hydrate_one(w)
+    hydrated = await asyncio.gather(*[_hydrate_limited(w) for w in workers])
 
     try:
         pdf_bytes = export_service.build_workers_pdf(hydrated)
     except Exception as e:
         logger.exception("PDF build failed")
         raise HTTPException(status_code=500, detail=f"PDF generation failed: {e}")
-
     return Response(
         content=pdf_bytes,
         media_type="application/pdf",
