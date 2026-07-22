@@ -27,6 +27,7 @@ export interface ProfileVersion {
 
 export interface Worker {
   id: string;
+  worker_id?: string;
   phone: string;
   full_name: string;
   dob?: string;
