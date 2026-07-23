@@ -80,10 +80,12 @@ export default function StoragePage() {
                 onPress={() => {
                   if (!stats) return;
                   const inUse = stats.total_files - stats.orphaned_files;
-                  Alert.alert(
-                    "Photo Breakdown",
-                    `Total photos: ${stats.total_files}\nAttached to a worker profile: ${inUse}\nUnused (safe to clean up): ${stats.orphaned_files}`
-                  );
+                  const message = `Total photos: ${stats.total_files}\nAttached to a worker profile: ${inUse}\nUnused (safe to clean up): ${stats.orphaned_files}`;
+                  if (Platform.OS === "web") {
+                    window.alert(message);
+                  } else {
+                    Alert.alert("Photo Breakdown", message);
+                  }
                 }}
               />
               <StatTile
