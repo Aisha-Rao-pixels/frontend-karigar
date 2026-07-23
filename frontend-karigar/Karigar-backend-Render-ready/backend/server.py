@@ -91,6 +91,11 @@ def new_id() -> str:
 
 
 async def next_worker_id() -> str:
+    # Reuse a freed EMP_ID (from a permanently-deleted profile) before
+    # minting a brand new one, so numbers don't get wasted forever.
+    freed = await db.released_worker_ids.find_one_and_delete({}, sort=[("worker_id", 1)])
+    if freed:
+        return freed["worker_id"]
     doc = await db.counters.find_one_and_update(
         {"_id": "worker_id"},
         {"$inc": {"seq": 1}},
