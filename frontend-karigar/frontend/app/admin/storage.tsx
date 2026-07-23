@@ -70,7 +70,35 @@ export default function StoragePage() {
             </View>
             <View style={{ flexDirection: "row", gap: SPACING.md, marginTop: SPACING.md }}>
               <StatTile label="Total Photos" value={stats?.total_files ?? 0} icon="images" />
-              <StatTile label="Unused Photos" value={stats?.orphaned_files ?? 0} icon="trash" tint={COLORS.warning} />
+              <StatTile
+                label="Unused Photos (tap to free)"
+                value={stats?.orphaned_files ?? 0}
+                icon="trash"
+                tint={COLORS.warning}
+                onPress={() => {
+                  if (!stats?.orphaned_files) return;
+                  Alert.alert(
+                    "Free unused space?",
+                    `This will permanently delete ${stats.orphaned_files} unused photos and free ~${stats.orphaned_mb.toFixed(1)} MB. These photos are not linked to any current worker profile, so nothing on the site will change.`,
+                    [
+                      { text: "Cancel", style: "cancel" },
+                      {
+                        text: "Free space",
+                        style: "destructive",
+                        onPress: async () => {
+                          setLoading(true);
+                          try {
+                            await apiFetch("/admin/maintenance/cleanup-orphaned-images?dry_run=false", { method: "POST" });
+                            await load();
+                          } catch {
+                            setLoading(false);
+                          }
+                        },
+                      },
+                    ]
+                  );
+                }}
+              />
             </View>
             {pct >= 90 && (
               <AppText size="sm" color={COLORS.error} style={{ marginTop: SPACING.md }}>
