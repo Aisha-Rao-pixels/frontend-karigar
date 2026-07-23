@@ -32,8 +32,7 @@ export default function LoginScreen() {
   const { show } = useToast();
   const insets = useSafeAreaInsets();
   const { login, register } = useAuth();
-  const { ref, mode: modeParam } = useLocalSearchParams<{ ref?: string; mode?: string }>();
-  const [mode, setMode] = useState<"login" | "register">(modeParam === "register" ? "register" : "login");
+  const { ref } = useLocalSearchParams<{ ref?: string }>();
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [showPwd, setShowPwd] = useState(false);
@@ -95,8 +94,7 @@ export default function LoginScreen() {
     }
     setLoading(true);
     try {
-      // Try login first — covers the common case of an existing user,
-      // regardless of whether they're on the "login" or "register" screen.
+      // Try login first — covers the common case of an existing user.
       const u = await login(trimmedPhone, password);
       routeUser(u);
     } catch (loginErr: any) {
@@ -122,8 +120,6 @@ export default function LoginScreen() {
     }
   };
 
-  const isRegister = mode === "register";
-
   return (
     <KeyboardAvoidingView
       style={styles.container}
@@ -137,10 +133,10 @@ export default function LoginScreen() {
           <Ionicons name="cut" size={32} color={COLORS.onBrandPrimary} />
         </View>
         <AppText weight="bold" size="2xl" style={{ marginTop: SPACING.lg }}>
-          {isRegister ? t("createAccount") : t("loginTitle")}
+          {t("loginTitle")}
         </AppText>
         <AppText size="base" color={COLORS.muted} style={{ marginTop: 6, marginBottom: SPACING["2xl"] }}>
-          {isRegister ? t("registerSubtitle") : t("loginSubtitle")}
+          Enter your mobile number and password to continue
         </AppText>
 
         <AppText weight="semibold" style={{ marginBottom: SPACING.sm }}>
@@ -173,22 +169,20 @@ export default function LoginScreen() {
             testID="password-input"
             value={password}
             onChangeText={setPassword}
-            placeholder={isRegister ? t("passwordCreatePh") : t("passwordPh")}
+            placeholder={t("passwordPh")}
             placeholderTextColor={COLORS.muted}
             secureTextEntry={!showPwd}
-            textContentType={isRegister ? "newPassword" : "password"}
-            autoComplete={isRegister ? "new-password" : "current-password"}
+            textContentType="password"
+            autoComplete="current-password"
             style={styles.pwdInput}
           />
           <Pressable onPress={() => setShowPwd((s) => !s)} hitSlop={10} style={styles.eyeBtn} testID="toggle-password">
             <Ionicons name={showPwd ? "eye-off" : "eye"} size={20} color={COLORS.muted} />
           </Pressable>
         </View>
-        {isRegister && (
-          <AppText size="sm" color={COLORS.muted} style={{ marginTop: 6 }}>
-            {t("passwordMin6")}
-          </AppText>
-        )}
+        <AppText size="sm" color={COLORS.muted} style={{ marginTop: 6 }}>
+          {t("passwordMin6")}
+        </AppText>
 
         {/* Referral code is captured silently from a shared link's ?ref=
             param (see `referralCode` state above) and sent along at signup —
@@ -197,40 +191,24 @@ export default function LoginScreen() {
             box; someone who arrives via a referral link never needs to type
             anything, it's already filled in behind the scenes. */}
 
-        {/* Forgot Password — only show on login mode, not register */}
-        {!isRegister && (
-          <Pressable
-            onPress={handleForgotPassword}
-            style={styles.forgotBtn}
-            testID="forgot-password-btn"
-          >
-            <AppText size="sm" color={COLORS.brandPrimary} weight="semibold">
-              Forgot Password?
-            </AppText>
-          </Pressable>
-        )}
+        <Pressable
+          onPress={handleForgotPassword}
+          style={styles.forgotBtn}
+          testID="forgot-password-btn"
+        >
+          <AppText size="sm" color={COLORS.brandPrimary} weight="semibold">
+            Forgot Password?
+          </AppText>
+        </Pressable>
 
         <View style={{ height: SPACING.xl }} />
         <Button
-          title={isRegister ? t("createAccount") : t("loginCta")}
+          title="Continue"
           onPress={handleSubmit}
           loading={loading}
           icon="arrow-forward"
           testID="auth-submit-btn"
         />
-
-        <Pressable
-          onPress={() => setMode(isRegister ? "login" : "register")}
-          style={styles.switchBtn}
-          testID="toggle-auth-mode"
-        >
-          <AppText size="sm" color={COLORS.muted}>
-            {isRegister ? t("haveAccount") : t("noAccount")}{" "}
-          </AppText>
-          <AppText size="sm" color={COLORS.brandPrimary} weight="semibold">
-            {isRegister ? t("loginCta") : t("createAccount")}
-          </AppText>
-        </Pressable>
 
         <Pressable onPress={() => router.push("/admin/login")} style={styles.adminLink} testID="go-admin-login">
           <Ionicons name="shield-checkmark-outline" size={16} color={COLORS.muted} />
