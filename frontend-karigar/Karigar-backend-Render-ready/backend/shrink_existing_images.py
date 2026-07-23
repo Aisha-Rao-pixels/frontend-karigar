@@ -52,6 +52,7 @@ async def main():
     workers = await db.workers.find({}).to_list(None)
     print(f"Found {len(workers)} worker(s).")
 
+    total_freed_kb = 0
     for worker in workers:
         changed = False
         for field, target_kb in TARGET_SIZES.items():
@@ -59,14 +60,25 @@ async def main():
             new_entries = []
             for entry in entries:
                 if entry.startswith("gridfs:"):
-                    file_id = ObjectId(entry[len("gridfs:"):])
-                    stream = await bucket.open_download_stream(file_id)
-                    raw = await stream.read()
-                    small = shrink_bytes(raw, target_kb)
-                    new_id = await bucket.upload_from_stream("worker_image", small)
-                    await bucket.delete(file_id)
-                    new_entries.append(f"gridfs:{new_id}")
-                    changed = True
+                    try:
+                        file_id = ObjectId(entry[len("gridfs:"):])
+                        stream = await bucket.open_download_stream(file_id)
+                        raw = await stream.read()
+                        # Skip images already small enough — avoids pointless
+                        # re-compression (and quality loss) on photos that
+                        # were already uploaded small.
+                        if len(raw) / 1024 <= target_kb:
+                            new_entries.append(entry)
+                            continue
+                        small = shrink_bytes(raw, target_kb)
+                        new_id = await bucket.upload_from_stream("worker_image", small)
+                        await bucket.delete(file_id)
+                        new_entries.append(f"gridfs:{new_id}")
+                        total_freed_kb += (len(raw) - len(small)) / 1024
+                        changed = True
+                    except Exception as exc:
+                        print(f"  (skipped, error) {entry}: {exc}")
+                        new_entries.append(entry)
                 else:
                     new_entries.append(entry)
             worker[field] = new_entries
@@ -80,7 +92,7 @@ async def main():
             print(f"Shrunk photos for {worker.get('full_name', worker['id'])}")
 
     client.close()
-    print("Done.")
+    print(f"Done. Freed approximately {total_freed_kb / 1024:.1f} MB.")
 
 
 if __name__ == "__main__":
