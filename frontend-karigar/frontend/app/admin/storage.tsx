@@ -91,28 +91,23 @@ export default function StoragePage() {
                 value={stats?.orphaned_files ?? 0}
                 icon="trash"
                 tint={COLORS.warning}
-                onPress={() => {
+                onPress={async () => {
                   if (!stats?.orphaned_files) return;
-                  Alert.alert(
-                    "Free unused space?",
-                    `This will permanently delete ${stats.orphaned_files} unused photos and free ~${stats.orphaned_mb.toFixed(1)} MB. These photos are not linked to any current worker profile, so nothing on the site will change.`,
-                    [
-                      { text: "Cancel", style: "cancel" },
-                      {
-                        text: "Free space",
-                        style: "destructive",
-                        onPress: async () => {
-                          setLoading(true);
-                          try {
-                            await apiFetch("/admin/maintenance/cleanup-orphaned-images?dry_run=false", { method: "POST" });
-                            await load();
-                          } catch {
-                            setLoading(false);
-                          }
-                        },
-                      },
-                    ]
-                  );
+                  const message = `This will permanently delete ${stats.orphaned_files} unused photos and free ~${stats.orphaned_mb.toFixed(1)} MB. These photos are not linked to any current worker profile, so nothing on the site will change.`;
+                  const confirmed = Platform.OS === "web" ? window.confirm(message) : await new Promise<boolean>((resolve) => {
+                    Alert.alert("Free unused space?", message, [
+                      { text: "Cancel", style: "cancel", onPress: () => resolve(false) },
+                      { text: "Free space", style: "destructive", onPress: () => resolve(true) },
+                    ]);
+                  });
+                  if (!confirmed) return;
+                  setLoading(true);
+                  try {
+                    await apiFetch("/admin/maintenance/cleanup-orphaned-images?dry_run=false", { method: "POST" });
+                    await load();
+                  } catch {
+                    setLoading(false);
+                  }
                 }}
               />
             </View>
