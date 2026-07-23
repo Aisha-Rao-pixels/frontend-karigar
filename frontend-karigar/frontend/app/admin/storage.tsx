@@ -50,7 +50,11 @@ export default function StoragePage() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      <ScreenHeader title="Storage" subtitle="Photo storage usage" onBack={() => router.back()} />
+      <ScreenHeader
+        title="Storage"
+        subtitle="Photo storage usage"
+        onBack={() => (router.canGoBack() ? router.back() : router.replace("/admin/(tabs)/dashboard"))}
+      />
       {loading ? (
         <Loader />
       ) : (
