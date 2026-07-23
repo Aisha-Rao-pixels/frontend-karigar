@@ -637,9 +637,12 @@ def _make_snapshot(worker: dict, edited_by: str) -> dict:
 
 async def _profile_update_fields(payload: WorkerProfilePayload, worker: dict) -> dict:
     img_meta = {"phone": worker.get("phone", "")}
-    portfolio_refs = await gridfs_images.store_images(image_bucket, payload.portfolio_images, metadata=img_meta)
-    aadhar_refs = await gridfs_images.store_images(image_bucket, payload.aadhar_images, metadata=img_meta)
-    proof_refs = await gridfs_images.store_images(image_bucket, payload.employment_proof_images, metadata=img_meta)
+    try:
+        portfolio_refs = await gridfs_images.store_images(image_bucket, payload.portfolio_images, metadata=img_meta)
+        aadhar_refs = await gridfs_images.store_images(image_bucket, payload.aadhar_images, metadata=img_meta)
+        proof_refs = await gridfs_images.store_images(image_bucket, payload.employment_proof_images, metadata=img_meta)
+    except gridfs_images.StorageQuotaExceeded:
+        raise HTTPException(status_code=507, detail="Server storage is full — photos can't be saved right now. Please contact the site admin.")
     return {
         "full_name": payload.full_name.strip(),
         "gender": payload.gender,
