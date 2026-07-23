@@ -73,7 +73,19 @@ export default function StoragePage() {
               <StatTile label="Available (MB)" value={availableMb.toFixed(1)} icon="cloud-done" tint={COLORS.success} />
             </View>
             <View style={{ flexDirection: "row", gap: SPACING.md, marginTop: SPACING.md }}>
-              <StatTile label="Total Photos" value={stats?.total_files ?? 0} icon="images" />
+              <StatTile
+                label="Total Photos"
+                value={stats?.total_files ?? 0}
+                icon="images"
+                onPress={() => {
+                  if (!stats) return;
+                  const inUse = stats.total_files - stats.orphaned_files;
+                  Alert.alert(
+                    "Photo Breakdown",
+                    `Total photos: ${stats.total_files}\nAttached to a worker profile: ${inUse}\nUnused (safe to clean up): ${stats.orphaned_files}`
+                  );
+                }}
+              />
               <StatTile
                 label="Unused Photos (tap to free)"
                 value={stats?.orphaned_files ?? 0}
