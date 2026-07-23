@@ -95,13 +95,28 @@ export default function LoginScreen() {
     }
     setLoading(true);
     try {
-      const u =
-        mode === "login"
-          ? await login(trimmedPhone, password)
-          : await register(trimmedPhone, password, "karigar", referralCode.trim() || undefined);
+      // Try login first — covers the common case of an existing user,
+      // regardless of whether they're on the "login" or "register" screen.
+      const u = await login(trimmedPhone, password);
       routeUser(u);
-    } catch (e: any) {
-      show(e.message || t("genericError"), "error");
+    } catch (loginErr: any) {
+      if (loginErr?.status === 401) {
+        // No matching phone+password. Could be a brand new user — try
+        // creating the account. If the phone turns out to already be
+        // registered, we know it was really a wrong password below.
+        try {
+          const u = await register(trimmedPhone, password, "karigar", referralCode.trim() || undefined);
+          routeUser(u);
+        } catch (registerErr: any) {
+          if (registerErr?.status === 400 && /already registered/i.test(registerErr.message || "")) {
+            show("Incorrect password. Please try again.", "error");
+          } else {
+            show(registerErr.message || t("genericError"), "error");
+          }
+        }
+      } else {
+        show(loginErr.message || t("genericError"), "error");
+      }
     } finally {
       setLoading(false);
     }
