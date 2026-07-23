@@ -1395,6 +1395,15 @@ async def purge_rejected_profile(profile_id: str, user: dict = Depends(require_r
     if doc.get("worker_id"):
         await db.released_worker_ids.insert_one({"worker_id": doc["worker_id"]})
 
+    await db.permanent_delete_log.insert_one({
+        "id": new_id(),
+        "worker_id": doc.get("worker_id"),
+        "full_name": doc.get("full_name"),
+        "phone": doc.get("phone"),
+        "original_reason": doc.get("rejection_reason"),
+        "deleted_by": user.get("name") or user.get("phone"),
+        "deleted_at": now_iso(),
+    })
     for field in gridfs_images.IMAGE_FIELDS:
         for entry in doc.get(field) or []:
             if isinstance(entry, str) and entry.startswith(gridfs_images.GRIDFS_PREFIX):
