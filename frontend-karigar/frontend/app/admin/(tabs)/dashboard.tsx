@@ -385,7 +385,7 @@ export default function AdminDashboard() {
           <Button title={t("manageAdmins")} variant="ghost" onPress={() => router.push("/admin/manage-admins")} icon="people-circle" testID="manage-admins-btn" />
           <Button title="Availability" variant="ghost" onPress={() => router.push("/admin/availability")} icon="time" testID="availability-btn" />
           <Button title="Referral Dashboard" variant="ghost" onPress={() => router.push("/admin/referrals")} icon="gift" testID="referrals-dashboard-btn" />
-
+          <Button title="Storage" variant="ghost" onPress={() => router.push("/admin/storage")} icon="server" testID="storage-btn" />
           {/* Send Summary Email Button */}
           <Pressable
             onPress={sendSummaryEmail}
