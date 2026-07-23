@@ -35,6 +35,11 @@ from bson import ObjectId
 
 logger = logging.getLogger(__name__)
 
+class StorageQuotaExceeded(Exception):
+    """Raised when a Mongo/GridFS write fails due to the cluster storage cap."""
+    pass
+
+
 GRIDFS_PREFIX = "gridfs:"
 # Image fields stored on every worker document.
 IMAGE_FIELDS = ("portfolio_images", "aadhar_images", "employment_proof_images")
