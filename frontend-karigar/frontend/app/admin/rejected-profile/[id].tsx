@@ -56,30 +56,29 @@ export default function RejectedProfileDetail() {
     }
   };
 
+  const doPurge = async () => {
+    setBusy(true);
+    try {
+      await apiFetch(`/admin/rejected-profiles/${id}/purge`, { method: "DELETE" });
+      show("Profile permanently deleted", "success");
+      goBack();
+    } catch (e: any) {
+      show(e.message || "Something went wrong", "error");
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const purgePermanently = () => {
-    Alert.alert(
-      "Delete Permanently?",
-      `This will permanently delete ${profile?.full_name}'s profile and all photos. This cannot be undone — not even you will be able to restore it.`,
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete Permanently",
-          style: "destructive",
-          onPress: async () => {
-            setBusy(true);
-            try {
-              await apiFetch(`/admin/rejected-profiles/${id}/purge`, { method: "DELETE" });
-              show("Profile permanently deleted", "success");
-              goBack();
-            } catch (e: any) {
-              show(e.message || "Something went wrong", "error");
-            } finally {
-              setBusy(false);
-            }
-          },
-        },
-      ]
-    );
+    const msg = `This will permanently delete ${profile?.full_name}'s profile and all photos. This cannot be undone — not even you will be able to restore it.`;
+    if (Platform.OS === "web") {
+      if (window.confirm(msg)) doPurge();
+      return;
+    }
+    Alert.alert("Delete Permanently?", msg, [
+      { text: "Cancel", style: "cancel" },
+      { text: "Delete Permanently", style: "destructive", onPress: doPurge },
+    ]);
   };
 
   if (notFound) {
