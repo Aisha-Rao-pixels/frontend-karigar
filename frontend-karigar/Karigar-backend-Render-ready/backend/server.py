@@ -1392,6 +1392,9 @@ async def purge_rejected_profile(profile_id: str, user: dict = Depends(require_r
     if not doc:
         raise HTTPException(status_code=404, detail="Rejected profile not found")
 
+    if doc.get("worker_id"):
+        await db.released_worker_ids.insert_one({"worker_id": doc["worker_id"]})
+
     for field in gridfs_images.IMAGE_FIELDS:
         for entry in doc.get(field) or []:
             if isinstance(entry, str) and entry.startswith(gridfs_images.GRIDFS_PREFIX):
