@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from "react";
-import { View, StyleSheet, ScrollView, RefreshControl, Alert, Platform } from "react-native";
+import { View, StyleSheet, ScrollView, RefreshControl } from "react-native";
 import { useRouter } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -41,25 +41,37 @@ export default function StoragePage() {
     }
   }, []);
 
-  useFocusEffect(useCallback(() => { load(); }, [load]));
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [load])
+  );
 
   const usedMb = stats?.total_mb ?? 0;
   const availableMb = Math.max(0, CAP_MB - usedMb);
   const pct = Math.min(100, Math.round((usedMb / CAP_MB) * 100));
   const barColor = pct >= 90 ? COLORS.error : pct >= 70 ? COLORS.warning : COLORS.success;
 
+  const goBack = () =>
+    router.canGoBack() ? router.back() : router.replace("/admin/(tabs)/dashboard");
+
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      <ScreenHeader
-        title="Storage"
-        subtitle="Photo storage usage"
-        onBack={() => (router.canGoBack() ? router.back() : router.replace("/admin/(tabs)/dashboard"))}
-      />
+      <ScreenHeader title="Storage" subtitle="Photo storage usage" onBack={goBack} />
+
       {loading ? (
         <Loader />
       ) : (
         <ScrollView
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(); }} />}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={() => {
+                setRefreshing(true);
+                load();
+              }}
+            />
+          }
         >
           <Panel title="Storage Used" subtitle={`${pct}% of ${CAP_MB} MB used`} icon="server">
             <SegmentBar
@@ -68,51 +80,27 @@ export default function StoragePage() {
                 { label: "Available", value: availableMb, color: COLORS.surfaceTertiary },
               ]}
             />
+
             <View style={{ flexDirection: "row", gap: SPACING.md, marginTop: SPACING.lg }}>
               <StatTile label="Used (MB)" value={usedMb.toFixed(1)} icon="cloud-upload" tint={barColor} />
               <StatTile label="Available (MB)" value={availableMb.toFixed(1)} icon="cloud-done" tint={COLORS.success} />
             </View>
+
             <View style={{ flexDirection: "row", gap: SPACING.md, marginTop: SPACING.md }}>
               <StatTile
-                label="Total Photos"
+                label="Total Photos (tap to view)"
                 value={stats?.total_files ?? 0}
                 icon="images"
-                onPress={() => {
-                  if (!stats) return;
-                  const inUse = stats.total_files - stats.orphaned_files;
-                  const message = `Total photos: ${stats.total_files}\nAttached to a worker profile: ${inUse}\nUnused (safe to clean up): ${stats.orphaned_files}`;
-                  if (Platform.OS === "web") {
-                    window.alert(message);
-                  } else {
-                    Alert.alert("Photo Breakdown", message);
-                  }
-                }}
+                onPress={() => router.push("/admin/search")}
               />
               <StatTile
-                label="Unused Photos (tap to free)"
+                label="Unused Photos"
                 value={stats?.orphaned_files ?? 0}
                 icon="trash"
                 tint={COLORS.warning}
-                onPress={async () => {
-                  if (!stats?.orphaned_files) return;
-                  const message = `This will permanently delete ${stats.orphaned_files} unused photos and free ~${stats.orphaned_mb.toFixed(1)} MB. These photos are not linked to any current worker profile, so nothing on the site will change.`;
-                  const confirmed = Platform.OS === "web" ? window.confirm(message) : await new Promise<boolean>((resolve) => {
-                    Alert.alert("Free unused space?", message, [
-                      { text: "Cancel", style: "cancel", onPress: () => resolve(false) },
-                      { text: "Free space", style: "destructive", onPress: () => resolve(true) },
-                    ]);
-                  });
-                  if (!confirmed) return;
-                  setLoading(true);
-                  try {
-                    await apiFetch("/admin/maintenance/cleanup-orphaned-images?dry_run=false", { method: "POST" });
-                    await load();
-                  } catch {
-                    setLoading(false);
-                  }
-                }}
               />
             </View>
+
             {pct >= 90 && (
               <AppText size="sm" color={COLORS.error} style={{ marginTop: SPACING.md }}>
                 Storage is nearly full. New photo uploads may start failing soon.
@@ -125,4 +113,6 @@ export default function StoragePage() {
   );
 }
 
-const styles = StyleSheet.create({ container: { flex: 1, backgroundColor: COLORS.surface } });
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: COLORS.surface },
+});
