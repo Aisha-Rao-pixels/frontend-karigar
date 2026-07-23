@@ -203,7 +203,7 @@ export default function LoginScreen() {
 
         <View style={{ height: SPACING.xl }} />
         <Button
-          title="Continue"
+          title="Create & Login"
           onPress={handleSubmit}
           loading={loading}
           icon="arrow-forward"
