@@ -105,6 +105,10 @@ async def upload_image(
         )
         return _to_ref(file_id)
     except Exception as exc:
+        msg = str(exc).lower()
+        if "space quota" in msg or "over your" in msg or "quota" in msg:
+            logger.error("GridFS upload failed - storage quota exceeded: %s", exc)
+            raise StorageQuotaExceeded(str(exc)) from exc
         logger.error("GridFS upload failed: %s", exc)
         return None
 
