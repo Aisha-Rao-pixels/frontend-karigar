@@ -47,6 +47,7 @@ function profileType(p: RejectedProfile): ProfileType {
 
 export default function RejectedProfiles() {
   const router = useRouter();
+  const { user } = useAuth();
   const insets = useSafeAreaInsets();
   const [profiles, setProfiles] = useState<RejectedProfile[]>([]);
   const [loading, setLoading] = useState(true);
@@ -162,6 +163,18 @@ export default function RejectedProfiles() {
         <Chip label={`Rejected (${rejectedCount})`} selected={typeFilter === "rejected"} onPress={() => setTypeFilter("rejected")} testID="type-filter-rejected" />
         <Chip label={`Deleted (${deletedCount})`} selected={typeFilter === "deleted"} onPress={() => setTypeFilter("deleted")} testID="type-filter-deleted" />
       </View>
+
+      {user?.can_delete_permanently && (
+        <View style={{ paddingHorizontal: SPACING.lg, marginBottom: SPACING.sm }}>
+          <Button
+            title="Permanently Deleted Log"
+            variant="ghost"
+            icon="document-text"
+            onPress={() => router.push("/admin/permanent-delete-log")}
+            testID="permanent-delete-log-btn"
+          />
+        </View>
+      )}
 
       <View style={{ flex: 1 }}>
         {loading ? (
