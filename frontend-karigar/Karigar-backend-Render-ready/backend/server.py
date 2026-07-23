@@ -1389,7 +1389,7 @@ async def list_permanent_delete_log(user: dict = Depends(require_roles(*ADMIN_RO
     if user.get("phone") not in PERMANENT_DELETE_PHONES:
         raise HTTPException(status_code=403, detail="Not authorized to view this log.")
     logs = await db.permanent_delete_log.find({}).sort("deleted_at", -1).to_list(1000)
-    return {"logs": clean(logs)}
+    return {"logs": [clean(l) for l in logs]}
 
 
 @api_router.delete("/admin/rejected-profiles/{profile_id}/purge")
