@@ -52,10 +52,16 @@ export default function AdminWorkerDetail() {
     apiFetch<Worker>(`/admin/workers/${id}`).then(setWorker).catch(() => {});
   }, [id]);
 
+ const [deleteReason, setDeleteReason] = useState("");
+
   const deleteWorker = async () => {
+    if (!deleteReason.trim()) {
+      show("Please enter a reason for deleting this worker", "error");
+      return;
+    }
     setBusy(true);
     try {
-      await apiFetch(`/admin/workers/${id}`, { method: "DELETE" });
+      await apiFetch(`/admin/workers/${id}`, { method: "DELETE", body: { reason: deleteReason.trim() } });
       show(t("workerDeleted"), "success");
       sheetRef.current?.close();
       goBack();
