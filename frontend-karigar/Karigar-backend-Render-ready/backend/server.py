@@ -1799,15 +1799,22 @@ async def admin_quick_edit_worker(worker_id: str, payload: WorkerQuickEditPayloa
     return await gridfs_images.hydrate_worker(image_bucket, clean(updated))
 
 
+class DeleteWorkerBody(BaseModel):
+    reason: str
+
+
 @api_router.delete("/admin/workers/{worker_id}")
-async def admin_delete_worker(worker_id: str, user: dict = Depends(require_roles(*ADMIN_ROLES))):
+async def admin_delete_worker(worker_id: str, body: DeleteWorkerBody, user: dict = Depends(require_roles(*ADMIN_ROLES))):
+    if not body.reason or not body.reason.strip():
+        raise HTTPException(status_code=400, detail="A reason is required to delete a worker")
+
     worker = await db.workers.find_one({"id": worker_id})
     if not worker:
         raise HTTPException(status_code=404, detail="Worker not found")
 
     archived = clean(dict(worker))
     archived.pop("_id", None)
-    archived["rejection_reason"] = archived.get("rejection_reason") or "Deleted by admin"
+    archived["rejection_reason"] = body.reason.strip()
     archived["rejected_by"] = user.get("name") or user.get("phone") or user.get("id")
     archived["rejected_at"] = now_iso()
     await db.rejected_profiles.insert_one(archived)
