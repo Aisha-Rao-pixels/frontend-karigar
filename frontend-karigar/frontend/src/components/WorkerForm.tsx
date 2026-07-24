@@ -17,7 +17,8 @@ import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { COLORS, SPACING, RADIUS, FONT } from "@/src/theme";
-import { AppText, Button, Chip, Field } from "@/src/components/ui";
+import { AppText, Button, Chip, Field, LabelWithSpeaker } from "@/src/components/ui";
+import i18n from "@/src/i18n";
 import { Calendar } from "@/src/components/Calendar";
 import { GENDERS, SPOKEN_LANGUAGES, AVAILABILITY_OPTIONS, PROOF_TYPES, SUPPORT_PHONE, SUPPORT_WHATSAPP } from "@/src/constants/app";
 
