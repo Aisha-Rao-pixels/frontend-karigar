@@ -22,6 +22,31 @@ import { speakLabel } from "@/src/utils/speech";
 // Renders a label with a small speaker icon that reads the label's
 // primary-language portion aloud (bilingual labels look like
 // "English / हिंदी" — we only speak the part before " / ").
+export function StatusTracker({ status }: { status: "pending" | "approved" | "rejected" }) {
+  const step2Icon = status === "approved" ? "checkmark" : status === "rejected" ? "close" : "time";
+  const step2Color = status === "approved" ? COLORS.success : status === "rejected" ? COLORS.error : COLORS.warning;
+  const step3Done = status === "approved" || status === "rejected";
+  const step3Icon = status === "approved" ? "checkmark" : status === "rejected" ? "close" : "star";
+  const step3Color = status === "approved" ? COLORS.success : status === "rejected" ? COLORS.error : COLORS.muted;
+  const Node = ({ icon, color, filled, label }: { icon: any; color: string; filled: boolean; label: string }) => (
+    <View style={{ alignItems: "center", width: 84 }}>
+      <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: filled ? color + "22" : COLORS.surfaceSecondary, borderWidth: filled ? 0 : 1, borderColor: COLORS.border, alignItems: "center", justifyContent: "center" }}>
+        <Ionicons name={icon} size={22} color={color} />
+      </View>
+      <AppText size="sm" weight="semibold" color={color} style={{ marginTop: 6, textAlign: "center" }}>{label}</AppText>
+    </View>
+  );
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center", paddingVertical: SPACING.md }}>
+      <Node icon="checkmark" color={COLORS.success} filled label="Submitted" />
+      <View style={{ flex: 1, height: 3, backgroundColor: COLORS.success, marginBottom: 22, marginHorizontal: -4 }} />
+      <Node icon={step2Icon} color={step2Color} filled label="Being checked" />
+      <View style={{ flex: 1, height: 3, backgroundColor: step3Done ? step2Color : COLORS.border, marginBottom: 22, marginHorizontal: -4 }} />
+      <Node icon={step3Icon} color={step3Color} filled={step3Done} label={status === "rejected" ? "Rejected" : "Approved"} />
+    </View>
+  );
+}
+
 export function LabelWithSpeaker({ label, style }: { label: string; style?: StyleProp<TextStyle> }) {
   const { i18n } = useTranslation();
   const primary = label.split(" / ")[0];
