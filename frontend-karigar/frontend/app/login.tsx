@@ -233,6 +233,7 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.surface },
   inner: { flex: 1, paddingHorizontal: SPACING.xl },
+  backBtn: { width: 40, height: 40, alignItems: "center", justifyContent: "center", marginBottom: SPACING.sm, marginLeft: -8 },
   logoBadge: {
     width: 64,
     height: 64,
