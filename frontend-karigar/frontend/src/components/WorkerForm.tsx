@@ -22,9 +22,11 @@ import i18n from "@/src/i18n";
 import { Calendar } from "@/src/components/Calendar";
 import { GENDERS, SPOKEN_LANGUAGES, AVAILABILITY_OPTIONS, PROOF_TYPES, SUPPORT_PHONE, SUPPORT_WHATSAPP } from "@/src/constants/app";
 
-// ─── Hindi translations map (for dual English/Hindi labels) ───────────────────
-// We import these directly so we can always show the Hindi label alongside
-// the English one, regardless of the user's selected app language.
+// ─── Dual-language labels ──────────────────────────────────────────────────
+// The first part of the label always shows in the app's currently selected
+// language (passed in already translated via t()). The second part is a
+// fixed helper language: English when Hindi is selected, otherwise Hindi.
+// en → "English / Hindi", hi → "Hindi / English", te → "Telugu / Hindi".
 const HI: Record<string, string> = {
   workerMobile: "कारीगर का मोबाइल नंबर",
   fullName: "पूरा नाम",
@@ -45,11 +47,31 @@ const HI: Record<string, string> = {
   availability: "उपलब्धता स्थिति",
 };
 
-/** Returns "English Label / हिंदी लेबल" */
-function biLabel(enLabel: string, hiKey: string): string {
-  const hi = HI[hiKey];
-  if (!hi) return enLabel;
-  return `${enLabel} / ${hi}`;
+const EN: Record<string, string> = {
+  workerMobile: "Worker's Mobile Number",
+  fullName: "Full Name",
+  gender: "Gender",
+  languagesSpoken: "Languages Spoken",
+  area: "Area / Neighbourhood",
+  city: "City",
+  skills: "Skills",
+  experience: "Years of Experience",
+  currentEmployer: "Current Workshop / Employer",
+  prevEmployer: "Previous Workshop / Employer",
+  aadhaarCard: "Aadhaar Card",
+  employmentProof: "Proof of Previous Employment",
+  wage: "Expected Monthly Wage (₹)",
+  phonepeGpay: "PhonePe / Google Pay Number",
+  referredBy: "Referral Code (optional)",
+  portfolio: "Portfolio Images",
+  availability: "Availability Status",
+};
+
+/** Returns "<current language label> / <helper language label>" */
+function biLabel(currentLabel: string, key: string): string {
+  const secondary = i18n.language === "hi" ? EN[key] : HI[key];
+  if (!secondary) return currentLabel;
+  return `${currentLabel} / ${secondary}`;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
