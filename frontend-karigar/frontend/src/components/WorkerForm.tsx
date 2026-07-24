@@ -573,8 +573,10 @@ export default function WorkerForm({
           testID="form-name"
         />
 
-        {/* Gender */}
-        <AppText weight="semibold" style={{ marginBottom: SPACING.sm }}>
+        {/* Languages */}
+        <AppText weight="semibold" style={{ marginTop: SPACING.lg, marginBottom: SPACING.sm }}>
+          {biLabel(t("languagesSpoken"), "languagesSpoken")}
+        </AppText>
           {biLabel(t("gender"), "gender")}
         </AppText>
         <View style={styles.row}>
