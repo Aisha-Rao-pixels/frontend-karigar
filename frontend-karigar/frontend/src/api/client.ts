@@ -66,7 +66,7 @@ export async function apiFetch<T = any>(path: string, opts: Options = {}): Promi
     let detail = "Something went wrong";
     try {
       const data = await res.json();
-      detail = data.detail || detail;
+      detail = typeof data.detail === "string" ? data.detail : Array.isArray(data.detail) ? (data.detail[0]?.msg || detail) : detail;
     } catch {}
     throw new ApiError(detail, res.status);
   }
