@@ -42,7 +42,7 @@ export default function VerificationCenter() {
       load();
     }, [load, authLoading, user])
   );
-  
+
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.header}>
@@ -72,14 +72,16 @@ export default function VerificationCenter() {
           </Pressable>
         </View>
       </View>
+
       {loading ? (
         <Loader />
-      ) : (
+      ) : items.length === 0 ? (
+        <EmptyState icon="checkmark-done-circle-outline" title={t("allCaughtUp")} subtitle={t("noPending")} />
+      ) : viewMode === "card" ? (
         <FlatList
           data={items}
           keyExtractor={(w) => w.id}
           contentContainerStyle={{ padding: SPACING.lg, gap: SPACING.sm, paddingBottom: SPACING["2xl"] }}
-          ListEmptyComponent={<EmptyState icon="checkmark-done-circle-outline" title={t("allCaughtUp")} subtitle={t("noPending")} />}
           renderItem={({ item }) => (
             <Pressable onPress={() => router.push(`/admin/review/${item.id}?from=verify`)} style={[styles.card, shadow]} testID={`queue-item-${item.id}`}>
               {item.duplicate_flags && item.duplicate_flags.length > 0 && (
@@ -103,6 +105,37 @@ export default function VerificationCenter() {
             </Pressable>
           )}
         />
+      ) : (
+        <ScrollView horizontal showsHorizontalScrollIndicator contentContainerStyle={{ padding: SPACING.lg, paddingBottom: SPACING["2xl"] }}>
+          <View style={{ minWidth: 760 }}>
+            <View style={[styles.tableRow, styles.tableHeaderRow]}>
+              <AppText weight="bold" size="sm" style={styles.colName}>Name</AppText>
+              <AppText weight="bold" size="sm" style={styles.colSkill}>Skill</AppText>
+              <AppText weight="bold" size="sm" style={styles.colLocation}>Location</AppText>
+              <AppText weight="bold" size="sm" style={styles.colSubmitted}>Submitted</AppText>
+              <AppText weight="bold" size="sm" style={styles.colFlag}>Flag</AppText>
+              <AppText weight="bold" size="sm" style={styles.colAction}> </AppText>
+            </View>
+            {items.map((item) => (
+              <View key={item.id} style={styles.tableRow} testID={`table-row-${item.id}`}>
+                <AppText numberOfLines={1} style={styles.colName}>{item.full_name}</AppText>
+                <AppText numberOfLines={1} color={COLORS.muted} style={styles.colSkill}>{item.skills.join(", ")}</AppText>
+                <AppText numberOfLines={1} color={COLORS.muted} style={styles.colLocation}>{item.area}, {item.city}</AppText>
+                <AppText numberOfLines={1} color={COLORS.muted} style={styles.colSubmitted}>{timeAgo(item.created_at)}</AppText>
+                <View style={styles.colFlag}>
+                  {item.duplicate_flags && item.duplicate_flags.length > 0 ? (
+                    <View style={styles.dupBadgeInline}>
+                      <AppText size="sm" weight="bold" color="#fff" style={{ fontSize: 10 }}>!</AppText>
+                    </View>
+                  ) : null}
+                </View>
+                <Pressable onPress={() => router.push(`/admin/review/${item.id}?from=verify`)} style={[styles.reviewPill, styles.colAction]}>
+                  <AppText size="sm" weight="bold" color={COLORS.onBrandPrimary}>{t("reviewProfile")}</AppText>
+                </Pressable>
+              </View>
+            ))}
+          </View>
+        </ScrollView>
       )}
     </View>
   );
@@ -125,4 +158,16 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     zIndex: 1,
   },
+  viewToggle: { flexDirection: "row", gap: SPACING.sm, marginTop: SPACING.md, marginLeft: 32 },
+  toggleBtn: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: SPACING.md, paddingVertical: 6, borderRadius: RADIUS.pill, backgroundColor: COLORS.surfaceSecondary },
+  toggleBtnActive: { backgroundColor: COLORS.brandPrimary },
+  tableRow: { flexDirection: "row", alignItems: "center", paddingVertical: SPACING.sm, borderBottomWidth: 1, borderBottomColor: COLORS.divider, gap: SPACING.sm },
+  tableHeaderRow: { borderBottomWidth: 2, borderBottomColor: COLORS.border, paddingBottom: SPACING.sm },
+  colName: { width: 160 },
+  colSkill: { width: 160 },
+  colLocation: { width: 160 },
+  colSubmitted: { width: 100 },
+  colFlag: { width: 40, alignItems: "center" },
+  colAction: { width: 130 },
+  dupBadgeInline: { width: 18, height: 18, borderRadius: 9, backgroundColor: COLORS.error, alignItems: "center", justifyContent: "center" },
 });
