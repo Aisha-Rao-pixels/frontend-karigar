@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from "react";
-import { View, StyleSheet, FlatList, Pressable } from "react-native";
+import { View, StyleSheet, FlatList, Pressable, ScrollView } from "react-native";
 import { useRouter } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
 import { useTranslation } from "react-i18next";
