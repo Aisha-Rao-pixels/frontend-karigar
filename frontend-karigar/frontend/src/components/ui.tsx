@@ -32,11 +32,11 @@ export function LabelWithSpeaker({ label, style }: { label: string; style?: Styl
       </AppText>
       <Pressable
         onPress={() => speakLabel(primary, i18n.language)}
-        hitSlop={8}
-        style={{ marginLeft: 6, padding: 2 }}
+        hitSlop={10}
+        style={{ marginLeft: 8, padding: 4 }}
         testID="speak-label-btn"
       >
-        <Ionicons name="volume-medium" size={16} color={COLORS.brandPrimary} />
+        <Ionicons name="volume-medium" size={26} color={COLORS.brandPrimary} />
       </Pressable>
     </View>
   );
