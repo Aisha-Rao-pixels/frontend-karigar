@@ -53,6 +53,24 @@ export default function VerificationCenter() {
           <AppText weight="bold" size="2xl">{t("verificationCenter")}</AppText>
         </View>
         {!loading && <AppText size="sm" color={COLORS.muted} style={{ marginLeft: 32 }}>{t("pendingReviews", { count: items.length })}</AppText>}
+        <View style={styles.viewToggle}>
+          <Pressable
+            onPress={() => setViewMode("card")}
+            style={[styles.toggleBtn, viewMode === "card" && styles.toggleBtnActive]}
+            testID="view-mode-card"
+          >
+            <Ionicons name="albums-outline" size={16} color={viewMode === "card" ? COLORS.onBrandPrimary : COLORS.muted} />
+            <AppText size="sm" weight="semibold" color={viewMode === "card" ? COLORS.onBrandPrimary : COLORS.muted}>Card</AppText>
+          </Pressable>
+          <Pressable
+            onPress={() => setViewMode("table")}
+            style={[styles.toggleBtn, viewMode === "table" && styles.toggleBtnActive]}
+            testID="view-mode-table"
+          >
+            <Ionicons name="grid-outline" size={16} color={viewMode === "table" ? COLORS.onBrandPrimary : COLORS.muted} />
+            <AppText size="sm" weight="semibold" color={viewMode === "table" ? COLORS.onBrandPrimary : COLORS.muted}>Table</AppText>
+          </Pressable>
+        </View>
       </View>
       {loading ? (
         <Loader />
