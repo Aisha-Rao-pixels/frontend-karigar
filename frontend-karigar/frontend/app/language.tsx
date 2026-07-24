@@ -23,7 +23,7 @@ export default function LanguageScreen() {
 
   const onContinue = async () => {
     await setLanguage(selected);
-    if (!user) router.replace("/login");
+    if (!user) router.push("/login");
     else if (user.role === "karigar")
       router.replace(user.has_profile ? "/(artisan)/dashboard" : "/profile-form?mode=create");
     else router.replace("/admin/dashboard");
