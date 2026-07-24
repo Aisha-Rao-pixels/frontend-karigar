@@ -21,6 +21,7 @@ export default function VerificationCenter() {
   const insets = useSafeAreaInsets();
   const [items, setItems] = useState<Worker[]>([]);
   const [loading, setLoading] = useState(true);
+  const [viewMode, setViewMode] = useState<"card" | "table">("card");
 
   const load = useCallback(async () => {
     setLoading(true);
