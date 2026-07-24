@@ -112,7 +112,15 @@ export default function AdminWorkerDetail() {
         <BottomSheetView style={{ padding: SPACING.lg }}>
           <AppText weight="bold" size="xl" style={{ marginBottom: SPACING.xs }}>{t("deleteConfirmTitle")}</AppText>
           <AppText size="sm" color={COLORS.muted} style={{ marginBottom: SPACING.md }}>{t("deleteConfirmBody")}</AppText>
-          <Button title={t("deleteRemove")} variant="danger" onPress={deleteWorker} loading={busy} testID="confirm-delete-btn" />
+          <TextInput
+            value={deleteReason}
+            onChangeText={setDeleteReason}
+            placeholder="Reason for deleting (required)"
+            placeholderTextColor={COLORS.muted}
+            style={{ borderWidth: 1, borderColor: COLORS.border, borderRadius: RADIUS.md, padding: SPACING.md, marginBottom: SPACING.md, color: COLORS.onSurface }}
+            testID="delete-reason-input"
+          />
+          <Button title={t("deleteRemove")} variant="danger" onPress={deleteWorker} loading={busy} disabled={!deleteReason.trim()} testID="confirm-delete-btn" />
         </BottomSheetView>
       </BottomSheet>
     </View>
