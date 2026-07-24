@@ -7,30 +7,12 @@ const SPEECH_LOCALE: Record<string, string> = {
   te: "te-IN",
 };
 
-const femaleVoiceCache: Record<string, string | undefined> = {};
-
-async function pickFemaleVoice(locale: string): Promise<string | undefined> {
-  if (locale in femaleVoiceCache) return femaleVoiceCache[locale];
-  try {
-    const voices = await Speech.getAvailableVoicesAsync();
-    const base = locale.split("-")[0];
-    const match = voices.find(
-      (v) =>
-        v.language?.toLowerCase().startsWith(base) &&
-        /female|woman/i.test(v.name || v.identifier || "")
-    );
-    femaleVoiceCache[locale] = match?.identifier;
-  } catch {
-    femaleVoiceCache[locale] = undefined;
-  }
-  return femaleVoiceCache[locale];
-}
-
-/** Speaks `text` aloud in the given app language ("en" | "hi" | "te"),
- *  preferring a female voice where the device offers a choice. */
+/** Speaks `text` aloud in the given app language ("en" | "hi" | "te").
+ *  We use the phone's own default voice for that language instead of
+ *  hand-picking one — on most phones that default is already clear and
+ *  female, and a slightly slower rate makes it easier to follow. */
 export async function speakLabel(text: string, lang: string) {
   const locale = SPEECH_LOCALE[lang] || "en-IN";
   Speech.stop();
-  const voice = await pickFemaleVoice(locale);
-  Speech.speak(text, { language: locale, voice, pitch: 1.05, rate: 0.9 });
+  Speech.speak(text, { language: locale, rate: 0.8 });
 }
