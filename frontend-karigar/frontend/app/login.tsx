@@ -129,6 +129,15 @@ export default function LoginScreen() {
         contentContainerStyle={[styles.inner, { paddingTop: insets.top + SPACING["3xl"], paddingBottom: SPACING["3xl"] }]}
         keyboardShouldPersistTaps="handled"
       >
+        <Pressable
+          onPress={() => router.push("/language")}
+          hitSlop={10}
+          style={styles.backBtn}
+          testID="login-back-to-language-btn"
+        >
+          <Ionicons name="arrow-back" size={22} color={COLORS.onSurface} />
+        </Pressable>
+
         <View style={styles.logoBadge}>
           <Ionicons name="cut" size={32} color={COLORS.onBrandPrimary} />
         </View>
