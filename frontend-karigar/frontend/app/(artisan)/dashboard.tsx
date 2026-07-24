@@ -161,11 +161,7 @@ export default function ArtisanDashboard() {
         </View>
 
         <View style={{ paddingHorizontal: SPACING.lg, marginTop: SPACING.md }}>
-          <StatusBadge
-            label={t(verificationKey(worker.verification_status))}
-            color={verificationColor(worker.verification_status)}
-            testID="verification-badge"
-          />
+          <StatusTracker status={worker.verification_status as "pending" | "approved" | "rejected"} />
         </View>
 
         {/* Availability hero */}
