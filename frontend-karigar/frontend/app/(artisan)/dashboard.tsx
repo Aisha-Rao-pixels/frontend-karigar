@@ -9,7 +9,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 
 import { COLORS, SPACING, RADIUS, FONT, shadow } from "@/src/theme";
-import { AppText, ProgressBar, StatusBadge, Card, Loader } from "@/src/components/ui";
+import { AppText, ProgressBar, StatusBadge, Card, Loader, StatusTracker } from "@/src/components/ui";
 import { Calendar } from "@/src/components/Calendar";
 import { apiFetch } from "@/src/api/client";
 import { Worker, profileCompletion, availabilityColor, verificationColor, timeAgo, formatDate } from "@/src/utils/profile";
