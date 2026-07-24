@@ -69,7 +69,10 @@ const EN: Record<string, string> = {
 
 /** Returns "<current language label> / <helper language label>" */
 function biLabel(currentLabel: string, key: string): string {
-  const secondary = i18n.language === "hi" ? EN[key] : HI[key];
+  // Only English pairs with Hindi. Both Hindi and Telugu pair with
+  // English, since a Telugu speaker is far more likely to also know
+  // English than Hindi.
+  const secondary = i18n.language === "en" ? HI[key] : EN[key];
   if (!secondary) return currentLabel;
   return `${currentLabel} / ${secondary}`;
 }
