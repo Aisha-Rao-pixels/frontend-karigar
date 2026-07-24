@@ -18,9 +18,9 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { COLORS, SPACING, RADIUS, FONT } from "@/src/theme";
 import { AppText, Button, Chip, Field, LabelWithSpeaker } from "@/src/components/ui";
-import i18n from "@/src/i18n";
 import { Calendar } from "@/src/components/Calendar";
 import { GENDERS, SPOKEN_LANGUAGES, AVAILABILITY_OPTIONS, PROOF_TYPES, SUPPORT_PHONE, SUPPORT_WHATSAPP } from "@/src/constants/app";
+import i18n from "@/src/i18n";
 
 // ─── Dual-language labels ──────────────────────────────────────────────────
 // The first part of the label always shows in the app's currently selected
@@ -573,12 +573,8 @@ export default function WorkerForm({
           testID="form-name"
         />
 
-        {/* Languages */}
-        <AppText weight="semibold" style={{ marginTop: SPACING.lg, marginBottom: SPACING.sm }}>
-          {biLabel(t("languagesSpoken"), "languagesSpoken")}
-        </AppText>
-          {biLabel(t("gender"), "gender")}
-        </AppText>
+        {/* Gender */}
+        <LabelWithSpeaker label={biLabel(t("gender"), "gender")} style={{ marginBottom: SPACING.sm }} />
         <View style={styles.row}>
           {GENDERS.map((g) => (
             <Chip key={g.value} label={t(g.key)} selected={v.gender === g.value} onPress={() => set("gender", g.value)} testID={`gender-${g.value}`} />
@@ -586,9 +582,7 @@ export default function WorkerForm({
         </View>
 
         {/* Languages */}
-        <AppText weight="semibold" style={{ marginTop: SPACING.lg, marginBottom: SPACING.sm }}>
-          {biLabel(t("languagesSpoken"), "languagesSpoken")}
-        </AppText>
+        <LabelWithSpeaker label={biLabel(t("languagesSpoken"), "languagesSpoken")} style={{ marginTop: SPACING.lg, marginBottom: SPACING.sm }} />
         <View style={styles.wrap}>
           {SPOKEN_LANGUAGES.map((l) => (
             <Chip key={l} label={l} selected={v.languages.includes(l)} onPress={() => toggle("languages", l)} testID={`lang-${l}`} />
@@ -634,9 +628,7 @@ export default function WorkerForm({
         />
 
         {/* Skills — category → sub-skill */}
-        <AppText weight="semibold" style={{ marginBottom: SPACING.sm }}>
-          {biLabel(t("skills"), "skills")}
-        </AppText>
+        <LabelWithSpeaker label={biLabel(t("skills"), "skills")} style={{ marginBottom: SPACING.sm }} />
         <View style={{ gap: SPACING.sm }}>
           {SKILL_CATEGORIES.map((cat) => {
             const isLeaf = cat.subs.length === 0;
@@ -722,9 +714,7 @@ export default function WorkerForm({
         />
 
         {/* Aadhaar card upload */}
-        <AppText weight="semibold" style={{ marginBottom: 2 }}>
-          {biLabel(t("aadhaarCard"), "aadhaarCard")}
-        </AppText>
+        <LabelWithSpeaker label={biLabel(t("aadhaarCard"), "aadhaarCard")} style={{ marginBottom: 2 }} />
         <AppText size="sm" color={COLORS.muted} style={{ marginBottom: SPACING.sm }}>
           {t("uploadAadhaarMulti")}
         </AppText>
@@ -737,9 +727,7 @@ export default function WorkerForm({
         />
 
         {/* Proof of previous employment */}
-        <AppText weight="semibold" style={{ marginTop: SPACING.lg, marginBottom: SPACING.sm }}>
-          {biLabel(t("employmentProof"), "employmentProof")}
-        </AppText>
+        <LabelWithSpeaker label={biLabel(t("employmentProof"), "employmentProof")} style={{ marginTop: SPACING.lg, marginBottom: SPACING.sm }} />
         <View style={[styles.dropdown, errors.employment_proof_type && { borderColor: COLORS.error }]}>
           <Pressable style={styles.dropdownHeader} onPress={() => setProofOpen((o) => !o)} testID="proof-type-dropdown">
             <AppText color={v.employment_proof_type ? COLORS.onSurface : COLORS.muted} style={{ flex: 1 }}>
@@ -811,9 +799,7 @@ export default function WorkerForm({
         )}
 
         {/* Portfolio (mandatory) */}
-        <AppText weight="semibold" style={{ marginBottom: SPACING.sm }}>
-          {biLabel(t("portfolio"), "portfolio")}
-        </AppText>
+        <LabelWithSpeaker label={biLabel(t("portfolio"), "portfolio")} style={{ marginBottom: SPACING.sm }} />
         <PortfolioImages
           images={v.portfolio_images}
           onRemove={(i) => removeAt("portfolio_images", i)}
@@ -823,9 +809,7 @@ export default function WorkerForm({
         />
 
         {/* Availability */}
-        <AppText weight="semibold" style={{ marginTop: SPACING.lg, marginBottom: SPACING.sm }}>
-          {biLabel(t("availability"), "availability")}
-        </AppText>
+        <LabelWithSpeaker label={biLabel(t("availability"), "availability")} style={{ marginTop: SPACING.lg, marginBottom: SPACING.sm }} />
         <View style={{ gap: SPACING.sm }}>
           {AVAILABILITY_OPTIONS.map((o) => {
             const active = v.availability_status === o.value;
