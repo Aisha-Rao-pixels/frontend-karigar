@@ -15,7 +15,32 @@ import {
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
+import { useTranslation } from "react-i18next";
 import { COLORS, SPACING, RADIUS, FONT, shadow } from "@/src/theme";
+import { speakLabel } from "@/src/utils/speech";
+
+// Renders a label with a small speaker icon that reads the label's
+// primary-language portion aloud (bilingual labels look like
+// "English / हिंदी" — we only speak the part before " / ").
+export function LabelWithSpeaker({ label, style }: { label: string; style?: StyleProp<TextStyle> }) {
+  const { i18n } = useTranslation();
+  const primary = label.split(" / ")[0];
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center" }}>
+      <AppText weight="semibold" size="base" style={style}>
+        {label}
+      </AppText>
+      <Pressable
+        onPress={() => speakLabel(primary, i18n.language)}
+        hitSlop={8}
+        style={{ marginLeft: 6, padding: 2 }}
+        testID="speak-label-btn"
+      >
+        <Ionicons name="volume-medium" size={16} color={COLORS.brandPrimary} />
+      </Pressable>
+    </View>
+  );
+}
 
 // ---------------------------------------------------------------- Text
 export function AppText({
