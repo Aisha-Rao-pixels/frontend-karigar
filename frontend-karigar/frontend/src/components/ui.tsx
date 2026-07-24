@@ -261,10 +261,8 @@ export function Field({
 }) {
   return (
     <View style={{ marginBottom: SPACING.lg }}>
-      <View style={{ flexDirection: "row", marginBottom: SPACING.xs }}>
-        <AppText weight="semibold" size="base">
-          {label}
-        </AppText>
+      <View style={{ flexDirection: "row", marginBottom: SPACING.xs, alignItems: "center" }}>
+        <LabelWithSpeaker label={label} />
         {optional && (
           <AppText size="sm" color={COLORS.muted} style={{ marginLeft: 6, alignSelf: "center" }}>
             ({optional})
