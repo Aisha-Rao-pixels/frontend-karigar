@@ -953,17 +953,94 @@ const styles = StyleSheet.create({
   fieldLabelRow: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "nowrap", marginBottom: SPACING.xs, gap: SPACING.sm },
   fieldLabelText: { flex: 1, flexShrink: 1 },
 
-  miniCard: { width: 190, borderRadius: 12, overflow: "hidden", backgroundColor: COLORS.surface, flexShrink: 0, shadowColor: "#000", shadowOpacity: 0.15, shadowRadius: 6, shadowOffset: { width: 0, height: 3 }, elevation: 3 },
-  miniCardHeader: { height: 30, flexDirection: "row", alignItems: "center", paddingHorizontal: 10 },
-  miniCardHeaderDot: { width: 14, height: 14, borderRadius: 7, backgroundColor: "rgba(255,255,255,0.35)", marginRight: 6 },
-  miniCardBody: { flexDirection: "row", alignItems: "center", padding: 8 },
-  miniCardAddressBody: { padding: 8 },
-  miniCardPhoto: { width: 34, height: 42, borderRadius: 6, alignItems: "center", justifyContent: "center" },
-  miniCardHighlight: { backgroundColor: "#FFE8A3", paddingHorizontal: 4, paddingVertical: 1, borderRadius: 3 },
-  miniCardFooterBar: { height: 5, width: "100%" },
-  arrowHead: { width: 0, height: 0, borderTopWidth: 6, borderBottomWidth: 6, borderRightWidth: 9, borderTopColor: "transparent", borderBottomColor: "transparent", borderRightColor: COLORS.brandPrimary },
-  arrowBar: { width: 12, height: 4, backgroundColor: COLORS.brandPrimary, borderRadius: 2, marginLeft: -1 },
+  aadhaarGuide: {
+  width: 200,
+  height: 128,
+  position: "relative",
+  borderRadius: 10,
+  overflow: "hidden",
+  borderWidth: 1,
+  borderColor: "#DDDDDD",
+  backgroundColor: "#FFF",
+},
 
+aadhaarGuideImage: {
+  width: "100%",
+  height: "100%",
+},
+
+guideHighlight: {
+  position: "absolute",
+  borderWidth: 3,
+  borderColor: "#FFD600",
+  backgroundColor: "rgba(255,255,0,0.20)",
+  borderRadius: 4,
+},
+
+nameHighlight: {
+  left: 45,
+  top: 40,
+  width: 95,
+  height: 18,
+},
+
+areaHighlight: {
+  left: 18,
+  top: 36,
+  width: 125,
+  height: 44,
+},
+
+guideArrow: {
+  position: "absolute",
+  flexDirection: "row",
+  alignItems: "center",
+},
+
+guideArrowLine: {
+  width: 42,
+  height: 5,
+  backgroundColor: "#E53935",
+},
+
+guideArrowHead: {
+  width: 0,
+  height: 0,
+  borderTopWidth: 8,
+  borderBottomWidth: 8,
+  borderLeftWidth: 12,
+  borderTopColor: "transparent",
+  borderBottomColor: "transparent",
+  borderLeftColor: "#E53935",
+},
+
+nameArrow: {
+  left: -46,
+  top: 46,
+},
+
+areaArrow: {
+  left: -46,
+  top: 54,
+},
+
+guideBubble: {
+  position: "absolute",
+  backgroundColor: "#E53935",
+  paddingHorizontal: 8,
+  paddingVertical: 4,
+  borderRadius: 6,
+},
+
+nameBubble: {
+  left: -96,
+  top: 33,
+},
+
+areaBubble: {
+  left: -108,
+  top: 42,
+},
   helpBar: { flexDirection: "row", justifyContent: "space-between", marginBottom: SPACING.lg },
   helpBtn: { flexDirection: "row", alignItems: "center", paddingVertical: 6, paddingHorizontal: 10, backgroundColor: COLORS.surfaceSecondary, borderRadius: RADIUS.md },
   row: { flexDirection: "row", gap: SPACING.sm },
