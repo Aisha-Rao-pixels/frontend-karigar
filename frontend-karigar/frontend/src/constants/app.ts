@@ -7,9 +7,9 @@ export const LANGUAGES = [
 export const SPOKEN_LANGUAGES = ["Telugu", "Hindi", "English", "Urdu", "Other"];
 
 export const GENDERS = [
-  { value: "male", key: "male" },
-  { value: "female", key: "female" },
-  { value: "other", key: "other" },
+  { value: "male", key: "male", icon: "man" as const },
+  { value: "female", key: "female", icon: "woman" as const },
+  { value: "other", key: "other", icon: "person" as const },
 ];
 
 export const AVAILABILITY_OPTIONS = [
