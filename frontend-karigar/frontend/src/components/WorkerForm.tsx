@@ -75,6 +75,10 @@ const EN: Record<string, string> = {
   availability: "Availability Status",
 };
 
+const ID_CARD_QR_URL =
+  "https://api.qrserver.com/v1/create-qr-code/?size=90x90&data=" +
+  encodeURIComponent("https://YOUR-APP-DOMAIN.vercel.app"); // <-- replace with your real Vercel URL
+
 function MiniIdCard({ type, value }: { type: "name" | "address"; value: string }) {
   return (
     <View style={styles.miniCard}>
