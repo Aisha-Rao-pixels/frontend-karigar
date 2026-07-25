@@ -608,7 +608,7 @@ export default function WorkerForm({
         )}
 
         <View style={styles.fieldLabelRow}>
-          <AppText weight="semibold" size="sm">{biLabel(t("fullName"), "fullName")}</AppText>
+          <AppText weight="semibold" size="sm" style={styles.fieldLabelText}>{biLabel(t("fullName"), "fullName")}</AppText>
           <MiniIdCard type="name" value="RAHIM KHAN" />
         </View>
         <Field
