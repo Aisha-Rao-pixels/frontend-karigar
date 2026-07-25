@@ -652,7 +652,7 @@ export default function WorkerForm({
         </Pressable>
 
         <View style={styles.fieldLabelRow}>
-          <AppText weight="semibold" size="sm">{biLabel(t("area"), "area")}</AppText>
+          <AppText weight="semibold" size="sm" style={styles.fieldLabelText}>{biLabel(t("area"), "area")}</AppText>
           <MiniIdCard type="address" value="CHARMINAR" />
         </View>
         <Field
