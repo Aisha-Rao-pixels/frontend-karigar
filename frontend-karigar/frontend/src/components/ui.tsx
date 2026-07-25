@@ -178,12 +178,15 @@ export function Chip({
   selected,
   onPress,
   testID,
+  icon,
 }: {
   label: string;
   selected?: boolean;
   onPress?: () => void;
   testID?: string;
+  icon?: keyof typeof Ionicons.glyphMap;
 }) {
+  const textColor = selected ? COLORS.onBrandPrimary : COLORS.onBrandTertiary;
   return (
     <Pressable
       testID={testID}
@@ -191,6 +194,8 @@ export function Chip({
       style={({ pressed }) => [
         styles.chip,
         {
+          flexDirection: "row",
+          alignItems: "center",
           backgroundColor: pressed
             ? selected ? "#7A3F1E" : "#EDD9CE"
             : selected ? COLORS.brandPrimary : COLORS.brandTertiary,
@@ -200,10 +205,11 @@ export function Chip({
         },
       ]}
     >
+      {!!icon && <Ionicons name={icon} size={16} color={textColor} style={{ marginRight: 5 }} />}
       <Text
         numberOfLines={1}
         style={{
-          color: selected ? COLORS.onBrandPrimary : COLORS.onBrandTertiary,
+          color: textColor,
           fontWeight: "600",
           fontSize: FONT.base,
         }}
@@ -213,7 +219,6 @@ export function Chip({
     </Pressable>
   );
 }
-
 // ---------------------------------------------------------------- StatusBadge
 export function StatusBadge({ label, color, testID }: { label: string; color: string; testID?: string }) {
   return (
