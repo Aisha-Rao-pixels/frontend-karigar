@@ -26,6 +26,6 @@ export const PROOF_TYPES = [
 ];
 
 // Support contacts
-export const SUPPORT_PHONE = "+919154708512";
-export const SUPPORT_WHATSAPP = "919154708512";
+export const SUPPORT_PHONE = "+917075765852";
+export const SUPPORT_WHATSAPP = "917075765852";
 export const SUPPORT_EMAIL = "pixels@aisharao.com";
