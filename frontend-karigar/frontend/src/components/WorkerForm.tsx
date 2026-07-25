@@ -27,6 +27,14 @@ import i18n from "@/src/i18n";
 // language (passed in already translated via t()). The second part is a
 // fixed helper language: English when Hindi is selected, otherwise Hindi.
 // en → "English / Hindi", hi → "Hindi / English", te → "Telugu / Hindi".
+const LANG_SCRIPT: Record<string, string> = {
+  Telugu: "తెలుగు",
+  Hindi: "हिन्दी",
+  English: "English",
+  Urdu: "اردو",
+  Other: "Other",
+};
+
 const HI: Record<string, string> = {
   workerMobile: "कारीगर का मोबाइल नंबर",
   fullName: "पूरा नाम",
