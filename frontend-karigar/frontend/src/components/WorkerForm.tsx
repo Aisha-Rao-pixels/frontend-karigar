@@ -643,8 +643,12 @@ export default function WorkerForm({
           </AppText>
         </Pressable>
 
+        <View style={styles.fieldLabelRow}>
+          <AppText weight="semibold" size="sm">{biLabel(t("area"), "area")}</AppText>
+          <MiniIdCard type="address" value="CHARMINAR" />
+        </View>
         <Field
-          label={biLabel(t("area"), "area")}
+          label=""
           value={v.area}
           onChangeText={(x) =>
             setV((p) => ({
