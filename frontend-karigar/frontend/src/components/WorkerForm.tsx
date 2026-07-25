@@ -84,7 +84,7 @@ function MiniIdCard({ type, value }: { type: "name" | "address"; value: string }
       {type === "name" ? (
         <View style={styles.miniCardBody}>
           <View style={styles.miniCardPhoto}>
-            <Ionicons name="person" size={14} color={COLORS.border} />
+            <Ionicons name="person" size={18} color={COLORS.border} />
           </View>
           <View style={{ marginLeft: 6 }}>
             <AppText size="xs" color={COLORS.muted}>NAME</AppText>
