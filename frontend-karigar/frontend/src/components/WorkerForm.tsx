@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import * as ImagePicker from "expo-image-picker";
 import * as ImageManipulator from "expo-image-manipulator";
 import * as Location from "expo-location";
@@ -23,10 +24,6 @@ import { GENDERS, SPOKEN_LANGUAGES, AVAILABILITY_OPTIONS, PROOF_TYPES, SUPPORT_P
 import i18n from "@/src/i18n";
 
 // ─── Dual-language labels ──────────────────────────────────────────────────
-// The first part of the label always shows in the app's currently selected
-// language (passed in already translated via t()). The second part is a
-// fixed helper language: English when Hindi is selected, otherwise Hindi.
-// en → "English / Hindi", hi → "Hindi / English", te → "Telugu / Hindi".
 const LANG_SCRIPT: Record<string, string> = {
   Telugu: "తెలుగు",
   Hindi: "हिन्दी",
@@ -75,57 +72,70 @@ const EN: Record<string, string> = {
   availability: "Availability Status",
 };
 
-const ID_CARD_QR_URL =
-  "https://api.qrserver.com/v1/create-qr-code/?size=90x90&data=" +
-  encodeURIComponent("https://YOUR-APP-DOMAIN.vercel.app"); // <-- replace with your real Vercel URL
+// ─── Generic "mini ID card" hint ────────────────────────────────────────────
+// Intentionally generic: no government emblem, no tricolor, no QR code, no
+// ID-number pattern. It only needs to show a worker where their name/area
+// goes — it does not need to (and must not) resemble an official document.
+
+function ThickArrow() {
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center", marginLeft: 4 }}>
+      <View style={styles.arrowHead} />
+      <View style={styles.arrowBar} />
+    </View>
+  );
+}
 
 function MiniIdCard({ type, value }: { type: "name" | "address"; value: string }) {
   return (
     <View style={styles.miniCard}>
-      <View style={styles.miniCardHeader}>
-        <AppText size="xs" weight="bold" color="#fff">ID CARD</AppText>
-      </View>
-      <View style={styles.miniCardMainRow}>
-        <View style={{ flex: 1 }}>
-          {type === "name" ? (
-            <View style={styles.miniCardBody}>
-              <View style={styles.miniCardPhoto}>
-                <Ionicons name="person" size={18} color={COLORS.border} />
-              </View>
-              <View style={{ marginLeft: 6 }}>
-                <AppText size="xs" color={COLORS.muted}>NAME</AppText>
-                <View style={{ flexDirection: "row", alignItems: "center" }}>
-                  <AppText size="xs" weight="bold" style={styles.miniCardHighlight}>{value}</AppText>
-                  <Ionicons name="arrow-back" size={16} color={COLORS.brandPrimary} style={{ marginLeft: 4 }} />
-                </View>
-              </View>
+      <LinearGradient
+        colors={[COLORS.brandPrimary, "#D98E5B"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+        style={styles.miniCardHeader}
+      >
+        <View style={styles.miniCardHeaderDot} />
+        <AppText size="xs" weight="bold" color="#fff">WORKER ID</AppText>
+      </LinearGradient>
+
+      {type === "name" ? (
+        <View style={styles.miniCardBody}>
+          <LinearGradient colors={["#F7D9C4", "#F0B98F"]} style={styles.miniCardPhoto}>
+            <Ionicons name="person" size={16} color="#fff" />
+          </LinearGradient>
+          <View style={{ marginLeft: 8 }}>
+            <AppText size="xs" color={COLORS.muted}>NAME</AppText>
+            <View style={{ flexDirection: "row", alignItems: "center", marginTop: 2 }}>
+              <AppText size="xs" weight="bold" style={styles.miniCardHighlight}>{value}</AppText>
+              <ThickArrow />
             </View>
-          ) : (
-            <View style={styles.miniCardAddressBody}>
-              <AppText size="xs" color={COLORS.muted}>ADDRESS</AppText>
-              <AppText size="xs">House no 12</AppText>
-              <View style={{ flexDirection: "row", alignItems: "center" }}>
-                <AppText size="xs" weight="bold" style={styles.miniCardHighlight}>{value}</AppText>
-                <Ionicons name="arrow-back" size={16} color={COLORS.brandPrimary} style={{ marginLeft: 4 }} />
-              </View>
-              <AppText size="xs">Hyderabad</AppText>
-            </View>
-          )}
-          <AppText size="xs" color={COLORS.muted} style={{ marginTop: 4, paddingHorizontal: 8, paddingBottom: 6 }}>
-            ID No: XXXX XXXX XXXX
-          </AppText>
+          </View>
         </View>
-        <Image source={{ uri: ID_CARD_QR_URL }} style={styles.miniCardQr} contentFit="contain" />
-      </View>
+      ) : (
+        <View style={styles.miniCardAddressBody}>
+          <AppText size="xs" color={COLORS.muted}>ADDRESS</AppText>
+          <AppText size="xs" style={{ marginTop: 2 }}>House no 12</AppText>
+          <View style={{ flexDirection: "row", alignItems: "center", marginTop: 2 }}>
+            <AppText size="xs" weight="bold" style={styles.miniCardHighlight}>{value}</AppText>
+            <ThickArrow />
+          </View>
+          <AppText size="xs">Hyderabad</AppText>
+        </View>
+      )}
+
+      <LinearGradient
+        colors={[COLORS.brandPrimary, "#D98E5B", "#F0B98F"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+        style={styles.miniCardFooterBar}
+      />
     </View>
   );
 }
 
 /** Returns "<current language label> / <helper language label>" */
 function biLabel(currentLabel: string, key: string): string {
-  // Only English pairs with Hindi. Both Hindi and Telugu pair with
-  // English, since a Telugu speaker is far more likely to also know
-  // English than Hindi.
   const secondary = i18n.language === "en" ? HI[key] : EN[key];
   if (!secondary) return currentLabel;
   return `${currentLabel} / ${secondary}`;
@@ -223,8 +233,6 @@ function scheduleDraftSave(data: any, onFail?: () => void) {
   draftSaveTimer = setTimeout(async () => {
     const ok = await storage.setItem("form_draft", JSON.stringify(data));
     if (!ok) {
-      // Full draft (with photos) didn't fit — retry with text fields only,
-      // so typed answers survive even if photos can't be auto-saved here.
       const { portfolio_images, aadhar_images, employment_proof_images, ...textOnly } = data;
       const retryOk = await storage.setItem("form_draft", JSON.stringify(textOnly));
       if (!draftSaveWarned) {
@@ -402,22 +410,21 @@ export default function WorkerForm({
   const [v, setV] = useState<WorkerFormValues>(initial);
 
   React.useEffect(() => {
-  // Skip draft restore if we're editing an existing worker (initial has real data)
-  if (initial.full_name || initial.area || initial.languages.length > 0) return;
+    if (initial.full_name || initial.area || initial.languages.length > 0) return;
 
-  storage.getItem("form_draft", "").then((draft) => {
-    if (draft) {
-      try {
-        const parsed = JSON.parse(draft);
-        setV((prev) => ({
-          ...prev,
-          ...parsed,
-          referred_by_code: initial.referred_by_code || parsed.referred_by_code || "",
-        }));
-      } catch {}
-    }
-  });
-}, []);
+    storage.getItem("form_draft", "").then((draft) => {
+      if (draft) {
+        try {
+          const parsed = JSON.parse(draft);
+          setV((prev) => ({
+            ...prev,
+            ...parsed,
+            referred_by_code: initial.referred_by_code || parsed.referred_by_code || "",
+          }));
+        } catch {}
+      }
+    });
+  }, []);
 
   const [gpsFilledArea, setGpsFilledArea] = useState<string | null>(null);
   const [expandedCat, setExpandedCat] = useState<string | null>(null);
@@ -604,8 +611,6 @@ export default function WorkerForm({
             value={v.mobile || ""}
             onChangeText={(x) => {
               const digits = x.replace(/[^0-9]/g, "");
-              // Alert the moment the very first digit is typed wrong —
-              // don't make them fill the whole field before finding out.
               if (digits.length === 1 && !["6", "7", "8", "9"].includes(digits)) {
                 show(t("mobileStartDigit") || "Mobile number must start with 6, 7, 8 or 9", "error");
               }
@@ -930,14 +935,18 @@ export default function WorkerForm({
 const styles = StyleSheet.create({
   fieldLabelRow: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "nowrap", marginBottom: SPACING.xs, gap: SPACING.sm },
   fieldLabelText: { flex: 1, flexShrink: 1 },
-  miniCard: { width: 190, borderWidth: 1, borderColor: COLORS.border, borderRadius: 8, overflow: "hidden", backgroundColor: COLORS.surface, flexShrink: 0 },
-  miniCardHeader: { height: 20, backgroundColor: COLORS.brandPrimary, justifyContent: "center", paddingHorizontal: 8 },
+
+  miniCard: { width: 190, borderRadius: 12, overflow: "hidden", backgroundColor: COLORS.surface, flexShrink: 0, shadowColor: "#000", shadowOpacity: 0.15, shadowRadius: 6, shadowOffset: { width: 0, height: 3 }, elevation: 3 },
+  miniCardHeader: { height: 30, flexDirection: "row", alignItems: "center", paddingHorizontal: 10 },
+  miniCardHeaderDot: { width: 14, height: 14, borderRadius: 7, backgroundColor: "rgba(255,255,255,0.35)", marginRight: 6 },
   miniCardBody: { flexDirection: "row", alignItems: "center", padding: 8 },
   miniCardAddressBody: { padding: 8 },
-  miniCardPhoto: { width: 34, height: 42, borderRadius: 3, borderWidth: 1, borderColor: COLORS.border, backgroundColor: COLORS.surfaceSecondary, alignItems: "center", justifyContent: "center" },
-  miniCardHighlight: { backgroundColor: "#FBEAF0", paddingHorizontal: 3, borderRadius: 2 },
-  miniCardMainRow: { flexDirection: "row", alignItems: "flex-end" },
-  miniCardQr: { width: 40, height: 40, marginRight: 8, marginBottom: 6 },
+  miniCardPhoto: { width: 34, height: 42, borderRadius: 6, alignItems: "center", justifyContent: "center" },
+  miniCardHighlight: { backgroundColor: "#FFE8A3", paddingHorizontal: 4, paddingVertical: 1, borderRadius: 3 },
+  miniCardFooterBar: { height: 5, width: "100%" },
+  arrowHead: { width: 0, height: 0, borderTopWidth: 6, borderBottomWidth: 6, borderRightWidth: 9, borderTopColor: "transparent", borderBottomColor: "transparent", borderRightColor: COLORS.brandPrimary },
+  arrowBar: { width: 12, height: 4, backgroundColor: COLORS.brandPrimary, borderRadius: 2, marginLeft: -1 },
+
   helpBar: { flexDirection: "row", justifyContent: "space-between", marginBottom: SPACING.lg },
   helpBtn: { flexDirection: "row", alignItems: "center", paddingVertical: 6, paddingHorizontal: 10, backgroundColor: COLORS.surfaceSecondary, borderRadius: RADIUS.md },
   row: { flexDirection: "row", gap: SPACING.sm },
