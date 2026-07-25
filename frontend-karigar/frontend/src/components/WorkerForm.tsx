@@ -77,63 +77,66 @@ const EN: Record<string, string> = {
 // ID-number pattern. It only needs to show a worker where their name/area
 // goes — it does not need to (and must not) resemble an official document.
 
-function ThickArrow() {
+const DUMMY_AADHAAR = require("@/assets/images/dummy-aadhaar.png");
+
+function AadhaarGuide({
+  type,
+}: {
+  type: "name" | "area";
+}) {
   return (
-    <View style={{ flexDirection: "row", alignItems: "center", marginLeft: 4 }}>
-      <View style={styles.arrowHead} />
-      <View style={styles.arrowBar} />
-    </View>
-  );
-}
-
-function MiniIdCard({ type, value }: { type: "name" | "address"; value: string }) {
-  return (
-    <View style={styles.miniCard}>
-      <LinearGradient
-        colors={[COLORS.brandPrimary, "#D98E5B"]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 0 }}
-        style={styles.miniCardHeader}
-      >
-        <View style={styles.miniCardHeaderDot} />
-        <AppText size="xs" weight="bold" color="#fff">WORKER ID</AppText>
-      </LinearGradient>
-
-      {type === "name" ? (
-        <View style={styles.miniCardBody}>
-          <LinearGradient colors={["#F7D9C4", "#F0B98F"]} style={styles.miniCardPhoto}>
-            <Ionicons name="person" size={16} color="#fff" />
-          </LinearGradient>
-          <View style={{ marginLeft: 8 }}>
-            <AppText size="xs" color={COLORS.muted}>NAME</AppText>
-            <View style={{ flexDirection: "row", alignItems: "center", marginTop: 2 }}>
-              <AppText size="xs" weight="bold" style={styles.miniCardHighlight}>{value}</AppText>
-              <ThickArrow />
-            </View>
-          </View>
-        </View>
-      ) : (
-        <View style={styles.miniCardAddressBody}>
-          <AppText size="xs" color={COLORS.muted}>ADDRESS</AppText>
-          <AppText size="xs" style={{ marginTop: 2 }}>House no 12</AppText>
-          <View style={{ flexDirection: "row", alignItems: "center", marginTop: 2 }}>
-            <AppText size="xs" weight="bold" style={styles.miniCardHighlight}>{value}</AppText>
-            <ThickArrow />
-          </View>
-          <AppText size="xs">Hyderabad</AppText>
-        </View>
-      )}
-
-      <LinearGradient
-        colors={[COLORS.brandPrimary, "#D98E5B", "#F0B98F"]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 0 }}
-        style={styles.miniCardFooterBar}
+    <View style={styles.aadhaarGuide}>
+      <Image
+        source={DUMMY_AADHAAR}
+        style={styles.aadhaarGuideImage}
+        contentFit="cover"
       />
+
+      {/* Highlight */}
+      <View
+        style={[
+          styles.guideHighlight,
+          type === "name"
+            ? styles.nameHighlight
+            : styles.areaHighlight,
+        ]}
+      />
+
+      {/* Arrow */}
+      <View
+        style={[
+          styles.guideArrow,
+          type === "name"
+            ? styles.nameArrow
+            : styles.areaArrow,
+        ]}
+      >
+        <View style={styles.guideArrowLine} />
+        <View style={styles.guideArrowHead} />
+      </View>
+
+      {/* Bubble */}
+      <View
+        style={[
+          styles.guideBubble,
+          type === "name"
+            ? styles.nameBubble
+            : styles.areaBubble,
+        ]}
+      >
+        <AppText
+          size="xs"
+          weight="bold"
+          color="#fff"
+        >
+          {type === "name"
+            ? "Write this Name"
+            : "Write this Address"}
+        </AppText>
+      </View>
     </View>
   );
 }
-
 /** Returns "<current language label> / <helper language label>" */
 function biLabel(currentLabel: string, key: string): string {
   const secondary = i18n.language === "en" ? HI[key] : EN[key];
