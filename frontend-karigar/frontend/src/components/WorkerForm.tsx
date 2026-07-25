@@ -908,6 +908,13 @@ export default function WorkerForm({
 }
 
 const styles = StyleSheet.create({
+  fieldLabelRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", marginBottom: SPACING.xs, gap: SPACING.xs },
+  miniCard: { width: 150, borderWidth: 1, borderColor: COLORS.border, borderRadius: 8, overflow: "hidden", backgroundColor: COLORS.surface },
+  miniCardHeader: { height: 16, backgroundColor: COLORS.brandPrimary, justifyContent: "center", paddingHorizontal: 6 },
+  miniCardBody: { flexDirection: "row", alignItems: "center", padding: 6 },
+  miniCardAddressBody: { padding: 6 },
+  miniCardPhoto: { width: 26, height: 32, borderRadius: 3, borderWidth: 1, borderColor: COLORS.border, backgroundColor: COLORS.surfaceSecondary, alignItems: "center", justifyContent: "center" },
+  miniCardHighlight: { backgroundColor: "#FBEAF0", paddingHorizontal: 3, borderRadius: 2 },
   helpBar: { flexDirection: "row", justifyContent: "space-between", marginBottom: SPACING.lg },
   helpBtn: { flexDirection: "row", alignItems: "center", paddingVertical: 6, paddingHorizontal: 10, backgroundColor: COLORS.surfaceSecondary, borderRadius: RADIUS.md },
   row: { flexDirection: "row", gap: SPACING.sm },
