@@ -687,8 +687,8 @@ export default function WorkerForm({
             {biLabel(t("area"), "area")}
           </AppText>
 
-          <AadhaarGuide type="area" />
-         </View>
+        <AadhaarGuide type="area" />
+        </View>
         <Field
           label=""
           value={v.area}
