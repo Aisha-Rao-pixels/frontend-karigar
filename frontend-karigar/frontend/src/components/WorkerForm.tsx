@@ -679,9 +679,16 @@ export default function WorkerForm({
         </Pressable>
 
         <View style={styles.fieldLabelRow}>
-          <AppText weight="semibold" size="sm" style={styles.fieldLabelText}>{biLabel(t("area"), "area")}</AppText>
-          <MiniIdCard type="address" value="CHARMINAR" />
-        </View>
+          <AppText
+            weight="semibold"
+            size="sm"
+            style={styles.fieldLabelText}
+          >
+            {biLabel(t("area"), "area")}
+          </AppText>
+
+          <AadhaarGuide type="area" />
+         </View>
         <Field
           label=""
           value={v.area}
