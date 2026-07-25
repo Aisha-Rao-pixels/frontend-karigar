@@ -580,7 +580,7 @@ export default function WorkerForm({
         <LabelWithSpeaker label={biLabel(t("gender"), "gender")} style={{ marginBottom: SPACING.sm }} />
         <View style={styles.row}>
           {GENDERS.map((g) => (
-            <Chip key={g.value} label={t(g.key)} selected={v.gender === g.value} onPress={() => set("gender", g.value)} testID={`gender-${g.value}`} />
+            <Chip key={g.value} icon={g.icon} label={t(g.key)} selected={v.gender === g.value} onPress={() => set("gender", g.value)} testID={`gender-${g.value}`} />
           ))}
         </View>
 
