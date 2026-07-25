@@ -936,6 +936,8 @@ const styles = StyleSheet.create({
   miniCardAddressBody: { padding: 8 },
   miniCardPhoto: { width: 34, height: 42, borderRadius: 3, borderWidth: 1, borderColor: COLORS.border, backgroundColor: COLORS.surfaceSecondary, alignItems: "center", justifyContent: "center" },
   miniCardHighlight: { backgroundColor: "#FBEAF0", paddingHorizontal: 3, borderRadius: 2 },
+  miniCardMainRow: { flexDirection: "row", alignItems: "flex-end" },
+  miniCardQr: { width: 40, height: 40, marginRight: 8, marginBottom: 6 },
   helpBar: { flexDirection: "row", justifyContent: "space-between", marginBottom: SPACING.lg },
   helpBtn: { flexDirection: "row", alignItems: "center", paddingVertical: 6, paddingHorizontal: 10, backgroundColor: COLORS.surfaceSecondary, borderRadius: RADIUS.md },
   row: { flexDirection: "row", gap: SPACING.sm },
