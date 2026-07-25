@@ -599,8 +599,12 @@ export default function WorkerForm({
           />
         )}
 
+        <View style={styles.fieldLabelRow}>
+          <AppText weight="semibold" size="sm">{biLabel(t("fullName"), "fullName")}</AppText>
+          <MiniIdCard type="name" value="RAHIM KHAN" />
+        </View>
         <Field
-          label={biLabel(t("fullName"), "fullName")}
+          label=""
           value={v.full_name}
           onChangeText={(x) => set("full_name", x)}
           placeholder={t("fullNamePh")}
