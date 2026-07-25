@@ -626,7 +626,7 @@ export default function WorkerForm({
         <LabelWithSpeaker label={biLabel(t("languagesSpoken"), "languagesSpoken")} style={{ marginTop: SPACING.lg, marginBottom: SPACING.sm }} />
         <View style={styles.wrap}>
           {SPOKEN_LANGUAGES.map((l) => (
-            <Chip key={l} label={l} selected={v.languages.includes(l)} onPress={() => toggle("languages", l)} testID={`lang-${l}`} />
+            <Chip key={l} label={LANG_SCRIPT[l] || l} selected={v.languages.includes(l)} onPress={() => toggle("languages", l)} testID={`lang-${l}`} />
           ))}
         </View>
 
