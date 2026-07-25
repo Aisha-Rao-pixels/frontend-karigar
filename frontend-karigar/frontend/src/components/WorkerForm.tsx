@@ -67,6 +67,40 @@ const EN: Record<string, string> = {
   availability: "Availability Status",
 };
 
+function MiniIdCard({ type, value }: { type: "name" | "address"; value: string }) {
+  return (
+    <View style={styles.miniCard}>
+      <View style={styles.miniCardHeader}>
+        <AppText size="xs" weight="bold" color="#fff">ID CARD</AppText>
+      </View>
+      {type === "name" ? (
+        <View style={styles.miniCardBody}>
+          <View style={styles.miniCardPhoto}>
+            <Ionicons name="person" size={14} color={COLORS.border} />
+          </View>
+          <View style={{ marginLeft: 6 }}>
+            <AppText size="xs" color={COLORS.muted}>NAME</AppText>
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
+              <AppText size="xs" weight="bold" style={styles.miniCardHighlight}>{value}</AppText>
+              <Ionicons name="arrow-back" size={16} color={COLORS.brandPrimary} style={{ marginLeft: 4 }} />
+            </View>
+          </View>
+        </View>
+      ) : (
+        <View style={styles.miniCardAddressBody}>
+          <AppText size="xs" color={COLORS.muted}>ADDRESS</AppText>
+          <AppText size="xs">House no 12</AppText>
+          <View style={{ flexDirection: "row", alignItems: "center" }}>
+            <AppText size="xs" weight="bold" style={styles.miniCardHighlight}>{value}</AppText>
+            <Ionicons name="arrow-back" size={16} color={COLORS.brandPrimary} style={{ marginLeft: 4 }} />
+          </View>
+          <AppText size="xs">Hyderabad</AppText>
+        </View>
+      )}
+    </View>
+  );
+}
+
 /** Returns "<current language label> / <helper language label>" */
 function biLabel(currentLabel: string, key: string): string {
   // Only English pairs with Hindi. Both Hindi and Telugu pair with
