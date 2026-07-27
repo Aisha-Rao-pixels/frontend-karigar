@@ -994,14 +994,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#ED93B1",
   },
-  karigarIdNumber: { paddingHorizontal: 8, paddingBottom: 6, letterSpacing: 1 },
-  karigarFooter: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 8,
-    paddingVertical: 6,
-    backgroundColor: "#FAECE7",
-  },
+  karigarIdNumber: { paddingHorizontal: 8, paddingBottom: 10, letterSpacing: 1 },
 
   helpBar: { flexDirection: "row", justifyContent: "space-between", marginBottom: SPACING.lg },
   helpBtn: { flexDirection: "row", alignItems: "center", paddingVertical: 6, paddingHorizontal: 10, backgroundColor: COLORS.surfaceSecondary, borderRadius: RADIUS.md },
