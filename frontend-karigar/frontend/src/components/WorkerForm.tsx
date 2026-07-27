@@ -625,27 +625,21 @@ export default function WorkerForm({
           />
         )}
 
-        <View style={styles.fieldLabelRow}>
-          <AppText
-            weight="semibold"
-            size="sm"
-            style={styles.fieldLabelText}
-          >
-            {biLabel(t("fullName"), "fullName")}
-          </AppText>
-
-          <KarigarIdGuide type="name" />
+        <View style={styles.overlapWrap}>
+          <Field
+            label={biLabel(t("fullName"), "fullName")}
+            value={v.full_name}
+            onChangeText={(x) => set("full_name", x)}
+            placeholder={t("fullNamePh")}
+            maxLength={80}
+            autoCapitalize="words"
+            error={errors.full_name}
+            testID="form-name"
+          />
+          <View style={styles.overlapCard}>
+            <KarigarIdGuide type="name" />
+          </View>
         </View>
-        <Field
-          label=""
-          value={v.full_name}
-          onChangeText={(x) => set("full_name", x)}
-          placeholder={t("fullNamePh")}
-          maxLength={80}
-          autoCapitalize="words"
-          error={errors.full_name}
-          testID="form-name"
-        />
 
         {/* Gender */}
         <LabelWithSpeaker label={biLabel(t("gender"), "gender")} style={{ marginBottom: SPACING.sm }} />
