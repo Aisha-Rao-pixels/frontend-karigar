@@ -950,7 +950,8 @@ export default function WorkerForm({
 const styles = StyleSheet.create({
   fieldLabelRow: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "nowrap", marginBottom: SPACING.xs, gap: SPACING.sm },
   fieldLabelText: { flex: 1, flexShrink: 1 },
-
+  overlapWrap: { position: "relative", marginBottom: 24 },
+  overlapCard: { position: "absolute", top: -10, right: -6, zIndex: 2 },
   karigarCard: {
     width: 210,
     borderRadius: 10,
