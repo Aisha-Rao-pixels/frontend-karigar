@@ -131,6 +131,11 @@ function KarigarIdGuide({ type }: { type: "name" | "area" }) {
       <AppText size="xs" weight="semibold" style={styles.karigarIdNumber}>
         XXXX XXXX XXXX
       </AppText>
+
+      <View style={styles.karigarFooter}>
+        <AppText size="xs" weight="bold" color={KARIGAR_ACCENT}>KARIGAR</AppText>
+        <AppText size="xs" color={COLORS.brandPrimary}> — कामगार का पहचान पत्र</AppText>
+      </View>
     </View>
   );
 }
@@ -625,21 +630,27 @@ export default function WorkerForm({
           />
         )}
 
-        <View style={styles.overlapWrap}>
-          <Field
-            label={biLabel(t("fullName"), "fullName")}
-            value={v.full_name}
-            onChangeText={(x) => set("full_name", x)}
-            placeholder={t("fullNamePh")}
-            maxLength={80}
-            autoCapitalize="words"
-            error={errors.full_name}
-            testID="form-name"
-          />
-          <View style={styles.overlapCard}>
-            <KarigarIdGuide type="name" />
-          </View>
+        <View style={styles.fieldLabelRow}>
+          <AppText
+            weight="semibold"
+            size="sm"
+            style={styles.fieldLabelText}
+          >
+            {biLabel(t("fullName"), "fullName")}
+          </AppText>
+
+          <KarigarIdGuide type="name" />
         </View>
+        <Field
+          label=""
+          value={v.full_name}
+          onChangeText={(x) => set("full_name", x)}
+          placeholder={t("fullNamePh")}
+          maxLength={80}
+          autoCapitalize="words"
+          error={errors.full_name}
+          testID="form-name"
+        />
 
         {/* Gender */}
         <LabelWithSpeaker label={biLabel(t("gender"), "gender")} style={{ marginBottom: SPACING.sm }} />
@@ -670,10 +681,20 @@ export default function WorkerForm({
           </AppText>
         </Pressable>
 
-        <View style={styles.overlapWrap}>
-          <Field
-            label={biLabel(t("area"), "area")}
-            value={v.area}
+        <View style={styles.fieldLabelRow}>
+          <AppText
+            weight="semibold"
+            size="sm"
+            style={styles.fieldLabelText}
+          >
+            {biLabel(t("area"), "area")}
+          </AppText>
+
+          <KarigarIdGuide type="area" />
+        </View>
+        <Field
+          label=""
+          value={v.area}
           onChangeText={(x) =>
             setV((p) => ({
               ...p,
@@ -684,14 +705,10 @@ export default function WorkerForm({
             }))
           }
           placeholder={t("areaPh")}
-            maxLength={100}
-            error={errors.area}
-            testID="form-area"
-          />
-          <View style={styles.overlapCard}>
-            <KarigarIdGuide type="area" />
-          </View>
-        </View>
+          maxLength={100}
+          error={errors.area}
+          testID="form-area"
+        />
         <Field
           label={biLabel(t("city"), "city")}
           value={v.city}
@@ -938,8 +955,7 @@ export default function WorkerForm({
 const styles = StyleSheet.create({
   fieldLabelRow: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "nowrap", marginBottom: SPACING.xs, gap: SPACING.sm },
   fieldLabelText: { flex: 1, flexShrink: 1 },
-  overlapWrap: { position: "relative", marginBottom: 24 },
-  overlapCard: { position: "absolute", top: -10, right: -6, zIndex: 2 },
+
   karigarCard: {
     width: 210,
     borderRadius: 10,
@@ -984,6 +1000,13 @@ const styles = StyleSheet.create({
     borderColor: "#ED93B1",
   },
   karigarIdNumber: { paddingHorizontal: 8, paddingBottom: 6, letterSpacing: 1 },
+  karigarFooter: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    backgroundColor: "#FAECE7",
+  },
 
   helpBar: { flexDirection: "row", justifyContent: "space-between", marginBottom: SPACING.lg },
   helpBtn: { flexDirection: "row", alignItems: "center", paddingVertical: 6, paddingHorizontal: 10, backgroundColor: COLORS.surfaceSecondary, borderRadius: RADIUS.md },
