@@ -138,10 +138,6 @@ function KarigarIdGuide({ type }: { type: "name" | "area" }) {
       <AppText size="sm" weight="bold" style={styles.karigarIdNumber}>
         XXXX XXXX 1234
       </AppText>
-
-      <View style={styles.karigarQrRow}>
-        <Image source={{ uri: ID_CARD_QR_URL }} style={styles.karigarQr} contentFit="contain" />
-      </View>
     </View>
   );
 }
