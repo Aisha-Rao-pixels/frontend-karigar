@@ -80,11 +80,6 @@ const EN: Record<string, string> = {
 
 const KARIGAR_ACCENT = "#D85A30";
 
-// Replace this with your real deployed login page URL before shipping.
-const ID_CARD_QR_URL =
-  "https://api.qrserver.com/v1/create-qr-code/?size=90x90&data=" +
-  encodeURIComponent("https://YOUR-APP-DOMAIN.vercel.app/login");
-
 function KarigarIdGuide({ type }: { type: "name" | "area" }) {
   return (
     <View style={styles.karigarCard}>
