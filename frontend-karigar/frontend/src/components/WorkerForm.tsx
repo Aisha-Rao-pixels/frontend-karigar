@@ -670,20 +670,10 @@ export default function WorkerForm({
           </AppText>
         </Pressable>
 
-        <View style={styles.fieldLabelRow}>
-          <AppText
-            weight="semibold"
-            size="sm"
-            style={styles.fieldLabelText}
-          >
-            {biLabel(t("area"), "area")}
-          </AppText>
-
-          <KarigarIdGuide type="area" />
-        </View>
-        <Field
-          label=""
-          value={v.area}
+        <View style={styles.overlapWrap}>
+          <Field
+            label={biLabel(t("area"), "area")}
+            value={v.area}
           onChangeText={(x) =>
             setV((p) => ({
               ...p,
