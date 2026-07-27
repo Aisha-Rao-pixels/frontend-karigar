@@ -988,9 +988,9 @@ const styles = StyleSheet.create({
   karigarHighlight: {
     backgroundColor: "#FBEAF0",
     color: "#4B1528",
-    paddingHorizontal: 4,
-    paddingVertical: 1,
-    borderRadius: 3,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 4,
     borderWidth: 1,
     borderColor: "#ED93B1",
   },
