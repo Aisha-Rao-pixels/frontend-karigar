@@ -1005,22 +1005,8 @@ const styles = StyleSheet.create({
     textAlign: "center",
     letterSpacing: 2,
     marginTop: 8,
-    marginBottom: 8,
+    marginBottom: 12,
     color: "#2C2C2A",
-  },
-  karigarQrRow: {
-    flexDirection: "row",
-    justifyContent: "flex-end",
-    paddingHorizontal: 10,
-    paddingBottom: 8,
-  },
-  karigarQr: {
-    width: 34,
-    height: 34,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: 3,
-    backgroundColor: "#F1EFE8",
   },
 
   helpBar: { flexDirection: "row", justifyContent: "space-between", marginBottom: SPACING.lg },
