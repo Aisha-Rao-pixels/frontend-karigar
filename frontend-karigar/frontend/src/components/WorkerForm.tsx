@@ -72,71 +72,74 @@ const EN: Record<string, string> = {
   availability: "Availability Status",
 };
 
-// ─── Generic "mini ID card" hint ────────────────────────────────────────────
-// Intentionally generic: no government emblem, no tricolor, no QR code, no
-// ID-number pattern. It only needs to show a worker where their name/area
-// goes — it does not need to (and must not) resemble an official document.
+// ─── Generic "Karigar ID" hint card ─────────────────────────────────────────
+// Intentionally generic: no government emblem, no tricolor, no scraped or
+// downloaded images of any real ID document. It is a self-contained,
+// code-drawn card that shows a worker where their name / address goes,
+// using this app's own branding instead of any official document design.
 
-const DUMMY_AADHAAR = require("@/assets/images/dummy-aadhaar.png");
+const KARIGAR_ACCENT = "#D85A30";
 
-function AadhaarGuide({
-  type,
-}: {
-  type: "name" | "area";
-}) {
+function KarigarIdGuide({ type }: { type: "name" | "area" }) {
   return (
-    <View style={styles.aadhaarGuide}>
-      <Image
-        source={DUMMY_AADHAAR}
-        style={styles.aadhaarGuideImage}
-        contentFit="cover"
-      />
+    <View style={styles.karigarCard}>
+      <View style={styles.karigarAccentBar} />
 
-      {/* Highlight */}
-      <View
-        style={[
-          styles.guideHighlight,
-          type === "name"
-            ? styles.nameHighlight
-            : styles.areaHighlight,
-        ]}
-      />
-
-      {/* Arrow */}
-      <View
-        style={[
-          styles.guideArrow,
-          type === "name"
-            ? styles.nameArrow
-            : styles.areaArrow,
-        ]}
-      >
-        <View style={styles.guideArrowLine} />
-        <View style={styles.guideArrowHead} />
+      <View style={styles.karigarHeaderRow}>
+        <AppText size="xs" weight="semibold">Karigar ID / कारीगर पहचान पत्र</AppText>
+        <Ionicons name="card-outline" size={16} color={COLORS.brandPrimary} />
       </View>
 
-      {/* Bubble */}
-      <View
-        style={[
-          styles.guideBubble,
-          type === "name"
-            ? styles.nameBubble
-            : styles.areaBubble,
-        ]}
-      >
-        <AppText
-          size="xs"
-          weight="bold"
-          color="#fff"
-        >
-          {type === "name"
-            ? "Write this Name"
-            : "Write this Address"}
-        </AppText>
+      <View style={styles.karigarBodyRow}>
+        <View style={styles.karigarPhoto}>
+          <Ionicons name="person" size={26} color={COLORS.border} />
+        </View>
+
+        <View style={{ flex: 1, marginLeft: 8 }}>
+          {type === "name" ? (
+            <>
+              <AppText size="xs" color={COLORS.muted}>Name / नाम</AppText>
+              <View style={styles.karigarHighlightRow}>
+                <AppText size="sm" weight="bold" style={styles.karigarHighlight}>
+                  RAHIM KHAN
+                </AppText>
+                <Ionicons name="arrow-back" size={18} color={KARIGAR_ACCENT} style={{ marginLeft: 6 }} />
+              </View>
+              <AppText size="xs" color={COLORS.muted} style={{ marginTop: 4 }}>
+                DOB / जन्म तिथि: 06/07/1996
+              </AppText>
+              <AppText size="xs" color={COLORS.muted}>Gender / लिंग: Male / पुरुष</AppText>
+            </>
+          ) : (
+            <>
+              <AppText size="xs" color={COLORS.muted}>Address / पता</AppText>
+              <AppText size="xs">House no 12</AppText>
+              <View style={styles.karigarHighlightRow}>
+                <AppText size="sm" weight="bold" style={styles.karigarHighlight}>
+                  CHARMINAR
+                </AppText>
+                <Ionicons name="arrow-back" size={18} color={KARIGAR_ACCENT} style={{ marginLeft: 6 }} />
+              </View>
+              <AppText size="xs">Hyderabad</AppText>
+            </>
+          )}
+        </View>
+
+        <Ionicons name="qr-code-outline" size={34} color={COLORS.muted} style={{ marginLeft: 4 }} />
+      </View>
+
+      <AppText size="xs" weight="semibold" style={styles.karigarIdNumber}>
+        XXXX XXXX XXXX
+      </AppText>
+
+      <View style={styles.karigarFooter}>
+        <AppText size="xs" weight="bold" color={KARIGAR_ACCENT}>KARIGAR</AppText>
+        <AppText size="xs" color={COLORS.brandPrimary}> — कामगार का पहचान पत्र</AppText>
       </View>
     </View>
   );
 }
+
 /** Returns "<current language label> / <helper language label>" */
 function biLabel(currentLabel: string, key: string): string {
   const secondary = i18n.language === "en" ? HI[key] : EN[key];
@@ -636,7 +639,7 @@ export default function WorkerForm({
             {biLabel(t("fullName"), "fullName")}
           </AppText>
 
-          <AadhaarGuide type="name" />
+          <KarigarIdGuide type="name" />
         </View>
         <Field
           label=""
@@ -687,7 +690,7 @@ export default function WorkerForm({
             {biLabel(t("area"), "area")}
           </AppText>
 
-        <AadhaarGuide type="area" />
+          <KarigarIdGuide type="area" />
         </View>
         <Field
           label=""
@@ -953,94 +956,58 @@ const styles = StyleSheet.create({
   fieldLabelRow: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "nowrap", marginBottom: SPACING.xs, gap: SPACING.sm },
   fieldLabelText: { flex: 1, flexShrink: 1 },
 
-  aadhaarGuide: {
-  width: 200,
-  height: 128,
-  position: "relative",
-  borderRadius: 10,
-  overflow: "hidden",
-  borderWidth: 1,
-  borderColor: "#DDDDDD",
-  backgroundColor: "#FFF",
-},
+  karigarCard: {
+    width: 210,
+    borderRadius: 10,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: COLORS.borderStrong,
+    backgroundColor: COLORS.surface,
+    flexShrink: 0,
+  },
+  karigarAccentBar: { height: 6, backgroundColor: KARIGAR_ACCENT },
+  karigarHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 8,
+    paddingTop: 6,
+    paddingBottom: 2,
+  },
+  karigarBodyRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    padding: 8,
+  },
+  karigarPhoto: {
+    width: 36,
+    height: 44,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.surfaceSecondary,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  karigarHighlightRow: { flexDirection: "row", alignItems: "center", marginTop: 2, marginBottom: 4 },
+  karigarHighlight: {
+    backgroundColor: "#FBEAF0",
+    color: "#4B1528",
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+    borderRadius: 3,
+    borderWidth: 1,
+    borderColor: "#ED93B1",
+  },
+  karigarIdNumber: { paddingHorizontal: 8, paddingBottom: 6, letterSpacing: 1 },
+  karigarFooter: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    backgroundColor: "#FAECE7",
+  },
 
-aadhaarGuideImage: {
-  width: "100%",
-  height: "100%",
-},
-
-guideHighlight: {
-  position: "absolute",
-  borderWidth: 3,
-  borderColor: "#FFD600",
-  backgroundColor: "rgba(255,255,0,0.20)",
-  borderRadius: 4,
-},
-
-nameHighlight: {
-  left: 45,
-  top: 40,
-  width: 95,
-  height: 18,
-},
-
-areaHighlight: {
-  left: 18,
-  top: 36,
-  width: 125,
-  height: 44,
-},
-
-guideArrow: {
-  position: "absolute",
-  flexDirection: "row",
-  alignItems: "center",
-},
-
-guideArrowLine: {
-  width: 42,
-  height: 5,
-  backgroundColor: "#E53935",
-},
-
-guideArrowHead: {
-  width: 0,
-  height: 0,
-  borderTopWidth: 8,
-  borderBottomWidth: 8,
-  borderLeftWidth: 12,
-  borderTopColor: "transparent",
-  borderBottomColor: "transparent",
-  borderLeftColor: "#E53935",
-},
-
-nameArrow: {
-  left: -46,
-  top: 46,
-},
-
-areaArrow: {
-  left: -46,
-  top: 54,
-},
-
-guideBubble: {
-  position: "absolute",
-  backgroundColor: "#E53935",
-  paddingHorizontal: 8,
-  paddingVertical: 4,
-  borderRadius: 6,
-},
-
-nameBubble: {
-  left: -96,
-  top: 33,
-},
-
-areaBubble: {
-  left: -108,
-  top: 42,
-},
   helpBar: { flexDirection: "row", justifyContent: "space-between", marginBottom: SPACING.lg },
   helpBtn: { flexDirection: "row", alignItems: "center", paddingVertical: 6, paddingHorizontal: 10, backgroundColor: COLORS.surfaceSecondary, borderRadius: RADIUS.md },
   row: { flexDirection: "row", gap: SPACING.sm },
