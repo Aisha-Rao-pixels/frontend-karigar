@@ -100,7 +100,7 @@ function KarigarIdGuide({ type }: { type: "name" | "area" }) {
             <>
               <AppText size="xs" color={COLORS.muted}>Name / नाम</AppText>
               <View style={styles.karigarHighlightRow}>
-                <AppText size="sm" weight="bold" style={styles.karigarHighlight}>
+                <AppText size="md" weight="bold" style={styles.karigarHighlight}>
                   RAHIM KHAN
                 </AppText>
                 <Ionicons name="arrow-back" size={28} color={KARIGAR_ACCENT} style={{ marginLeft: 6 }} />
@@ -115,7 +115,7 @@ function KarigarIdGuide({ type }: { type: "name" | "area" }) {
               <AppText size="xs" color={COLORS.muted}>Address / पता</AppText>
               <AppText size="xs">House no 12</AppText>
               <View style={styles.karigarHighlightRow}>
-                <AppText size="sm" weight="bold" style={styles.karigarHighlight}>
+                <AppText size="md" weight="bold" style={styles.karigarHighlight}>
                   CHARMINAR
                 </AppText>
                 <Ionicons name="arrow-back" size={28} color={KARIGAR_ACCENT} style={{ marginLeft: 6 }} />
