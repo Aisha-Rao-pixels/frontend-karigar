@@ -80,57 +80,69 @@ const EN: Record<string, string> = {
 
 const KARIGAR_ACCENT = "#D85A30";
 
+// Replace this with your real deployed login page URL before shipping.
+const ID_CARD_QR_URL =
+  "https://api.qrserver.com/v1/create-qr-code/?size=90x90&data=" +
+  encodeURIComponent("https://YOUR-APP-DOMAIN.vercel.app/login");
+
 function KarigarIdGuide({ type }: { type: "name" | "area" }) {
   return (
     <View style={styles.karigarCard}>
       <View style={styles.karigarAccentBar} />
 
       <View style={styles.karigarHeaderRow}>
-        <AppText size="xs" weight="semibold">Karigar ID / कारीगर पहचान पत्र</AppText>
+        <AppText size="xs" weight="semibold">Aadhaar Card / आधार कार्ड</AppText>
         <Ionicons name="card-outline" size={16} color={COLORS.brandPrimary} />
       </View>
 
       <View style={styles.karigarBodyRow}>
         <View style={styles.karigarPhoto}>
-          <Ionicons name="person" size={26} color={COLORS.border} />
+          <Ionicons name="person-circle-outline" size={36} color="#93756A" />
         </View>
 
-        <View style={{ flex: 1, marginLeft: 8 }}>
+        <View style={{ flex: 1, marginLeft: 10 }}>
           {type === "name" ? (
             <>
-              <AppText size="xs" color={COLORS.muted}>Name / नाम</AppText>
+              <AppText size="xs" style={styles.karigarFieldLabel}>Name / नाम</AppText>
               <View style={styles.karigarHighlightRow}>
                 <AppText size="md" weight="bold" style={styles.karigarHighlight}>
                   RAHIM KHAN
                 </AppText>
-                <Ionicons name="arrow-back" size={28} color={KARIGAR_ACCENT} style={{ marginLeft: 6 }} />
+                <Ionicons name="arrow-back" size={28} color={KARIGAR_ACCENT} style={styles.karigarArrow} />
               </View>
-              <AppText size="xs" color={COLORS.muted} style={{ marginTop: 4 }}>
-                DOB / जन्म तिथि: 06/07/1996
+              <AppText size="xs" style={styles.karigarDetailLine}>
+                <AppText size="xs" weight="semibold" style={styles.karigarFieldLabel}>DOB / जन्म तिथि: </AppText>
+                06/07/1996
               </AppText>
-              <AppText size="xs" color={COLORS.muted}>Gender / लिंग: Male / पुरुष</AppText>
+              <View style={styles.karigarGenderRow}>
+                <AppText size="xs" weight="semibold" style={styles.karigarFieldLabel}>Gender / लिंग: </AppText>
+                <Ionicons name="man" size={14} color="#2C2C2A" style={{ marginHorizontal: 2 }} />
+                <AppText size="xs" style={styles.karigarDetailLine}>Male / पुरुष</AppText>
+              </View>
             </>
           ) : (
             <>
-              <AppText size="xs" color={COLORS.muted}>Address / पता</AppText>
-              <AppText size="xs">House no 12</AppText>
+              <AppText size="xs" style={styles.karigarFieldLabel}>Address / पता</AppText>
+              <AppText size="xs" style={styles.karigarDetailLine}>House no 12</AppText>
               <View style={styles.karigarHighlightRow}>
                 <AppText size="md" weight="bold" style={styles.karigarHighlight}>
                   CHARMINAR
                 </AppText>
-                <Ionicons name="arrow-back" size={28} color={KARIGAR_ACCENT} style={{ marginLeft: 6 }} />
+                <Ionicons name="arrow-back" size={28} color={KARIGAR_ACCENT} style={styles.karigarArrow} />
               </View>
-              <AppText size="xs">Hyderabad</AppText>
+              <AppText size="xs" style={styles.karigarDetailLine}>Hyderabad</AppText>
             </>
           )}
         </View>
-
-        <Ionicons name="qr-code-outline" size={34} color={COLORS.muted} style={{ marginLeft: 4 }} />
       </View>
 
-      <AppText size="xs" weight="semibold" style={styles.karigarIdNumber}>
+      <AppText size="sm" weight="bold" style={styles.karigarIdNumber}>
         XXXX XXXX 1234
       </AppText>
+
+      <View style={styles.karigarQrRow}>
+        <Image source={{ uri: ID_CARD_QR_URL }} style={styles.karigarQr} contentFit="contain" />
+      </View>
     </View>
   );
 }
@@ -952,12 +964,12 @@ const styles = StyleSheet.create({
   fieldLabelText: { flex: 1, flexShrink: 1 },
 
   karigarCard: {
-    width: 210,
+    width: 230,
     borderRadius: 10,
     overflow: "hidden",
     borderWidth: 1,
     borderColor: COLORS.borderStrong,
-    backgroundColor: COLORS.surface,
+    backgroundColor: "#fff",
     flexShrink: 0,
   },
   karigarAccentBar: { height: 6, backgroundColor: KARIGAR_ACCENT },
@@ -965,26 +977,29 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 8,
-    paddingTop: 6,
-    paddingBottom: 2,
+    paddingHorizontal: 10,
+    paddingTop: 8,
+    paddingBottom: 4,
   },
   karigarBodyRow: {
     flexDirection: "row",
     alignItems: "flex-start",
-    padding: 8,
+    paddingHorizontal: 10,
+    paddingBottom: 4,
   },
   karigarPhoto: {
-    width: 36,
-    height: 44,
+    width: 44,
+    height: 54,
     borderRadius: 4,
     borderWidth: 1,
     borderColor: COLORS.border,
-    backgroundColor: COLORS.surfaceSecondary,
+    backgroundColor: "#F1EFE8",
     alignItems: "center",
     justifyContent: "center",
   },
-  karigarHighlightRow: { flexDirection: "row", alignItems: "center", marginTop: 2, marginBottom: 4 },
+  karigarFieldLabel: { color: "#3A3A38" },
+  karigarDetailLine: { color: "#2C2C2A" },
+  karigarHighlightRow: { flexDirection: "row", alignItems: "center", marginTop: 2, marginBottom: 5 },
   karigarHighlight: {
     backgroundColor: "#FBEAF0",
     color: "#4B1528",
@@ -994,7 +1009,29 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#ED93B1",
   },
-  karigarIdNumber: { paddingHorizontal: 8, paddingBottom: 10, letterSpacing: 1 },
+  karigarArrow: { marginLeft: 4, alignSelf: "center" },
+  karigarGenderRow: { flexDirection: "row", alignItems: "center", marginTop: 3 },
+  karigarIdNumber: {
+    textAlign: "center",
+    letterSpacing: 2,
+    marginTop: 8,
+    marginBottom: 8,
+    color: "#2C2C2A",
+  },
+  karigarQrRow: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    paddingHorizontal: 10,
+    paddingBottom: 8,
+  },
+  karigarQr: {
+    width: 34,
+    height: 34,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 3,
+    backgroundColor: "#F1EFE8",
+  },
 
   helpBar: { flexDirection: "row", justifyContent: "space-between", marginBottom: SPACING.lg },
   helpBtn: { flexDirection: "row", alignItems: "center", paddingVertical: 6, paddingHorizontal: 10, backgroundColor: COLORS.surfaceSecondary, borderRadius: RADIUS.md },
