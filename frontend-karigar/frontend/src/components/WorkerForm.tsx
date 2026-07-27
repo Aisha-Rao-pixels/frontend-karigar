@@ -964,7 +964,7 @@ const styles = StyleSheet.create({
   fieldLabelText: { flex: 1, flexShrink: 1 },
 
   karigarCard: {
-    width: 280,
+    width: 250,
     borderRadius: 10,
     overflow: "hidden",
     borderWidth: 1,
