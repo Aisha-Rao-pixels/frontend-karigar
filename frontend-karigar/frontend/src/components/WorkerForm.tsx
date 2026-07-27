@@ -103,7 +103,7 @@ function KarigarIdGuide({ type }: { type: "name" | "area" }) {
                 <AppText size="sm" weight="bold" style={styles.karigarHighlight}>
                   RAHIM KHAN
                 </AppText>
-                <Ionicons name="arrow-back" size={18} color={KARIGAR_ACCENT} style={{ marginLeft: 6 }} />
+                <Ionicons name="arrow-back" size={28} color={KARIGAR_ACCENT} style={{ marginLeft: 6 }} />
               </View>
               <AppText size="xs" color={COLORS.muted} style={{ marginTop: 4 }}>
                 DOB / जन्म तिथि: 06/07/1996
@@ -118,7 +118,7 @@ function KarigarIdGuide({ type }: { type: "name" | "area" }) {
                 <AppText size="sm" weight="bold" style={styles.karigarHighlight}>
                   CHARMINAR
                 </AppText>
-                <Ionicons name="arrow-back" size={18} color={KARIGAR_ACCENT} style={{ marginLeft: 6 }} />
+                <Ionicons name="arrow-back" size={28} color={KARIGAR_ACCENT} style={{ marginLeft: 6 }} />
               </View>
               <AppText size="xs">Hyderabad</AppText>
             </>
