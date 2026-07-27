@@ -111,13 +111,12 @@ function KarigarIdGuide({ type }: { type: "name" | "area" }) {
                 <Ionicons name="arrow-back" size={28} color={KARIGAR_ACCENT} style={styles.karigarArrow} />
               </View>
               <AppText size="xs" style={styles.karigarDetailLine}>
-                <AppText size="xs" weight="semibold" style={styles.karigarFieldLabel}>DOB / जन्म तिथि: </AppText>
+                <AppText size="xs" weight="semibold" style={styles.karigarFieldLabel}>DOB: </AppText>
                 06/07/1996
               </AppText>
               <View style={styles.karigarGenderRow}>
-                <AppText size="xs" weight="semibold" style={styles.karigarFieldLabel}>Gender / लिंग: </AppText>
-                <Ionicons name="man" size={14} color="#2C2C2A" style={{ marginHorizontal: 2 }} />
-                <AppText size="xs" style={styles.karigarDetailLine}>Male / पुरुष</AppText>
+                <AppText size="xs" weight="semibold" style={styles.karigarFieldLabel}>Gender: </AppText>
+                <Ionicons name="man" size={16} color="#2C2C2A" />
               </View>
             </>
           ) : (
