@@ -131,11 +131,6 @@ function KarigarIdGuide({ type }: { type: "name" | "area" }) {
       <AppText size="xs" weight="semibold" style={styles.karigarIdNumber}>
         XXXX XXXX XXXX
       </AppText>
-
-      <View style={styles.karigarFooter}>
-        <AppText size="xs" weight="bold" color={KARIGAR_ACCENT}>KARIGAR</AppText>
-        <AppText size="xs" color={COLORS.brandPrimary}> — कामगार का पहचान पत्र</AppText>
-      </View>
     </View>
   );
 }
