@@ -684,10 +684,14 @@ export default function WorkerForm({
             }))
           }
           placeholder={t("areaPh")}
-          maxLength={100}
-          error={errors.area}
-          testID="form-area"
-        />
+            maxLength={100}
+            error={errors.area}
+            testID="form-area"
+          />
+          <View style={styles.overlapCard}>
+            <KarigarIdGuide type="area" />
+          </View>
+        </View>
         <Field
           label={biLabel(t("city"), "city")}
           value={v.city}
