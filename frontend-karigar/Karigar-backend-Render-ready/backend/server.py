@@ -1066,9 +1066,21 @@ async def admin_referral_detail(worker_id: str, user: dict = Depends(require_rol
     total_earned_rs = sum(r.get("payout_amount_rs", 50) for r in refs_earned_asc)
     paid_rs = min(referrer.get("manual_paid_rs", 0), total_earned_rs)
 
-    remaining = paid_rs
-    covered_ids = set()
-    for r in refs_earned_asc:
+    # Referrals individually marked "paid" (via the per-row checkbox, which
+    # calls /admin/referrals/{referral_id}/mark-paid) always display as
+    # paid — no ambiguity for those. Whatever's left of the lump "Amount
+    # Paid So Far" figure (after setting aside what individually-marked
+    # referrals already account for) is then applied oldest-first across
+    # the remaining reward-due referrals, same as before.
+    already_paid_refs = [r for r in refs_earned_asc if r.get("status") == "paid"]
+    already_paid_ids = {r["id"] for r in already_paid_refs}
+    already_paid_rs = sum(r.get("payout_amount_rs", 50) for r in already_paid_refs)
+    remaining_lump_rs = max(paid_rs - already_paid_rs, 0)
+    still_due_asc = [r for r in refs_earned_asc if r["id"] not in already_paid_ids]
+
+    remaining = remaining_lump_rs
+    covered_ids = set(already_paid_ids)
+    for r in still_due_asc:
         amt = r.get("payout_amount_rs", 50)
         if remaining >= amt:
             covered_ids.add(r["id"])
@@ -1091,6 +1103,7 @@ async def admin_referral_detail(worker_id: str, user: dict = Depends(require_rol
         display_paid_rs = r.get("payout_amount_rs", 0) if is_covered else 0
 
         people.append({
+            "referral_id": r["id"],
             "worker_id": r.get("referred_worker_id"),
             "emp_id": emp_id,
             "name": name or "Not registered yet",
@@ -1099,9 +1112,10 @@ async def admin_referral_detail(worker_id: str, user: dict = Depends(require_rol
             "verification_status": verification_status,
             "verified": verification_status == "approved",
             "payout_amount_rs": display_paid_rs,
+            "reward_amount_rs": r.get("payout_amount_rs", 50),
+            "manually_marked_paid": r.get("status") == "paid",
             "created_at": r.get("created_at"),
         })
-
     code = referrer.get("referral_code")
     total_clicks = await db.referral_clicks.count_documents({"referral_code": code}) if code else 0
     account_created_count = sum(1 for r in refs if r.get("status") == "account_created")
