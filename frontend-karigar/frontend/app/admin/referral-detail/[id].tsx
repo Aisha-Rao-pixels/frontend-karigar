@@ -1,8 +1,9 @@
 import React, { useCallback, useState } from "react";
-import { View, StyleSheet, ScrollView, RefreshControl, Pressable, TextInput, ActivityIndicator } from "react-native";
+import { View, StyleSheet, ScrollView, RefreshControl, Pressable, TextInput, ActivityIndicator, Platform, Alert } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
 
 import { COLORS, SPACING, RADIUS } from "@/src/theme";
 import { ScreenHeader, AppText, Loader } from "@/src/components/ui";
@@ -10,6 +11,7 @@ import { apiFetch } from "@/src/api/client";
 import { useToast } from "@/src/components/Toast";
 
 interface ReferredPerson {
+  referral_id: string;
   worker_id: string | null;
   emp_id?: string | null;
   name: string;
@@ -18,6 +20,8 @@ interface ReferredPerson {
   verification_status?: string | null;
   verified: boolean;
   payout_amount_rs: number;
+  reward_amount_rs: number;
+  manually_marked_paid: boolean;
   created_at: string;
 }
 
