@@ -133,6 +133,16 @@ class LoginPayload(BaseModel):
     password: str
 
 
+class ForgotPasswordRequestPayload(BaseModel):
+    phone: str
+
+
+class ForgotPasswordResetPayload(BaseModel):
+    phone: str
+    code: str
+    new_password: str
+
+
 class CreateAdminPayload(BaseModel):
     phone: str
     password: str
