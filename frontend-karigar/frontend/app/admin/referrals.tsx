@@ -37,6 +37,7 @@ export default function AdminReferrals() {
   const [rows, setRows] = useState<ReferralRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [resetting, setResetting] = useState(false);
   const { show } = useToast();
 
   const handleExport = useCallback(async () => {
@@ -51,6 +52,39 @@ export default function AdminReferrals() {
       document.body.removeChild(a);
     } catch (e: any) {
       show(e.message || "Export failed", "error");
+    }
+  }, [show]);
+
+  const handleResetAll = useCallback(async () => {
+    const warn1 = "This will PERMANENTLY delete ALL referral history and click tracking, and reset every referrer's paid amount to ₹0. This cannot be undone. Continue?";
+    const warn2 = "Are you absolutely sure? This is your last chance to cancel — all referral data will be wiped right now.";
+
+    const proceed = Platform.OS === "web"
+      ? window.confirm(warn1) && window.confirm(warn2)
+      : await new Promise<boolean>((resolve) => {
+          Alert.alert("Reset All Referrals?", warn1, [
+            { text: "Cancel", style: "cancel", onPress: () => resolve(false) },
+            { text: "Continue", style: "destructive", onPress: () => {
+              Alert.alert("Final Confirmation", warn2, [
+                { text: "Cancel", style: "cancel", onPress: () => resolve(false) },
+                { text: "Yes, Reset Everything", style: "destructive", onPress: () => resolve(true) },
+              ]);
+            }},
+          ]);
+        });
+
+    if (!proceed) return;
+
+    setResetting(true);
+    try {
+      await apiFetch("/admin/referrals/reset-all", { method: "POST" });
+      show("All referral data has been reset ✓", "success");
+      setRows([]);
+      load();
+    } catch (e: any) {
+      show(e.message || "Could not reset referral data", "error");
+    } finally {
+      setResetting(false);
     }
   }, [show]);
 
