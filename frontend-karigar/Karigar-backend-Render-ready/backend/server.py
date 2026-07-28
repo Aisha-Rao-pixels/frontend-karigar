@@ -376,6 +376,51 @@ async def login(payload: LoginPayload):
     return _auth_response(user, worker is not None)
 
 
+@api_router.post("/auth/forgot-password/request")
+async def forgot_password_request(payload: ForgotPasswordRequestPayload):
+    phone = payload.phone.strip()
+    user = await db.users.find_one({"phone": phone})
+    if not user:
+        raise HTTPException(status_code=404, detail="No account found with this mobile number")
+
+    # Code is shown directly on-screen (not sent via SMS) — many of our
+    # users are wary of sharing OTPs due to phishing scams, and some are
+    # not comfortable with the SMS-OTP flow at all. Displaying it in-app
+    # keeps the same "enter the code" pattern without any real OTP delivery.
+    code = "".join(random.choices(string.digits, k=6))
+    expires_at = (datetime.now(timezone.utc) + timedelta(minutes=10)).isoformat()
+    await db.password_resets.update_one(
+        {"phone": phone},
+        {"$set": {"phone": phone, "code": code, "expires_at": expires_at, "created_at": now_iso()}},
+        upsert=True,
+    )
+    return {"phone": phone, "code": code, "expires_in_minutes": 10}
+
+
+@api_router.post("/auth/forgot-password/reset")
+async def forgot_password_reset(payload: ForgotPasswordResetPayload):
+    phone = payload.phone.strip()
+    code = payload.code.strip()
+    _validate_password(payload.new_password)
+
+    reset_doc = await db.password_resets.find_one({"phone": phone})
+    if not reset_doc or reset_doc.get("code") != code:
+        raise HTTPException(status_code=400, detail="Invalid or expired code. Please request a new one.")
+
+    expires_at = datetime.fromisoformat(reset_doc["expires_at"])
+    if datetime.now(timezone.utc) > expires_at:
+        await db.password_resets.delete_one({"phone": phone})
+        raise HTTPException(status_code=400, detail="This code has expired. Please request a new one.")
+
+    user = await db.users.find_one({"phone": phone})
+    if not user:
+        raise HTTPException(status_code=404, detail="No account found with this mobile number")
+
+    await db.users.update_one({"phone": phone}, {"$set": {"password_hash": hash_password(payload.new_password)}})
+    await db.password_resets.delete_one({"phone": phone})
+    return {"success": True}
+
+
 @api_router.post("/auth/admin/create")
 async def create_admin(payload: CreateAdminPayload, current: dict = Depends(require_roles("admin"))):
     phone = _validate_phone(payload.phone)
