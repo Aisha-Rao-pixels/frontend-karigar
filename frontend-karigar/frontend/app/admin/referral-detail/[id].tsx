@@ -68,6 +68,7 @@ export default function AdminReferralDetail() {
   const [refreshing, setRefreshing] = useState(false);
   const [paidInput, setPaidInput] = useState("");
   const [saving, setSaving] = useState(false);
+  const [markingId, setMarkingId] = useState<string | null>(null);
 
   const goBack = () => (router.canGoBack() ? router.back() : router.replace("/admin/referrals"));
 
