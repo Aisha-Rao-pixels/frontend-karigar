@@ -1264,11 +1264,13 @@ async def reset_all_paid_amounts(user: dict = Depends(require_roles("manager")))
 
 
 @api_router.post("/admin/referrals/reset-all")
-async def reset_all_referrals(user: dict = Depends(require_roles("manager"))):
+async def reset_all_referrals(user: dict = Depends(require_roles(*ADMIN_ROLES))):
     # DESTRUCTIVE, ONE-TIME USE: wipes every referral record and click log,
     # and zeroes out every referrer's paid amount — a full fresh start
     # before real payouts begin. There is no undo, so this should only
     # ever be triggered manually, once, right before going live.
+    if user.get("phone") not in PERMANENT_DELETE_PHONES:
+        raise HTTPException(status_code=403, detail="You are not authorized to reset referral data.")
     await db.referrals.delete_many({})
     await db.referral_clicks.delete_many({})
     await db.workers.update_many({}, {"$set": {"manual_paid_rs": 0}})
