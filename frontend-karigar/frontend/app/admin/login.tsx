@@ -36,15 +36,7 @@ export default function AdminLogin() {
   const isRegister = mode === "register";
 
   const handleForgotPassword = () => {
-    if (Platform.OS === "web") {
-      window.alert("Forgot Password feature is coming soon! Please contact our support team for help.");
-    } else {
-      Alert.alert(
-        "Coming Soon",
-        "Forgot Password feature is coming soon! Please contact our support team for help.",
-        [{ text: "OK" }]
-      );
-    }
+    router.push("/forgot-password?role=admin");
   };
 
   const submit = async () => {
