@@ -262,6 +262,26 @@ export default function AdminReferralDetail() {
                     </Cell>
                     <Cell width={COLS[6].width}><AppText size="sm" color={COLORS.success}>₹{p.payout_amount_rs}</AppText></Cell>
                     <Cell width={COLS[7].width}>
+                      {p.status !== "reward_triggered" && !p.manually_marked_paid ? (
+                        <AppText size="sm" color={COLORS.muted}>—</AppText>
+                      ) : markingId === p.referral_id ? (
+                        <ActivityIndicator size="small" color={COLORS.brandPrimary} />
+                      ) : (
+                        <Pressable
+                          onPress={(e: any) => {
+                            e?.stopPropagation?.();
+                            if (!p.manually_marked_paid) confirmMarkPaid(p);
+                          }}
+                          disabled={p.manually_marked_paid}
+                          hitSlop={8}
+                          style={[styles.checkbox, p.manually_marked_paid && styles.checkboxChecked]}
+                          testID={`mark-paid-checkbox-${i}`}
+                        >
+                          {p.manually_marked_paid && <Ionicons name="checkmark" size={14} color="#fff" />}
+                        </Pressable>
+                      )}
+                    </Cell>
+                    <Cell width={COLS[8].width}>
                       <AppText size="sm" color={COLORS.muted}>
                         {new Date(p.created_at).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
                       </AppText>
