@@ -1262,6 +1262,17 @@ async def reset_all_paid_amounts(user: dict = Depends(require_roles("manager")))
     )
     return {"success": True, "message": "All paid amounts reset to 0"}
 
+
+@api_router.post("/admin/referrals/reset-all")
+async def reset_all_referrals(user: dict = Depends(require_roles("manager"))):
+    # DESTRUCTIVE, ONE-TIME USE: wipes every referral record and click log,
+    # and zeroes out every referrer's paid amount — a full fresh start
+    # before real payouts begin. There is no undo, so this should only
+    # ever be triggered manually, once, right before going live.
+    await db.referrals.delete_many({})
+    await db.referral_clicks.delete_many({})
+    await db.workers.update_many({}, {"$set": {"manual_paid_rs": 0}})
+    return {"success": True, "message": "All referral data cleared"}
 @api_router.post("/admin/referrals/{referral_id}/mark-paid")
 async def mark_referral_paid(referral_id: str, user: dict = Depends(require_roles(*ADMIN_ROLES))):
     ref = await db.referrals.find_one({"id": referral_id})
