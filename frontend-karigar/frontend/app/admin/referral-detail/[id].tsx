@@ -364,4 +364,16 @@ const styles = StyleSheet.create({
 
   headerRow: { flexDirection: "row", backgroundColor: COLORS.surfaceInverse },
   dataRow: { flexDirection: "row", borderTopWidth: 1, borderTopColor: COLORS.divider },
+
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 5,
+    borderWidth: 1.5,
+    borderColor: COLORS.border,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: COLORS.surface,
+  },
+  checkboxChecked: { backgroundColor: COLORS.success, borderColor: COLORS.success },
 });
