@@ -116,10 +116,41 @@ export default function AdminReferralDetail() {
     }
   };
 
+  const doMarkPaid = async (person: ReferredPerson) => {
+    setMarkingId(person.referral_id);
+    try {
+      const res = await apiFetch<{ amount_paid_rs: number }>(
+        `/admin/referrals/${person.referral_id}/mark-paid`,
+        { method: "POST" }
+      );
+      show(`Marked ₹${res.amount_paid_rs} as paid for ${person.name} ✓`, "success");
+      await load();
+    } catch (e: any) {
+      show(e.message || "Could not mark as paid", "error");
+    } finally {
+      setMarkingId(null);
+    }
+  };
+
+  const confirmMarkPaid = (person: ReferredPerson) => {
+    const message = `Have you made the ₹${person.reward_amount_rs} payment to ${person.name} (${person.phone})? This cannot be undone from here.`;
+    if (Platform.OS === "web") {
+      if (window.confirm(message)) doMarkPaid(person);
+    } else {
+      Alert.alert(
+        "Confirm Payment",
+        message,
+        [
+          { text: "Cancel", style: "cancel" },
+          { text: "Yes, Paid", onPress: () => doMarkPaid(person) },
+        ]
+      );
+    }
+  };
+
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <ScreenHeader title="Referred Users" onBack={goBack} />
-
       {loading || !data ? (
         <Loader />
       ) : (
