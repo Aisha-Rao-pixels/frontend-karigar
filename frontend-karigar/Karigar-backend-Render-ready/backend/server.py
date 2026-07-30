@@ -431,6 +431,39 @@ async def forgot_password_reset(payload: ForgotPasswordResetPayload):
 
     await db.users.update_one({"phone": phone}, {"$set": {"password_hash": hash_password(payload.new_password)}})
     await db.password_resets.delete_one({"phone": phone})
+    await db.password_reset_requests.update_many(
+        {"phone": phone, "status": "pending"},
+        {"$set": {"status": "resolved", "resolved_at": now_iso()}},
+    )
+    return {"success": True}
+
+
+@api_router.get("/admin/password-reset-requests")
+async def list_password_reset_requests(user: dict = Depends(require_roles(*ADMIN_ROLES))):
+    requests = await db.password_reset_requests.find({}).sort("created_at", -1).to_list(500)
+    result = []
+    for r in requests:
+        r = clean(r)
+        worker = await db.workers.find_one({"phone": r["phone"]})
+        r["full_name"] = worker.get("full_name") if worker else None
+        result.append(r)
+    return {"requests": result}
+
+
+@api_router.get("/admin/password-reset-requests/pending-count")
+async def pending_password_reset_count(user: dict = Depends(require_roles(*ADMIN_ROLES))):
+    count = await db.password_reset_requests.count_documents({"status": "pending"})
+    return {"pending": count}
+
+
+@api_router.patch("/admin/password-reset-requests/{request_id}/resolve")
+async def resolve_password_reset_request(request_id: str, user: dict = Depends(require_roles(*ADMIN_ROLES))):
+    result = await db.password_reset_requests.update_one(
+        {"id": request_id},
+        {"$set": {"status": "resolved", "resolved_at": now_iso(), "resolved_by": user.get("name") or user.get("phone")}},
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Request not found")
     return {"success": True}
 
 
