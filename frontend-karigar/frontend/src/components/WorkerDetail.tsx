@@ -155,10 +155,63 @@ function ImageViewer({ uri, onClose }: { uri: string | null; onClose: () => void
   );
 }
 
+const IMAGE_FIELDS = new Set(["portfolio_images", "aadhar_images", "employment_proof_images"]);
+
 function VersionHistory({ history, onImagePress }: { history: ProfileVersion[]; onImagePress: (uri: string) => void }) {
   const { t } = useTranslation();
   const [open, setOpen] = React.useState(false);
   const ordered = [...history].reverse(); // newest archived first
+
+  const labelFor = (field: string): string => {
+    const map: Record<string, string> = {
+      full_name: t("fullName"),
+      dob: t("dob"),
+      gender: t("gender"),
+      languages: t("languagesSpoken"),
+      area: t("area"),
+      city: t("city"),
+      skills: t("skills"),
+      years_experience: t("experience"),
+      current_employer: t("currentEmployer"),
+      previous_employer: t("prevEmployer"),
+      wage_expectation: t("wage"),
+      upi_id: t("phonepeGpay"),
+      portfolio_images: t("portfolio"),
+      aadhar_images: t("aadhaarCard"),
+      employment_proof_type: t("employmentProof") + " Type",
+      employment_proof_images: t("employmentProof"),
+      availability_status: t("availability"),
+      available_from: t("avail_from"),
+      verification_status: t("statusLabel"),
+      location_lat: "Latitude",
+      location_lng: "Longitude",
+    };
+    return map[field] || field;
+  };
+
+  const formatValue = (field: string, value: any): string => {
+    if (value === null || value === undefined || value === "") return "—";
+    switch (field) {
+      case "dob":
+        return `${value} (${calcAge(value)} ${t("yearsShort")})`;
+      case "gender":
+        return t(value);
+      case "years_experience":
+        return `${value} ${t("yearsShort")}`;
+      case "wage_expectation":
+        return `₹${value} ${t("perMonth")}`;
+      case "languages":
+      case "skills":
+        return Array.isArray(value) && value.length > 0 ? value.join(", ") : "—";
+      case "availability_status":
+        return t(aKey(value));
+      case "verification_status":
+        return t(vKey(value));
+      default:
+        return String(value);
+    }
+  };
+
   return (
     <View style={{ marginTop: SPACING.lg }}>
       <Pressable style={styles.histHeader} onPress={() => setOpen((o) => !o)} testID="version-history-toggle">
@@ -169,61 +222,164 @@ function VersionHistory({ history, onImagePress }: { history: ProfileVersion[]; 
         <Ionicons name={open ? "chevron-up" : "chevron-down"} size={20} color={COLORS.muted} />
       </Pressable>
       {open &&
-        ordered.map((h, idx) => (
-          <View key={idx} style={styles.histCard} testID={`version-${idx}`}>
-            <View style={styles.histTop}>
-              <AppText size="sm" weight="bold" color={COLORS.onSurface}>
-                {t("version")} {ordered.length - idx}
-              </AppText>
-              <View style={styles.editedByPill}>
-                <AppText size="sm" weight="semibold" color={COLORS.brandPrimary}>
-                  {h.edited_by === "admin" ? t("byAdmin") : t("byWorker")}
+        ordered.map((h, idx) => {
+          const hasDiff = !!h.changed_fields;
+          const entries = hasDiff ? Object.entries(h.changed_fields as Record<string, any>) : [];
+          const fieldEntries = entries.filter(([field]) => !IMAGE_FIELDS.has(field));
+          const imageEntries = entries.filter(([field]) => IMAGE_FIELDS.has(field));
+
+          return (
+            <View key={idx} style={styles.histCard} testID={`version-${idx}`}>
+              <View style={styles.histTop}>
+                <AppText size="sm" weight="bold" color={COLORS.onSurface}>
+                  {t("version")} {ordered.length - idx}
+                </AppText>
+                <View style={styles.editedByPill}>
+                  <AppText size="sm" weight="semibold" color={COLORS.brandPrimary}>
+                    {h.edited_by === "admin" ? t("byAdmin") : t("byWorker")}
+                  </AppText>
+                </View>
+                <AppText size="sm" color={COLORS.muted} style={{ marginLeft: "auto" }}>
+                  {formatDate(h.archived_at)}
                 </AppText>
               </View>
-              <AppText size="sm" color={COLORS.muted} style={{ marginLeft: "auto" }}>
-                {formatDate(h.archived_at)}
-              </AppText>
+
+              {hasDiff ? (
+                <>
+                  {fieldEntries.length === 0 && imageEntries.length === 0 ? (
+                    <AppText size="sm" color={COLORS.muted} style={{ paddingVertical: SPACING.sm }}>
+                      No field changes recorded
+                    </AppText>
+                  ) : (
+                    fieldEntries.map(([field, pair], i) => (
+                      <DiffRow
+                        key={field}
+                        label={labelFor(field)}
+                        oldValue={formatValue(field, pair.old)}
+                        newValue={formatValue(field, pair.new)}
+                        last={i === fieldEntries.length - 1 && imageEntries.length === 0}
+                      />
+                    ))
+                  )}
+                  {imageEntries.map(([field, pair]) => (
+                    <DiffImageStrip
+                      key={field}
+                      label={labelFor(field)}
+                      oldImages={pair.old || []}
+                      newImages={pair.new || []}
+                      onImagePress={onImagePress}
+                    />
+                  ))}
+                </>
+              ) : (
+                <LegacyVersionRows h={h} t={t} onImagePress={onImagePress} />
+              )}
             </View>
-
-            <HistRow label={t("fullName")} value={h.full_name} />
-            {h.dob ? <HistRow label={t("dob")} value={`${h.dob} (${calcAge(h.dob)} ${t("yearsShort")})`} /> : null}
-            {h.gender ? <HistRow label={t("gender")} value={t(h.gender)} /> : null}
-            <HistRow label={t("area")} value={`${h.area}, ${h.city}`} />
-            <HistRow label={t("experience")} value={`${h.years_experience} ${t("yearsShort")}`} />
-            {h.wage_expectation != null ? <HistRow label={t("wage")} value={`₹${h.wage_expectation} ${t("perMonth")}`} /> : null}
-            {h.current_employer ? <HistRow label={t("currentEmployer")} value={h.current_employer} /> : null}
-            {h.previous_employer ? <HistRow label={t("prevEmployer")} value={h.previous_employer} /> : null}
-            {h.languages && h.languages.length > 0 ? <HistRow label={t("languagesSpoken")} value={h.languages.join(", ")} /> : null}
-            {h.skills && h.skills.length > 0 ? <HistRow label={t("skills")} value={h.skills.join(", ")} /> : null}
-            {h.upi_id ? <HistRow label={t("phonepeGpay")} value={h.upi_id} /> : null}
-            {h.availability_status ? (
-              <HistRow
-                label={t("availability")}
-                value={
-                  h.availability_status === "available_from" && h.available_from
-                    ? `${t("avail_from")} · ${formatDate(h.available_from)}`
-                    : t(aKey(h.availability_status))
-                }
-              />
-            ) : null}
-            {h.verification_status ? <HistRow label={t("statusLabel")} value={t(vKey(h.verification_status))} last /> : null}
-
-            {h.portfolio_images && h.portfolio_images.length > 0 && (
-              <HistImageStrip label={`${t("portfolio")} (${h.portfolio_images.length})`} images={h.portfolio_images} onImagePress={onImagePress} />
-            )}
-            {h.aadhar_images && h.aadhar_images.length > 0 && (
-              <HistImageStrip label={`${t("aadhaarCard")} (${h.aadhar_images.length})`} images={h.aadhar_images} onImagePress={onImagePress} />
-            )}
-            {h.employment_proof_images && h.employment_proof_images.length > 0 && (
-              <HistImageStrip
-                label={`${t("employmentProof")}${h.employment_proof_type ? ` · ${t("proof_" + ({ payslip: "payslip", onsite_photo: "onsite", salary_statement: "salary", appointment_letter: "appointment" } as Record<string, string>)[h.employment_proof_type])}` : ""} (${h.employment_proof_images.length})`}
-                images={h.employment_proof_images}
-                onImagePress={onImagePress}
-              />
-            )}
-          </View>
-        ))}
+          );
+        })}
     </View>
+  );
+}
+
+function DiffRow({ label, oldValue, newValue, last }: { label: string; oldValue: string; newValue: string; last?: boolean }) {
+  return (
+    <View style={[styles.diffRow, !last && styles.histBorder]}>
+      <AppText size="sm" color={COLORS.muted}>{label}</AppText>
+      <View style={{ flexDirection: "row", alignItems: "center", marginTop: 2, flexWrap: "wrap" }}>
+        <AppText size="sm" color={COLORS.error} style={styles.strikethrough}>{oldValue}</AppText>
+        <Ionicons name="arrow-forward" size={12} color={COLORS.muted} style={{ marginHorizontal: 6 }} />
+        <AppText size="sm" weight="semibold" color={COLORS.success}>{newValue}</AppText>
+      </View>
+    </View>
+  );
+}
+
+function DiffImageStrip({
+  label,
+  oldImages,
+  newImages,
+  onImagePress,
+}: {
+  label: string;
+  oldImages: string[];
+  newImages: string[];
+  onImagePress: (uri: string) => void;
+}) {
+  return (
+    <View style={{ marginTop: SPACING.md }}>
+      <AppText size="sm" weight="semibold" color={COLORS.muted} style={{ marginBottom: SPACING.xs }}>
+        {label} ({oldImages.length} → {newImages.length})
+      </AppText>
+      {oldImages.length > 0 && (
+        <>
+          <AppText size="sm" color={COLORS.error} style={{ marginBottom: 4 }}>Before</AppText>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: SPACING.sm, marginBottom: SPACING.sm }}>
+            {oldImages.map((img, i) => (
+              <Pressable key={i} onPress={() => onImagePress(img)}>
+                <Image source={{ uri: img }} style={styles.histThumb} contentFit="cover" />
+              </Pressable>
+            ))}
+          </ScrollView>
+        </>
+      )}
+      {newImages.length > 0 && (
+        <>
+          <AppText size="sm" color={COLORS.success} style={{ marginBottom: 4 }}>After</AppText>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: SPACING.sm }}>
+            {newImages.map((img, i) => (
+              <Pressable key={i} onPress={() => onImagePress(img)}>
+                <Image source={{ uri: img }} style={styles.histThumb} contentFit="cover" />
+              </Pressable>
+            ))}
+          </ScrollView>
+        </>
+      )}
+    </View>
+  );
+}
+
+// Renders history entries saved before the diff-based format existed —
+// these still store the full profile snapshot, not changed_fields.
+function LegacyVersionRows({ h, t, onImagePress }: { h: ProfileVersion; t: (k: string, o?: any) => string; onImagePress: (uri: string) => void }) {
+  return (
+    <>
+      <HistRow label={t("fullName")} value={h.full_name || "—"} />
+      {h.dob ? <HistRow label={t("dob")} value={`${h.dob} (${calcAge(h.dob)} ${t("yearsShort")})`} /> : null}
+      {h.gender ? <HistRow label={t("gender")} value={t(h.gender)} /> : null}
+      {h.area || h.city ? <HistRow label={t("area")} value={`${h.area || "—"}, ${h.city || "—"}`} /> : null}
+      {h.years_experience != null ? <HistRow label={t("experience")} value={`${h.years_experience} ${t("yearsShort")}`} /> : null}
+      {h.wage_expectation != null ? <HistRow label={t("wage")} value={`₹${h.wage_expectation} ${t("perMonth")}`} /> : null}
+      {h.current_employer ? <HistRow label={t("currentEmployer")} value={h.current_employer} /> : null}
+      {h.previous_employer ? <HistRow label={t("prevEmployer")} value={h.previous_employer} /> : null}
+      {h.languages && h.languages.length > 0 ? <HistRow label={t("languagesSpoken")} value={h.languages.join(", ")} /> : null}
+      {h.skills && h.skills.length > 0 ? <HistRow label={t("skills")} value={h.skills.join(", ")} /> : null}
+      {h.upi_id ? <HistRow label={t("phonepeGpay")} value={h.upi_id} /> : null}
+      {h.availability_status ? (
+        <HistRow
+          label={t("availability")}
+          value={
+            h.availability_status === "available_from" && h.available_from
+              ? `${t("avail_from")} · ${formatDate(h.available_from)}`
+              : t(aKey(h.availability_status))
+          }
+        />
+      ) : null}
+      {h.verification_status ? <HistRow label={t("statusLabel")} value={t(vKey(h.verification_status))} last /> : null}
+
+      {h.portfolio_images && h.portfolio_images.length > 0 && (
+        <HistImageStrip label={`${t("portfolio")} (${h.portfolio_images.length})`} images={h.portfolio_images} onImagePress={onImagePress} />
+      )}
+      {h.aadhar_images && h.aadhar_images.length > 0 && (
+        <HistImageStrip label={`${t("aadhaarCard")} (${h.aadhar_images.length})`} images={h.aadhar_images} onImagePress={onImagePress} />
+      )}
+      {h.employment_proof_images && h.employment_proof_images.length > 0 && (
+        <HistImageStrip
+          label={`${t("employmentProof")}${h.employment_proof_type ? ` · ${t("proof_" + ({ payslip: "payslip", onsite_photo: "onsite", salary_statement: "salary", appointment_letter: "appointment" } as Record<string, string>)[h.employment_proof_type])}` : ""} (${h.employment_proof_images.length})`}
+          images={h.employment_proof_images}
+          onImagePress={onImagePress}
+        />
+      )}
+    </>
   );
 }
 
