@@ -1860,11 +1860,24 @@ async def admin_worker_detail(worker_id: str, user: dict = Depends(require_roles
             )
     if result.get("history"):
         hydrated_history = []
+        image_fields = ["portfolio_images", "aadhar_images", "employment_proof_images"]
         for snap in result["history"]:
             snap = dict(snap)
-            for field in ["portfolio_images", "aadhar_images", "employment_proof_images"]:
-                if snap.get(field):
-                    snap[field] = await gridfs_images.hydrate_images(image_bucket, snap[field])
+            if "changed_fields" in snap:
+                changed = dict(snap["changed_fields"])
+                for field in image_fields:
+                    if field in changed:
+                        pair = dict(changed[field])
+                        if pair.get("old"):
+                            pair["old"] = await gridfs_images.hydrate_images(image_bucket, pair["old"])
+                        if pair.get("new"):
+                            pair["new"] = await gridfs_images.hydrate_images(image_bucket, pair["new"])
+                        changed[field] = pair
+                snap["changed_fields"] = changed
+            else:
+                for field in image_fields:
+                    if snap.get(field):
+                        snap[field] = await gridfs_images.hydrate_images(image_bucket, snap[field])
             hydrated_history.append(snap)
         result["history"] = hydrated_history
     code = worker.get("referred_by_code")
