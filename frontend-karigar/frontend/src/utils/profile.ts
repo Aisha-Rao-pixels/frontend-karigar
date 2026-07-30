@@ -1,14 +1,28 @@
 import { COLORS } from "@/src/theme";
 
+export interface ChangedFieldPair<T = any> {
+  old: T;
+  new: T;
+}
+
 export interface ProfileVersion {
-  full_name: string;
+  // New diff-based format: only the fields that actually changed in this
+  // edit, each as an {old, new} pair.
+  changed_fields?: Record<string, ChangedFieldPair>;
+  snapshot_at?: string;
+  archived_at?: string;
+  edited_by?: string;
+
+  // Legacy full-snapshot fields — only present on history entries saved
+  // before the diff-based format was introduced.
+  full_name?: string;
   dob?: string;
-  gender: string;
-  languages: string[];
-  area: string;
-  city: string;
-  skills: string[];
-  years_experience: number;
+  gender?: string;
+  languages?: string[];
+  area?: string;
+  city?: string;
+  skills?: string[];
+  years_experience?: number;
   current_employer?: string | null;
   previous_employer?: string | null;
   wage_expectation?: number | null;
@@ -20,9 +34,6 @@ export interface ProfileVersion {
   availability_status?: string;
   available_from?: string | null;
   verification_status?: string;
-  snapshot_at?: string;
-  archived_at?: string;
-  edited_by?: string;
 }
 
 export interface Worker {
