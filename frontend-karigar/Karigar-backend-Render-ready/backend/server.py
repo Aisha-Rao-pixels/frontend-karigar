@@ -728,13 +728,24 @@ _SNAPSHOT_FIELDS = [
 ]
 
 
-def _make_snapshot(worker: dict, edited_by: str) -> dict:
-    snap = {f: worker.get(f) for f in _SNAPSHOT_FIELDS}
-    snap["snapshot_at"] = worker.get("updated_at") or now_iso()
-    snap["archived_at"] = now_iso()
-    snap["edited_by"] = edited_by
-    return snap
-
+def _make_snapshot(worker: dict, edited_by: str, update: Optional[dict] = None) -> dict:
+    # Only record the fields that actually changed (as old -> new pairs),
+    # instead of dumping the entire ~19-field profile on every edit.
+    changed_fields: dict = {}
+    if update:
+        for f in _SNAPSHOT_FIELDS:
+            if f not in update:
+                continue
+            old_val = worker.get(f)
+            new_val = update.get(f)
+            if old_val != new_val:
+                changed_fields[f] = {"old": old_val, "new": new_val}
+    return {
+        "changed_fields": changed_fields,
+        "snapshot_at": worker.get("updated_at") or now_iso(),
+        "archived_at": now_iso(),
+        "edited_by": edited_by,
+    }
 
 async def _profile_update_fields(payload: WorkerProfilePayload, worker: dict) -> dict:
     img_meta = {"phone": worker.get("phone", "")}
