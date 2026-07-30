@@ -488,6 +488,22 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
   },
   queueIcon: { width: 48, height: 48, borderRadius: RADIUS.md, alignItems: "center", justifyContent: "center" },
+  resetAlert: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: SPACING.md,
+    backgroundColor: COLORS.error,
+    borderRadius: RADIUS.lg,
+    padding: SPACING.lg,
+    marginHorizontal: SPACING.lg,
+    marginTop: SPACING.sm,
+    marginBottom: SPACING.md,
+  },
+  resetAlertIcon: {
+    width: 44, height: 44, borderRadius: RADIUS.md,
+    backgroundColor: "rgba(255,255,255,0.2)",
+    alignItems: "center", justifyContent: "center",
+  },
   summaryBtn: {
     flexDirection: "row",
     alignItems: "center",
