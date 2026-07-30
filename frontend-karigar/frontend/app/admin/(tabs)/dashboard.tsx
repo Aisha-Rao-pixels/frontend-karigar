@@ -357,6 +357,29 @@ export default function AdminDashboard() {
           />
         </Panel>
 
+        {/* Password reset alert — impossible to miss when there's a pending request */}
+        {pendingResets > 0 && (
+          <Pressable
+            onPress={() => router.push("/admin/password-reset-requests")}
+            testID="password-reset-alert-banner"
+            style={({ pressed }) => [
+              styles.resetAlert,
+              { transform: [{ scale: pressed ? 0.98 : 1 }] },
+            ]}
+          >
+            <View style={styles.resetAlertIcon}>
+              <Ionicons name="key" size={22} color="#fff" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <AppText weight="bold" color="#fff">
+                {pendingResets} password reset {pendingResets === 1 ? "request" : "requests"} awaiting your call
+              </AppText>
+              <AppText size="sm" color="rgba(255,255,255,0.85)">Tap to view and verify</AppText>
+            </View>
+            <Ionicons name="chevron-forward" size={22} color="#fff" />
+          </Pressable>
+        )}
+
         {/* Verification queue CTA */}
         <Pressable
           onPress={() => router.push("/admin/verify")}
