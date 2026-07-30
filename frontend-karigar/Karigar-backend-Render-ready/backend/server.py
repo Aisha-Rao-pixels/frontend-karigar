@@ -383,10 +383,11 @@ async def forgot_password_request(payload: ForgotPasswordRequestPayload):
     if not user:
         raise HTTPException(status_code=404, detail="No account found with this mobile number")
 
-    # Code is shown directly on-screen (not sent via SMS) — many of our
-    # users are wary of sharing OTPs due to phishing scams, and some are
-    # not comfortable with the SMS-OTP flow at all. Displaying it in-app
-    # keeps the same "enter the code" pattern without any real OTP delivery.
+    # The code is no longer shown to whoever is typing on this screen — that
+    # let anyone request a reset using a stranger's mobile number and get
+    # full account access (Aadhaar, portfolio photos, etc). Instead the code
+    # is generated and queued for an admin, who calls the actual number to
+    # verify identity before reading the code out over the phone.
     code = "".join(random.choices(string.digits, k=6))
     expires_at = (datetime.now(timezone.utc) + timedelta(minutes=10)).isoformat()
     await db.password_resets.update_one(
@@ -394,7 +395,19 @@ async def forgot_password_request(payload: ForgotPasswordRequestPayload):
         {"$set": {"phone": phone, "code": code, "expires_at": expires_at, "created_at": now_iso()}},
         upsert=True,
     )
-    return {"phone": phone, "code": code, "expires_in_minutes": 10}
+    await db.password_reset_requests.insert_one({
+        "id": new_id(),
+        "phone": phone,
+        "code": code,
+        "status": "pending",
+        "created_at": now_iso(),
+        "resolved_at": None,
+    })
+    return {
+        "phone": phone,
+        "queued": True,
+        "message": "Your request has been sent to admin. They will call you to verify your identity and give you the code.",
+    }
 
 
 @api_router.post("/auth/forgot-password/reset")
