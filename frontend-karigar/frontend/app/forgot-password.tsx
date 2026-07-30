@@ -17,7 +17,11 @@ import { AppText, Button } from "@/src/components/ui";
 import { useToast } from "@/src/components/Toast";
 import { apiFetch, ApiError } from "@/src/api/client";
 
-type Stage = "phone" | "code" | "password";
+// Stages:
+// "phone"  -> worker enters their mobile number, request gets queued for admin
+// "verify" -> admin has called and read out the code over the phone; worker
+//             enters that code + their new password in one step
+type Stage = "phone" | "verify";
 
 export default function ForgotPasswordScreen() {
   const router = useRouter();
@@ -29,7 +33,6 @@ export default function ForgotPasswordScreen() {
 
   const [stage, setStage] = useState<Stage>("phone");
   const [phone, setPhone] = useState("");
-  const [generatedCode, setGeneratedCode] = useState("");
   const [enteredCode, setEnteredCode] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -52,14 +55,13 @@ export default function ForgotPasswordScreen() {
     }
     setLoading(true);
     try {
-      const res = await apiFetch<{ code: string }>("/auth/forgot-password/request", {
+      await apiFetch("/auth/forgot-password/request", {
         method: "POST",
         body: { phone: trimmedPhone },
         auth: false,
       });
-      setGeneratedCode(res.code);
       setEnteredCode("");
-      setStage("code");
+      setStage("verify");
     } catch (e: any) {
       show(e instanceof ApiError ? e.message : "Something went wrong", "error");
     } finally {
@@ -67,19 +69,11 @@ export default function ForgotPasswordScreen() {
     }
   };
 
-  const verifyCode = () => {
-    if (enteredCode.trim().length !== 6) {
-      show("Please enter the 6-digit code shown above", "error");
-      return;
-    }
-    if (enteredCode.trim() !== generatedCode) {
-      show("That code doesn't match. Please try again.", "error");
-      return;
-    }
-    setStage("password");
-  };
-
   const submitNewPassword = async () => {
+    if (enteredCode.trim().length !== 6) {
+      show("Please enter the 6-digit code the admin gave you", "error");
+      return;
+    }
     if (newPassword.length < 6) {
       show("Password must be at least 6 characters", "error");
       return;
@@ -107,10 +101,8 @@ export default function ForgotPasswordScreen() {
   const handleBack = () => {
     if (stage === "phone") {
       router.replace(loginPath as any);
-    } else if (stage === "code") {
-      setStage("phone");
     } else {
-      setStage("code");
+      setStage("phone");
     }
   };
 
@@ -157,18 +149,17 @@ export default function ForgotPasswordScreen() {
           </>
         )}
 
-        {stage === "code" && (
+        {stage === "verify" && (
           <>
-            <AppText size="base" color={COLORS.muted} style={{ marginTop: 6, marginBottom: SPACING["2xl"] }}>
-              Here is your verification code. Enter it below to confirm it's you.
-            </AppText>
-            <View style={styles.codeDisplay} testID="forgot-password-generated-code">
-              <AppText weight="bold" size="2xl" style={styles.codeDisplayText}>
-                {generatedCode}
+            <View style={styles.waitingBanner} testID="forgot-password-waiting-banner">
+              <Ionicons name="call-outline" size={20} color={COLORS.brandPrimary} />
+              <AppText size="sm" style={{ flex: 1, marginLeft: SPACING.sm }}>
+                Your request has been sent to admin. They will call you at +91 {phone} to verify your identity and
+                read you the code. Enter it below along with your new password.
               </AppText>
             </View>
-            <View style={{ height: SPACING.lg }} />
-            <AppText weight="semibold" style={{ marginBottom: SPACING.sm }}>Enter the code above</AppText>
+
+            <AppText weight="semibold" style={{ marginBottom: SPACING.sm, marginTop: SPACING.lg }}>Code from admin</AppText>
             <TextInput
               testID="forgot-password-code-input"
               value={enteredCode}
@@ -179,17 +170,8 @@ export default function ForgotPasswordScreen() {
               maxLength={6}
               style={styles.codeInput}
             />
-            <View style={{ height: SPACING.xl }} />
-            <Button title="Verify Code" onPress={verifyCode} icon="checkmark" testID="forgot-password-verify-btn" />
-          </>
-        )}
 
-        {stage === "password" && (
-          <>
-            <AppText size="base" color={COLORS.muted} style={{ marginTop: 6, marginBottom: SPACING["2xl"] }}>
-              Choose a new password for your account
-            </AppText>
-            <AppText weight="semibold" style={{ marginBottom: SPACING.sm }}>New Password</AppText>
+            <AppText weight="semibold" style={{ marginBottom: SPACING.sm, marginTop: SPACING.lg }}>New Password</AppText>
             <View style={styles.pwdRow}>
               <TextInput
                 testID="forgot-password-new-password-input"
@@ -260,16 +242,15 @@ const styles = StyleSheet.create({
     color: COLORS.onSurface,
     backgroundColor: COLORS.surfaceSecondary,
   },
-  codeDisplay: {
-    height: 72,
+  waitingBanner: {
+    flexDirection: "row",
+    alignItems: "flex-start",
     borderRadius: RADIUS.md,
     backgroundColor: COLORS.brandPrimary + "12",
     borderWidth: 1,
     borderColor: COLORS.brandPrimary + "33",
-    alignItems: "center",
-    justifyContent: "center",
+    padding: SPACING.md,
   },
-  codeDisplayText: { letterSpacing: 8, color: COLORS.brandPrimary },
   codeInput: {
     height: 52,
     borderWidth: 1,
