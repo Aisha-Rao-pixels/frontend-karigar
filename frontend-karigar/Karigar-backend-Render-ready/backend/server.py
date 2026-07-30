@@ -1940,7 +1940,7 @@ async def admin_quick_edit_worker(worker_id: str, payload: WorkerQuickEditPayloa
         raise HTTPException(status_code=400, detail="No changes provided")
 
     update["updated_at"] = now_iso()
-    snapshot = _make_snapshot(worker, edited_by="admin")
+    snapshot = _make_snapshot(worker, edited_by="admin", update=update)
     await db.workers.update_one(
         {"id": worker_id},
         {"$set": update, "$push": {"history": snapshot}},
