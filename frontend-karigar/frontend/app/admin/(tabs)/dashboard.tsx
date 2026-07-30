@@ -57,6 +57,7 @@ export default function AdminDashboard() {
   const [sendingEmail, setSendingEmail] = useState(false);
   const [emailStatus, setEmailStatus] = useState<"idle" | "success" | "error">("idle");
   const [trendPeriod, setTrendPeriod] = useState<TrendPeriod>("day");
+  const [pendingResets, setPendingResets] = useState(0);
 
   const sendSummaryEmail = async () => {
     setSendingEmail(true);
