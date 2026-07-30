@@ -430,6 +430,8 @@ const styles = StyleSheet.create({
   histTop: { flexDirection: "row", alignItems: "center", gap: SPACING.sm, marginBottom: SPACING.xs },
   editedByPill: { paddingHorizontal: SPACING.sm, paddingVertical: 2, borderRadius: RADIUS.sm, backgroundColor: COLORS.brandTertiary },
   histRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingVertical: 6 },
+  diffRow: { paddingVertical: 6 },
+  strikethrough: { textDecorationLine: "line-through" },
   histBorder: { borderBottomWidth: 1, borderBottomColor: COLORS.divider },
   histThumb: { width: 110, height: 110, borderRadius: RADIUS.md, backgroundColor: COLORS.surfaceTertiary },
   refRow: { flexDirection: "row", alignItems: "center", gap: SPACING.md },
