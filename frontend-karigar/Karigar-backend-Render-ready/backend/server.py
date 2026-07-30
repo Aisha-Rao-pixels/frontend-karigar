@@ -950,6 +950,16 @@ async def update_my_profile(payload: WorkerProfilePayload, user: dict = Depends(
     worker = await db.workers.find_one({"phone": user["phone"]})
     if not worker:
         raise HTTPException(status_code=404, detail="Profile not found")
+
+    # Workers may only self-edit their profile a limited number of times.
+    # Admin edits don't count against this — only the worker's own edits do.
+    edit_count = worker.get("edit_count", 0)
+    if edit_count >= 3:
+        raise HTTPException(
+            status_code=403,
+            detail="You have reached the maximum of 3 profile edits. Please contact admin if you need further changes.",
+        )
+
     duplicate_flags = await _run_duplicate_checks(payload, user["phone"], exclude_worker_id=worker["id"])
     update = await _profile_update_fields(payload, worker)
     update["duplicate_flags"] = duplicate_flags
@@ -957,7 +967,8 @@ async def update_my_profile(payload: WorkerProfilePayload, user: dict = Depends(
     update["verified_by"] = None
     update["verified_at"] = None
     update["rejection_reason"] = None
-    snapshot = _make_snapshot(worker, edited_by="worker")
+    update["edit_count"] = edit_count + 1
+    snapshot = _make_snapshot(worker, edited_by="worker", update=update)
     await db.workers.update_one(
         {"id": worker["id"]},
         {"$set": update, "$push": {"history": snapshot}},
