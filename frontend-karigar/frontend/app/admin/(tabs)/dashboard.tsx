@@ -82,6 +82,11 @@ export default function AdminDashboard() {
       setLoading(false);
       setRefreshing(false);
     }
+    try {
+      const resets = await apiFetch<{ pending: number }>("/admin/password-reset-requests/pending-count");
+      setPendingResets(resets.pending);
+    } catch {
+    }
   }, [trendPeriod]);
 
   useFocusEffect(
