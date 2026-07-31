@@ -441,6 +441,7 @@ const styles = StyleSheet.create({
   strikethrough: { textDecorationLine: "line-through" },
   histBorder: { borderBottomWidth: 1, borderBottomColor: COLORS.divider },
   histThumb: { width: 110, height: 110, borderRadius: RADIUS.md, backgroundColor: COLORS.surfaceTertiary },
+  histThumbSmall: { width: 72, height: 72, borderRadius: RADIUS.md, backgroundColor: COLORS.surfaceTertiary },
   refRow: { flexDirection: "row", alignItems: "center", gap: SPACING.md },
   viewerBackdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.92)", alignItems: "center", justifyContent: "center", padding: SPACING.lg },
   viewerClose: { position: "absolute", top: 48, right: SPACING.lg, width: 44, height: 44, borderRadius: 22, backgroundColor: "rgba(255,255,255,0.15)", alignItems: "center", justifyContent: "center", zIndex: 2 },
