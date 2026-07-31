@@ -22,9 +22,23 @@ const AnimatedImage = Animated.createAnimatedComponent(Image);
 function aKey(s: string) { return s === "available_now" ? "avail_now" : s === "available_from" ? "avail_from" : "avail_no"; }
 function vKey(s: string) { return s === "approved" ? "verified" : s === "pending" ? "pending" : "rejected"; }
 
-export default function WorkerDetail({ worker, contentBottom = 40 }: { worker: Worker; contentBottom?: number }) {
+interface ViewerTarget {
+  uri: string;
+  field?: "portfolio_images" | "aadhar_images" | "employment_proof_images";
+  index?: number;
+}
+
+export default function WorkerDetail({
+  worker,
+  contentBottom = 40,
+  onWorkerUpdated,
+}: {
+  worker: Worker;
+  contentBottom?: number;
+  onWorkerUpdated?: (w: Worker) => void;
+}) {
   const { t } = useTranslation();
-  const [viewer, setViewer] = React.useState<string | null>(null);
+  const [viewer, setViewer] = React.useState<ViewerTarget | null>(null);
   const availLabel = worker.availability_status === "available_from" && worker.available_from
     ? `${t("avail_from")} · ${formatDate(worker.available_from)}`
     : t(aKey(worker.availability_status));
