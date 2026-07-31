@@ -250,17 +250,16 @@ function VersionHistory({ history, onImagePress }: { history: ProfileVersion[]; 
                     <AppText size="sm" color={COLORS.muted} style={{ paddingVertical: SPACING.sm }}>
                       No field changes recorded
                     </AppText>
-                  ) : (
-                    fieldEntries.map(([field, pair], i) => (
-                      <DiffRow
-                        key={field}
-                        label={labelFor(field)}
-                        oldValue={formatValue(field, pair.old)}
-                        newValue={formatValue(field, pair.new)}
-                        last={i === fieldEntries.length - 1 && imageEntries.length === 0}
-                      />
-                    ))
-                  )}
+                  ) : fieldEntries.length > 0 ? (
+                    <DiffTable
+                      rows={fieldEntries.map(([field, pair]) => ({
+                        field,
+                        label: labelFor(field),
+                        oldValue: formatValue(field, pair.old),
+                        newValue: formatValue(field, pair.new),
+                      }))}
+                    />
+                  ) : null}
                   {imageEntries.map(([field, pair]) => (
                     <DiffImageStrip
                       key={field}
@@ -281,15 +280,21 @@ function VersionHistory({ history, onImagePress }: { history: ProfileVersion[]; 
   );
 }
 
-function DiffRow({ label, oldValue, newValue, last }: { label: string; oldValue: string; newValue: string; last?: boolean }) {
+function DiffTable({ rows }: { rows: { field: string; label: string; oldValue: string; newValue: string }[] }) {
   return (
-    <View style={[styles.diffRow, !last && styles.histBorder]}>
-      <AppText size="sm" color={COLORS.muted}>{label}</AppText>
-      <View style={{ flexDirection: "row", alignItems: "center", marginTop: 2, flexWrap: "wrap" }}>
-        <AppText size="sm" color={COLORS.error} style={styles.strikethrough}>{oldValue}</AppText>
-        <Ionicons name="arrow-forward" size={12} color={COLORS.muted} style={{ marginHorizontal: 6 }} />
-        <AppText size="sm" weight="semibold" color={COLORS.success}>{newValue}</AppText>
+    <View style={styles.diffTable}>
+      <View style={styles.diffTableHeaderRow}>
+        <AppText size="sm" weight="bold" color={COLORS.muted} style={styles.diffColField}>Field</AppText>
+        <AppText size="sm" weight="bold" color={COLORS.muted} style={styles.diffColValue}>Before</AppText>
+        <AppText size="sm" weight="bold" color={COLORS.muted} style={styles.diffColValue}>After</AppText>
       </View>
+      {rows.map((r, i) => (
+        <View key={r.field} style={[styles.diffTableRow, i !== rows.length - 1 && styles.histBorder]}>
+          <AppText size="sm" color={COLORS.onSurface} style={styles.diffColField}>{r.label}</AppText>
+          <AppText size="sm" color={COLORS.error} style={[styles.diffColValue, styles.strikethrough]}>{r.oldValue}</AppText>
+          <AppText size="sm" weight="semibold" color={COLORS.success} style={styles.diffColValue}>{r.newValue}</AppText>
+        </View>
+      ))}
     </View>
   );
 }
