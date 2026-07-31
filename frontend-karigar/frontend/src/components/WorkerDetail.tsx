@@ -1,11 +1,21 @@
 import React from "react";
-import { View, StyleSheet, ScrollView, Pressable, Modal } from "react-native";
+import { View, StyleSheet, ScrollView, Pressable, Modal, Image as RNImage, ActivityIndicator } from "react-native";
 import { Image } from "expo-image";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
+  runOnJS,
+} from "react-native-reanimated";
+import * as ImageManipulator from "expo-image-manipulator";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { COLORS, SPACING, RADIUS } from "@/src/theme";
 import { AppText, Avatar, StatusBadge, Card } from "@/src/components/ui";
 import { Worker, ProfileVersion, availabilityColor, verificationColor, calcAge, formatDate } from "@/src/utils/profile";
+
+const AnimatedImage = Animated.createAnimatedComponent(Image);
 
 function aKey(s: string) { return s === "available_now" ? "avail_now" : s === "available_from" ? "avail_from" : "avail_no"; }
 function vKey(s: string) { return s === "approved" ? "verified" : s === "pending" ? "pending" : "rejected"; }
