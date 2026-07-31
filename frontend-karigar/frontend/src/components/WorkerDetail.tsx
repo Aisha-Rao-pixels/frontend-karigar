@@ -153,14 +153,198 @@ export default function WorkerDetail({ worker, contentBottom = 40 }: { worker: W
 }
 
 function ImageViewer({ uri, onClose }: { uri: string | null; onClose: () => void }) {
+  const scale = useSharedValue(1);
+  const savedScale = useSharedValue(1);
+  const translateX = useSharedValue(0);
+  const translateY = useSharedValue(0);
+  const savedTranslateX = useSharedValue(0);
+  const savedTranslateY = useSharedValue(0);
+  const rotation = useSharedValue(0);
+
+  const [containerSize, setContainerSize] = React.useState({ width: 0, height: 0 });
+  const [naturalSize, setNaturalSize] = React.useState<{ width: number; height: number } | null>(null);
+  const [croppedUri, setCroppedUri] = React.useState<string | null>(null);
+  const [busy, setBusy] = React.useState(false);
+
+  const displaySource = croppedUri || uri;
+
+  const resetTransform = React.useCallback(() => {
+    scale.value = withTiming(1);
+    translateX.value = withTiming(0);
+    translateY.value = withTiming(0);
+    rotation.value = withTiming(0);
+    savedScale.value = 1;
+    savedTranslateX.value = 0;
+    savedTranslateY.value = 0;
+  }, []);
+
+  React.useEffect(() => {
+    setCroppedUri(null);
+    setNaturalSize(null);
+    resetTransform();
+    if (uri) {
+      RNImage.getSize(
+        uri,
+        (w, h) => setNaturalSize({ width: w, height: h }),
+        () => setNaturalSize(null)
+      );
+    }
+  }, [uri]);
+
+  const pinchGesture = Gesture.Pinch()
+    .onUpdate((e) => {
+      scale.value = Math.max(1, savedScale.value * e.scale);
+    })
+    .onEnd(() => {
+      savedScale.value = scale.value;
+    });
+
+  const panGesture = Gesture.Pan()
+    .onUpdate((e) => {
+      translateX.value = savedTranslateX.value + e.translationX;
+      translateY.value = savedTranslateY.value + e.translationY;
+    })
+    .onEnd(() => {
+      savedTranslateX.value = translateX.value;
+      savedTranslateY.value = translateY.value;
+    });
+
+  const doubleTap = Gesture.Tap()
+    .numberOfTaps(2)
+    .onEnd(() => {
+      if (scale.value > 1) {
+        scale.value = withTiming(1);
+        translateX.value = withTiming(0);
+        translateY.value = withTiming(0);
+        savedScale.value = 1;
+        savedTranslateX.value = 0;
+        savedTranslateY.value = 0;
+      } else {
+        scale.value = withTiming(2.5);
+        savedScale.value = 2.5;
+      }
+    });
+
+  const composedGesture = Gesture.Race(doubleTap, Gesture.Simultaneous(pinchGesture, panGesture));
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [
+      { translateX: translateX.value },
+      { translateY: translateY.value },
+      { scale: scale.value },
+      { rotate: `${rotation.value}deg` },
+    ],
+  }));
+
+  const rotate = () => {
+    rotation.value = withTiming((((rotation.value + 90) % 360) + 360) % 360);
+  };
+
+  const handleCrop = async () => {
+    if (!uri || !naturalSize || !containerSize.width || !containerSize.height) return;
+    setBusy(true);
+    try {
+      const s = scale.value;
+      const tx = translateX.value;
+      const ty = translateY.value;
+      const fitScale = Math.min(containerSize.width / naturalSize.width, containerSize.height / naturalSize.height);
+      const displayedWidth = naturalSize.width * fitScale * s;
+      const displayedHeight = naturalSize.height * fitScale * s;
+      const imgLeft = containerSize.width / 2 - displayedWidth / 2 + tx;
+      const imgTop = containerSize.height / 2 - displayedHeight / 2 + ty;
+
+      const visLeft = Math.max(0, -imgLeft);
+      const visTop = Math.max(0, -imgTop);
+      const visRight = Math.min(displayedWidth, containerSize.width - imgLeft);
+      const visBottom = Math.min(displayedHeight, containerSize.height - imgTop);
+
+      const effScale = fitScale * s;
+      const cropX = visLeft / effScale;
+      const cropY = visTop / effScale;
+      const cropW = (visRight - visLeft) / effScale;
+      const cropH = (visBottom - visTop) / effScale;
+      if (cropW <= 4 || cropH <= 4) return;
+
+      const actions: any[] = [];
+      if (rotation.value % 360 !== 0) actions.push({ rotate: rotation.value });
+      actions.push({
+        crop: {
+          originX: Math.round(cropX),
+          originY: Math.round(cropY),
+          width: Math.round(cropW),
+          height: Math.round(cropH),
+        },
+      });
+      const result = await ImageManipulator.manipulateAsync(uri, actions, {
+        compress: 1,
+        format: ImageManipulator.SaveFormat.JPEG,
+      });
+      setCroppedUri(result.uri);
+      resetTransform();
+    } catch {
+      // Cropping failed silently — the admin can just keep using zoom/pan instead.
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const restoreOriginal = () => {
+    setCroppedUri(null);
+    setNaturalSize(null);
+    resetTransform();
+    if (uri) {
+      RNImage.getSize(uri, (w, h) => setNaturalSize({ width: w, height: h }), () => setNaturalSize(null));
+    }
+  };
+
   return (
     <Modal visible={!!uri} transparent animationType="fade" onRequestClose={onClose}>
-      <Pressable style={styles.viewerBackdrop} onPress={onClose} testID="image-viewer-backdrop">
+      <View style={styles.viewerBackdrop}>
         <Pressable style={styles.viewerClose} onPress={onClose} testID="image-viewer-close">
           <Ionicons name="close" size={28} color="#fff" />
         </Pressable>
-        {!!uri && <Image source={{ uri }} style={styles.viewerImage} contentFit="contain" />}
-      </Pressable>
+
+        <View
+          style={styles.viewerGestureArea}
+          onLayout={(e) => setContainerSize({ width: e.nativeEvent.layout.width, height: e.nativeEvent.layout.height })}
+        >
+          {!!displaySource && (
+            <GestureDetector gesture={composedGesture}>
+              <AnimatedImage source={{ uri: displaySource }} style={[styles.viewerImage, animatedStyle]} contentFit="contain" />
+            </GestureDetector>
+          )}
+          {busy && (
+            <View style={styles.viewerBusyOverlay}>
+              <ActivityIndicator color="#fff" size="large" />
+            </View>
+          )}
+        </View>
+
+        <AppText size="sm" color="rgba(255,255,255,0.6)" style={{ textAlign: "center", marginBottom: SPACING.sm }}>
+          Pinch or double-tap to zoom · drag to pan
+        </AppText>
+
+        <View style={styles.viewerToolbar}>
+          <Pressable style={styles.viewerToolBtn} onPress={resetTransform} testID="image-viewer-reset" disabled={busy}>
+            <Ionicons name="scan-outline" size={20} color="#fff" />
+            <AppText size="sm" color="#fff">Reset</AppText>
+          </Pressable>
+          <Pressable style={styles.viewerToolBtn} onPress={rotate} testID="image-viewer-rotate" disabled={busy}>
+            <Ionicons name="reload-outline" size={20} color="#fff" />
+            <AppText size="sm" color="#fff">Rotate</AppText>
+          </Pressable>
+          <Pressable style={styles.viewerToolBtn} onPress={handleCrop} testID="image-viewer-crop" disabled={busy}>
+            <Ionicons name="crop-outline" size={20} color="#fff" />
+            <AppText size="sm" color="#fff">Crop to view</AppText>
+          </Pressable>
+          {croppedUri && (
+            <Pressable style={styles.viewerToolBtn} onPress={restoreOriginal} testID="image-viewer-restore" disabled={busy}>
+              <Ionicons name="arrow-undo-outline" size={20} color="#fff" />
+              <AppText size="sm" color="#fff">Original</AppText>
+            </Pressable>
+          )}
+        </View>
+      </View>
     </Modal>
   );
 }
