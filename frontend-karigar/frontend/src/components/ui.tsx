@@ -584,6 +584,16 @@ const styles = StyleSheet.create({
     color: COLORS.onSurface,
     backgroundColor: COLORS.surfaceSecondary,
   },
+  inputFocused: {
+    borderColor: COLORS.brandPrimary,
+    borderWidth: 2,
+    paddingHorizontal: SPACING.md - 1,
+    shadowColor: COLORS.brandPrimary,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 1,
+  },
   metricCard: {
     flex: 1,
     backgroundColor: COLORS.surfaceSecondary,
