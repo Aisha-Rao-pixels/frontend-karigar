@@ -119,7 +119,7 @@ export default function WorkerDetail({
           <AppText weight="semibold" style={{ marginBottom: SPACING.sm }}>{t("portfolio")}</AppText>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: SPACING.sm }}>
             {worker.portfolio_images.map((img, i) => (
-              <Pressable key={i} onPress={() => setViewer(img)} testID={`portfolio-img-${i}`}>
+              <Pressable key={i} onPress={() => setViewer({ uri: img, field: "portfolio_images", index: i })} testID={`portfolio-img-${i}`}>
                 <Image source={{ uri: img }} style={styles.portfolio} contentFit="cover" />
               </Pressable>
             ))}
@@ -137,7 +137,7 @@ export default function WorkerDetail({
               </AppText>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: SPACING.sm }}>
                 {worker.aadhar_images.map((img, i) => (
-                  <Pressable key={i} onPress={() => setViewer(img)} testID={`aadhaar-img-${i}`}>
+                  <Pressable key={i} onPress={() => setViewer({ uri: img, field: "aadhar_images", index: i })} testID={`aadhaar-img-${i}`}>
                     <Image source={{ uri: img }} style={styles.docThumb} contentFit="cover" />
                   </Pressable>
                 ))}
@@ -151,7 +151,7 @@ export default function WorkerDetail({
               </AppText>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: SPACING.sm }}>
                 {worker.employment_proof_images.map((img, i) => (
-                  <Pressable key={i} onPress={() => setViewer(img)} testID={`proof-img-${i}`}>
+                  <Pressable key={i} onPress={() => setViewer({ uri: img, field: "employment_proof_images", index: i })} testID={`proof-img-${i}`}>
                     <Image source={{ uri: img }} style={styles.docThumb} contentFit="cover" />
                   </Pressable>
                 ))}
@@ -161,14 +161,28 @@ export default function WorkerDetail({
         </View>
       )}
 
-      {worker.history && worker.history.length > 0 && <VersionHistory history={worker.history} onImagePress={setViewer} />}
+      {worker.history && worker.history.length > 0 && <VersionHistory history={worker.history} onImagePress={(uri) => setViewer({ uri })} />}
 
-      <ImageViewer uri={viewer} onClose={() => setViewer(null)} />
+      <ImageViewer target={viewer} workerId={worker.id} onClose={() => setViewer(null)} onSaved={onWorkerUpdated} />
     </ScrollView>
   );
 }
 
-function ImageViewer({ uri, onClose }: { uri: string | null; onClose: () => void }) {
+function ImageViewer({
+  target,
+  workerId,
+  onClose,
+  onSaved,
+}: {
+  target: ViewerTarget | null;
+  workerId?: string;
+  onClose: () => void;
+  onSaved?: (w: Worker) => void;
+}) {
+  const { show } = useToast();
+  const uri = target?.uri || null;
+  const canSave = !!(target?.field && target.index != null && workerId);
+
   const scale = useSharedValue(1);
   const savedScale = useSharedValue(1);
   const translateX = useSharedValue(0);
@@ -179,10 +193,13 @@ function ImageViewer({ uri, onClose }: { uri: string | null; onClose: () => void
 
   const [containerSize, setContainerSize] = React.useState({ width: 0, height: 0 });
   const [naturalSize, setNaturalSize] = React.useState<{ width: number; height: number } | null>(null);
-  const [croppedUri, setCroppedUri] = React.useState<string | null>(null);
+  const [editedUri, setEditedUri] = React.useState<string | null>(null); // display uri (may be local file://)
+  const [editedDataUrl, setEditedDataUrl] = React.useState<string | null>(null); // base64 data-url, ready to save
+  const [hasRotated, setHasRotated] = React.useState(false);
   const [busy, setBusy] = React.useState(false);
 
-  const displaySource = croppedUri || uri;
+  const displaySource = editedUri || uri;
+  const hasEdits = !!editedUri || hasRotated;
 
   const resetTransform = React.useCallback(() => {
     scale.value = withTiming(1);
@@ -195,7 +212,9 @@ function ImageViewer({ uri, onClose }: { uri: string | null; onClose: () => void
   }, []);
 
   React.useEffect(() => {
-    setCroppedUri(null);
+    setEditedUri(null);
+    setEditedDataUrl(null);
+    setHasRotated(false);
     setNaturalSize(null);
     resetTransform();
     if (uri) {
@@ -254,6 +273,7 @@ function ImageViewer({ uri, onClose }: { uri: string | null; onClose: () => void
 
   const rotate = () => {
     rotation.value = withTiming((((rotation.value + 90) % 360) + 360) % 360);
+    setHasRotated(true);
   };
 
   const handleCrop = async () => {
@@ -294,22 +314,56 @@ function ImageViewer({ uri, onClose }: { uri: string | null; onClose: () => void
       const result = await ImageManipulator.manipulateAsync(uri, actions, {
         compress: 1,
         format: ImageManipulator.SaveFormat.JPEG,
+        base64: true,
       });
-      setCroppedUri(result.uri);
+      setEditedUri(result.uri);
+      setEditedDataUrl(`data:image/jpeg;base64,${result.base64}`);
+      setHasRotated(false);
       resetTransform();
     } catch {
-      // Cropping failed silently — the admin can just keep using zoom/pan instead.
+      show("Could not crop that image — try again", "error");
     } finally {
       setBusy(false);
     }
   };
 
   const restoreOriginal = () => {
-    setCroppedUri(null);
+    setEditedUri(null);
+    setEditedDataUrl(null);
+    setHasRotated(false);
     setNaturalSize(null);
     resetTransform();
     if (uri) {
       RNImage.getSize(uri, (w, h) => setNaturalSize({ width: w, height: h }), () => setNaturalSize(null));
+    }
+  };
+
+  const handleSave = async () => {
+    if (!canSave || !target?.field || target.index == null || !workerId || !uri) return;
+    setBusy(true);
+    try {
+      let finalDataUrl = editedDataUrl;
+      if (!finalDataUrl && hasRotated) {
+        // Rotated but never tapped "Crop to view" — bake the rotation in now.
+        const result = await ImageManipulator.manipulateAsync(uri, [{ rotate: rotation.value }], {
+          compress: 1,
+          format: ImageManipulator.SaveFormat.JPEG,
+          base64: true,
+        });
+        finalDataUrl = `data:image/jpeg;base64,${result.base64}`;
+      }
+      if (!finalDataUrl) return;
+      const updated = await apiFetch<Worker>(`/admin/workers/${workerId}/replace-image`, {
+        method: "PATCH",
+        body: { field: target.field, index: target.index, image: finalDataUrl },
+      });
+      onSaved?.(updated);
+      show("Image updated", "success");
+      onClose();
+    } catch (e: any) {
+      show(e?.message || "Could not save the edited image", "error");
+    } finally {
+      setBusy(false);
     }
   };
 
@@ -353,13 +407,27 @@ function ImageViewer({ uri, onClose }: { uri: string | null; onClose: () => void
             <Ionicons name="crop-outline" size={20} color="#fff" />
             <AppText size="sm" color="#fff">Crop to view</AppText>
           </Pressable>
-          {croppedUri && (
+          {editedUri && (
             <Pressable style={styles.viewerToolBtn} onPress={restoreOriginal} testID="image-viewer-restore" disabled={busy}>
               <Ionicons name="arrow-undo-outline" size={20} color="#fff" />
               <AppText size="sm" color="#fff">Original</AppText>
             </Pressable>
           )}
         </View>
+
+        {canSave && (
+          <Pressable
+            style={[styles.viewerSaveBtn, !hasEdits && styles.viewerSaveBtnDisabled]}
+            onPress={handleSave}
+            disabled={busy || !hasEdits}
+            testID="image-viewer-save"
+          >
+            <Ionicons name="save-outline" size={18} color="#fff" />
+            <AppText weight="semibold" color="#fff" style={{ marginLeft: 6 }}>
+              {hasEdits ? "Save changes" : "No changes to save"}
+            </AppText>
+          </Pressable>
+        )}
       </View>
     </Modal>
   );
@@ -660,4 +728,14 @@ const styles = StyleSheet.create({
   viewerBusyOverlay: { ...StyleSheet.absoluteFillObject, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(0,0,0,0.4)" },
   viewerToolbar: { flexDirection: "row", gap: SPACING.lg, justifyContent: "center", flexWrap: "wrap" },
   viewerToolBtn: { alignItems: "center", gap: 4, paddingHorizontal: SPACING.sm, paddingVertical: SPACING.xs },
+  viewerSaveBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: COLORS.success,
+    borderRadius: RADIUS.md,
+    paddingVertical: SPACING.md,
+    marginTop: SPACING.lg,
+  },
+  viewerSaveBtnDisabled: { backgroundColor: COLORS.surfaceTertiary },
 });
