@@ -288,6 +288,7 @@ export function Field({
   testID?: string;
   autoCapitalize?: "none" | "words" | "sentences";
 }) {
+  const [focused, setFocused] = React.useState(false);
   return (
     <View style={{ marginBottom: SPACING.lg }}>
       <View style={{ flexDirection: "row", marginBottom: SPACING.xs, alignItems: "center" }}>
@@ -308,8 +309,12 @@ export function Field({
         multiline={multiline}
         maxLength={maxLength}
         autoCapitalize={autoCapitalize}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
         style={[
           styles.input,
+          Platform.OS === "web" && ({ outlineStyle: "none", cursor: "text" } as any),
+          focused && styles.inputFocused,
           multiline && { height: 96, textAlignVertical: "top", paddingTop: 12 },
           error && { borderColor: COLORS.error },
         ]}
