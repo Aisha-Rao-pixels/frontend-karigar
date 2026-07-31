@@ -639,5 +639,9 @@ const styles = StyleSheet.create({
   refRow: { flexDirection: "row", alignItems: "center", gap: SPACING.md },
   viewerBackdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.92)", alignItems: "center", justifyContent: "center", padding: SPACING.lg },
   viewerClose: { position: "absolute", top: 48, right: SPACING.lg, width: 44, height: 44, borderRadius: 22, backgroundColor: "rgba(255,255,255,0.15)", alignItems: "center", justifyContent: "center", zIndex: 2 },
-  viewerImage: { width: "100%", height: "85%" },
+  viewerGestureArea: { width: "100%", height: "72%", alignItems: "center", justifyContent: "center", overflow: "hidden" },
+  viewerImage: { width: "100%", height: "100%" },
+  viewerBusyOverlay: { ...StyleSheet.absoluteFillObject, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(0,0,0,0.4)" },
+  viewerToolbar: { flexDirection: "row", gap: SPACING.lg, justifyContent: "center", flexWrap: "wrap" },
+  viewerToolBtn: { alignItems: "center", gap: 4, paddingHorizontal: SPACING.sm, paddingVertical: SPACING.xs },
 });
