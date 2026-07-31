@@ -84,6 +84,7 @@ export default function RootLayout() {
             </ToastProvider>
           </AuthProvider>
         </BottomSheetModalProvider>
+        </AppThemeProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );
