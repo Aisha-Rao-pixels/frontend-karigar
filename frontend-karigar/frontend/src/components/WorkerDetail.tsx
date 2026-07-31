@@ -315,30 +315,28 @@ function DiffImageStrip({
       <AppText size="sm" weight="semibold" color={COLORS.muted} style={{ marginBottom: SPACING.xs }}>
         {label} ({oldImages.length} → {newImages.length})
       </AppText>
-      {oldImages.length > 0 && (
-        <>
+      <View style={{ flexDirection: "row", gap: SPACING.sm }}>
+        <View style={{ flex: 1 }}>
           <AppText size="sm" color={COLORS.error} style={{ marginBottom: 4 }}>Before</AppText>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: SPACING.sm, marginBottom: SPACING.sm }}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: SPACING.xs }}>
             {oldImages.map((img, i) => (
               <Pressable key={i} onPress={() => onImagePress(img)}>
-                <Image source={{ uri: img }} style={styles.histThumb} contentFit="cover" />
+                <Image source={{ uri: img }} style={styles.histThumbSmall} contentFit="cover" />
               </Pressable>
             ))}
           </ScrollView>
-        </>
-      )}
-      {newImages.length > 0 && (
-        <>
+        </View>
+        <View style={{ flex: 1 }}>
           <AppText size="sm" color={COLORS.success} style={{ marginBottom: 4 }}>After</AppText>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: SPACING.sm }}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: SPACING.xs }}>
             {newImages.map((img, i) => (
               <Pressable key={i} onPress={() => onImagePress(img)}>
-                <Image source={{ uri: img }} style={styles.histThumb} contentFit="cover" />
+                <Image source={{ uri: img }} style={styles.histThumbSmall} contentFit="cover" />
               </Pressable>
             ))}
           </ScrollView>
-        </>
-      )}
+        </View>
+      </View>
     </View>
   );
 }
