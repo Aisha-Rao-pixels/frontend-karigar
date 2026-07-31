@@ -450,11 +450,44 @@ export function EmptyState({
 }
 
 // ---------------------------------------------------------------- Card
-export function Card({ children, style, testID }: { children: React.ReactNode; style?: StyleProp<ViewStyle>; testID?: string }) {
+export function Card({
+  children,
+  style,
+  testID,
+  onPress,
+}: {
+  children: React.ReactNode;
+  style?: StyleProp<ViewStyle>;
+  testID?: string;
+  onPress?: () => void;
+}) {
+  const [hovered, setHovered] = React.useState(false);
+  if (!onPress) {
+    return (
+      <View testID={testID} style={[styles.card, shadow, style]}>
+        {children}
+      </View>
+    );
+  }
   return (
-    <View testID={testID} style={[styles.card, shadow, style]}>
+    <Pressable
+      testID={testID}
+      onPress={onPress}
+      onHoverIn={() => setHovered(true)}
+      onHoverOut={() => setHovered(false)}
+      style={({ pressed }) => [
+        styles.card,
+        shadow,
+        Platform.OS === "web" && ({ cursor: "pointer" } as any),
+        {
+          transform: [{ translateY: pressed ? 0 : hovered ? -2 : 0 }, { scale: pressed ? 0.99 : 1 }],
+          shadowOpacity: pressed ? 0.05 : hovered ? 0.12 : (shadow.shadowOpacity as number),
+        },
+        style,
+      ]}
+    >
       {children}
-    </View>
+    </Pressable>
   );
 }
 
