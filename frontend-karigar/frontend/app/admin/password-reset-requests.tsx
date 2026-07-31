@@ -150,7 +150,7 @@ export default function PasswordResetRequests() {
                 </Pressable>
               </View>
             )}
-          </View>
+          </Card>
         ))}
         </ScrollView>
       )}
