@@ -89,7 +89,7 @@ export function AppText({
     bold: "700",
   };
   return (
-    <Text numberOfLines={numberOfLines} style={[{ fontSize: FONT[size], color, fontWeight: fw[weight] }, style]}>
+    <Text numberOfLines={numberOfLines} style={[{ fontSize: FONT[size], color, fontWeight: fw[weight], fontFamily: FONT_FAMILY }, style]}>
       {children}
     </Text>
   );
