@@ -82,12 +82,17 @@ export default function PasswordResetRequests() {
       </View>
 
       {loading ? (
-        <Loader />
+        <Loader label="Loading requests…" />
       ) : visible.length === 0 ? (
-        <View style={styles.empty}>
-          <Ionicons name="checkmark-circle-outline" size={36} color={COLORS.muted} />
-          <AppText color={COLORS.muted} style={{ marginTop: SPACING.sm }}>Nothing here</AppText>
-        </View>
+        <EmptyState
+          icon="checkmark-done-circle-outline"
+          title={filter === "pending" ? "All caught up" : filter === "resolved" ? "No resolved requests yet" : "No requests yet"}
+          subtitle={
+            filter === "pending"
+              ? "No one is waiting on a password reset call right now."
+              : "Password reset requests will show up here as workers ask for help."
+          }
+        />
       ) : (
         <ScrollView contentContainerStyle={{ paddingBottom: SPACING["3xl"] }} showsVerticalScrollIndicator={false}>
         {visible.map((r) => (
