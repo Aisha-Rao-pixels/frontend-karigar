@@ -6,7 +6,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { COLORS, SPACING, RADIUS } from "@/src/theme";
-import { ScreenHeader, AppText, Loader, Chip, EmptyState } from "@/src/components/ui";
+import { ScreenHeader, AppText, Loader, Chip, EmptyState, Card } from "@/src/components/ui";
 import { apiFetch } from "@/src/api/client";
 import { useToast } from "@/src/components/Toast";
 
