@@ -542,7 +542,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.lg,
   },
   btnRow: { flexDirection: "row", alignItems: "center" },
-  btnText: { fontSize: FONT.lg, fontWeight: "700" },
+  btnText: { fontSize: FONT.lg, fontWeight: "700", fontFamily: FONT_FAMILY },
   chip: {
     minHeight: 44,
     paddingHorizontal: SPACING.lg,
