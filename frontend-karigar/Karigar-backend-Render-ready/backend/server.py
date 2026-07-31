@@ -1962,6 +1962,39 @@ async def admin_quick_edit_worker(worker_id: str, payload: WorkerQuickEditPayloa
     return await gridfs_images.hydrate_worker(image_bucket, clean(updated))
 
 
+class ReplaceWorkerImagePayload(BaseModel):
+    field: str  # "portfolio_images" | "aadhar_images" | "employment_proof_images"
+    index: int
+    image: str  # base64 data-URL of the edited (cropped/rotated) image
+
+
+@api_router.patch("/admin/workers/{worker_id}/replace-image")
+async def admin_replace_worker_image(
+    worker_id: str,
+    payload: ReplaceWorkerImagePayload,
+    user: dict = Depends(require_roles(*ADMIN_ROLES)),
+):
+    if payload.field not in gridfs_images.IMAGE_FIELDS:
+        raise HTTPException(status_code=400, detail="Invalid image field")
+    worker = await db.workers.find_one({"id": worker_id})
+    if not worker:
+        raise HTTPException(status_code=404, detail="Worker not found")
+
+    old_images = list(worker.get(payload.field) or [])
+    if payload.index < 0 or payload.index >= len(old_images):
+        raise HTTPException(status_code=400, detail="Invalid image index")
+
+    new_images = list(old_images)
+    new_images[payload.index] = payload.image
+    synced = await gridfs_images.sync_images(image_bucket, old_images, new_images)
+    await db.workers.update_one(
+        {"id": worker_id},
+        {"$set": {payload.field: synced, "updated_at": now_iso()}},
+    )
+    updated = await db.workers.find_one({"id": worker_id})
+    return await gridfs_images.hydrate_worker(image_bucket, clean(updated))
+
+
 class DeleteWorkerBody(BaseModel):
     reason: str
 
