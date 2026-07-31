@@ -16,7 +16,7 @@ import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { useTranslation } from "react-i18next";
-import { COLORS, SPACING, RADIUS, FONT, shadow } from "@/src/theme";
+import { COLORS, SPACING, RADIUS, FONT, FONT_FAMILY, shadow } from "@/src/theme";
 import { speakLabel } from "@/src/utils/speech";
 
 // Renders a label with a small speaker icon that reads the label's
