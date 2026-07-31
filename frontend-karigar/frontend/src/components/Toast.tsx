@@ -34,15 +34,20 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const color = type === "success" ? COLORS.success : type === "error" ? COLORS.error : COLORS.surfaceInverse;
   const icon = type === "success" ? "checkmark-circle" : type === "error" ? "alert-circle" : "information-circle";
 
+  const dismiss = useCallback(() => {
+    if (timer.current) clearTimeout(timer.current);
+    Animated.timing(opacity, { toValue: 0, duration: 200, useNativeDriver: true }).start(() => setVisible(false));
+  }, [opacity]);
+
   return (
     <Ctx.Provider value={{ show }}>
       {children}
       {visible && (
-        <Animated.View pointerEvents="none" style={[styles.wrap, { opacity }]} testID="toast">
-          <View style={[styles.toast, shadow, { borderLeftColor: color }]}>
+        <Animated.View pointerEvents="box-none" style={[styles.wrap, { opacity }]} testID="toast">
+          <Pressable onPress={dismiss} style={[styles.toast, shadow, { borderLeftColor: color }]}>
             <Ionicons name={icon as any} size={22} color={color} />
             <Text style={styles.text}>{msg}</Text>
-          </View>
+          </Pressable>
         </Animated.View>
       )}
     </Ctx.Provider>
