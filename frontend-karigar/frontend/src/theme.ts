@@ -1,4 +1,12 @@
 // Karigar design tokens — sourced from /app/design_guidelines.json
+import { Platform } from "react-native";
+
+// Native keeps the system font (no extra native font-linking needed).
+// Web loads "Inter" from Google Fonts (see app/_layout.tsx) for a more
+// polished, branded look than the browser's default sans-serif.
+export const FONT_FAMILY =
+  Platform.OS === "web" ? "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" : undefined;
+
 export const COLORS = {
   surface: "#FCFAF8",
   onSurface: "#1A1817",
