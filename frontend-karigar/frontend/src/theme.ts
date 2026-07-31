@@ -35,6 +35,34 @@ export const COLORS = {
   muted: "#8A827C",
 };
 
+export const COLORS_DARK = {
+  surface: "#17140F",
+  onSurface: "#F3EFEA",
+  surfaceSecondary: "#221D17",
+  onSurfaceSecondary: "#F3EFEA",
+  surfaceTertiary: "#2C251D",
+  onSurfaceTertiary: "#C9C2B8",
+  surfaceInverse: "#F3EFEA",
+  onSurfaceInverse: "#1A1817",
+  brand: "#D08B5F",
+  brandPrimary: "#D08B5F",
+  onBrandPrimary: "#1A1310",
+  brandSecondary: "#C98263",
+  brandTertiary: "#3A2C22",
+  onBrandTertiary: "#F0C7AC",
+  success: "#34D876",
+  onSuccess: "#0F1A12",
+  warning: "#FBBF24",
+  onWarning: "#1A1310",
+  error: "#F87171",
+  onError: "#1A1310",
+  info: "#C9C2B8",
+  border: "#3A332B",
+  borderStrong: "#4A4038",
+  divider: "#2C251D",
+  muted: "#9B9187",
+};
+
 export const SPACING = { xs: 4, sm: 8, md: 12, lg: 16, xl: 24, "2xl": 32, "3xl": 48 };
 export const RADIUS = { sm: 6, md: 12, lg: 20, pill: 999 };
 export const FONT = { sm: 12, base: 14, lg: 16, xl: 20, "2xl": 24, "3xl": 30 };
