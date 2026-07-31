@@ -55,7 +55,11 @@ export default function RootLayout() {
             <ToastProvider>
               <OfflineHandler exempt={pathname === "/profile-form"}>
                 <StatusBar style="dark" />
-                <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: "#FCFAF8" } }} />
+                <View style={styles.webOuter}>
+                  <View style={styles.webInner}>
+                    <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: "#FCFAF8" } }} />
+                  </View>
+                </View>
               </OfflineHandler>
             </ToastProvider>
           </AuthProvider>
@@ -64,3 +68,23 @@ export default function RootLayout() {
     </GestureHandlerRootView>
   );
 }
+
+const styles = StyleSheet.create({
+  webOuter:
+    Platform.OS === "web"
+      ? { flex: 1, backgroundColor: "#EDE7E1", alignItems: "center" as const }
+      : { flex: 1 },
+  webInner:
+    Platform.OS === "web"
+      ? {
+          flex: 1,
+          width: "100%",
+          maxWidth: 560,
+          backgroundColor: "#FCFAF8",
+          shadowColor: "#1A1817",
+          shadowOffset: { width: 0, height: 0 },
+          shadowOpacity: 0.08,
+          shadowRadius: 40,
+        }
+      : { flex: 1 },
+});
