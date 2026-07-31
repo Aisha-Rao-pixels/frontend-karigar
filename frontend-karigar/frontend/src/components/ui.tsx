@@ -399,10 +399,15 @@ export function ScreenHeader({
 }
 
 // ---------------------------------------------------------------- States
-export function Loader() {
+export function Loader({ label }: { label?: string } = {}) {
   return (
     <View style={styles.center}>
       <ActivityIndicator size="large" color={COLORS.brandPrimary} />
+      {label && (
+        <AppText size="sm" color={COLORS.muted} style={{ marginTop: SPACING.sm }}>
+          {label}
+        </AppText>
+      )}
     </View>
   );
 }
