@@ -73,5 +73,5 @@ const styles = StyleSheet.create({
     gap: SPACING.sm,
     maxWidth: 460,
   },
-  text: { flex: 1, fontSize: FONT.base, color: COLORS.onSurface, fontWeight: "500" },
+  text: { flex: 1, fontSize: FONT.base, color: COLORS.onSurface, fontWeight: "500", fontFamily: FONT_FAMILY },
 });
