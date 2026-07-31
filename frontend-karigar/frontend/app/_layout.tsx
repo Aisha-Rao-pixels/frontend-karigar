@@ -37,6 +37,24 @@ export default function RootLayout() {
     loadSavedLanguage();
   }, []);
   useEffect(() => {
+    if (Platform.OS !== "web" || typeof document === "undefined") return;
+    if (document.getElementById("karigar-font-inter")) return;
+    const preconnect1 = document.createElement("link");
+    preconnect1.rel = "preconnect";
+    preconnect1.href = "https://fonts.googleapis.com";
+    const preconnect2 = document.createElement("link");
+    preconnect2.rel = "preconnect";
+    preconnect2.href = "https://fonts.gstatic.com";
+    preconnect2.crossOrigin = "anonymous";
+    const fontLink = document.createElement("link");
+    fontLink.id = "karigar-font-inter";
+    fontLink.rel = "stylesheet";
+    fontLink.href = "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap";
+    document.head.appendChild(preconnect1);
+    document.head.appendChild(preconnect2);
+    document.head.appendChild(fontLink);
+  }, []);
+  useEffect(() => {
     if (pathname && pathname !== "/") {
       storage.setItem("last_path", pathname);
     }
