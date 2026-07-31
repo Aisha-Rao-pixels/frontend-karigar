@@ -8,6 +8,7 @@ import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import { StatusBar } from "expo-status-bar";
 import { useIconFonts } from "@/src/hooks/use-icon-fonts";
 import { AuthProvider } from "@/src/context/AuthContext";
+import { AppThemeProvider } from "@/src/context/ThemeContext";
 import { ToastProvider } from "@/src/components/Toast";
 import OfflineHandler from "@/src/components/OfflineHandler";
 import { storage } from "@/src/utils/storage";
