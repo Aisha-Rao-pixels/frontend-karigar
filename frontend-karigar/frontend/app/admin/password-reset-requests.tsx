@@ -96,7 +96,7 @@ export default function PasswordResetRequests() {
       ) : (
         <ScrollView contentContainerStyle={{ paddingBottom: SPACING["3xl"] }} showsVerticalScrollIndicator={false}>
         {visible.map((r) => (
-          <View key={r.id} style={styles.card} testID={`reset-request-${r.id}`}>
+          <Card key={r.id} style={styles.card} testID={`reset-request-${r.id}`}>
             <View style={styles.cardTop}>
               <View style={{ flex: 1 }}>
                 <AppText weight="bold" size="lg">{r.full_name || "Unknown worker"}</AppText>
