@@ -68,11 +68,6 @@ export default function RootLayout() {
   }, [loaded, error]);
   if (!loaded && !error) return null;
 
-  // Full-window width on web for: the entire admin section (including
-  // admin login) and the worker login page. Everything else (signup,
-  // profile-form, etc.) keeps the narrow centered form look.
-  const isFullWidth = Platform.OS === "web" && (pathname?.startsWith("/admin") || pathname === "/login");
-
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
@@ -83,7 +78,7 @@ export default function RootLayout() {
               <OfflineHandler exempt={pathname === "/profile-form"}>
                 <StatusBar style="dark" />
                 <View style={styles.webOuter}>
-                  <View style={[styles.webInner, isFullWidth && styles.webInnerAdmin]}>
+                  <View style={styles.webInner}>
                     <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: "#FCFAF8" } }} />
                   </View>
                 </View>
@@ -107,17 +102,8 @@ const styles = StyleSheet.create({
       ? {
           flex: 1,
           width: "100%",
-          maxWidth: 560,
+          maxWidth: "100%",
           backgroundColor: "#FCFAF8",
-          shadowColor: "#1A1817",
-          shadowOffset: { width: 0, height: 0 },
-          shadowOpacity: 0.08,
-          shadowRadius: 40,
         }
       : { flex: 1 },
-  webInnerAdmin: {
-    maxWidth: "100%",
-    width: "100%",
-    shadowOpacity: 0,
-  },
 });
