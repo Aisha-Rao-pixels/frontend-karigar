@@ -83,7 +83,7 @@ export default function RootLayout() {
               <OfflineHandler exempt={pathname === "/profile-form"}>
                 <StatusBar style="dark" />
                 <View style={styles.webOuter}>
-                  <View style={[styles.webInner, isAdminSection && styles.webInnerAdmin]}>
+                  <View style={[styles.webInner, isFullWidth && styles.webInnerAdmin]}>
                     <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: "#FCFAF8" } }} />
                   </View>
                 </View>
