@@ -68,7 +68,10 @@ export default function RootLayout() {
   }, [loaded, error]);
   if (!loaded && !error) return null;
 
-  const isAdminSection = Platform.OS === "web" && pathname?.startsWith("/admin") && pathname !== "/admin/login";
+  // Full-window width on web for: the entire admin section (including
+  // admin login) and the worker login page. Everything else (signup,
+  // profile-form, etc.) keeps the narrow centered form look.
+  const isFullWidth = Platform.OS === "web" && (pathname?.startsWith("/admin") || pathname === "/login");
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
