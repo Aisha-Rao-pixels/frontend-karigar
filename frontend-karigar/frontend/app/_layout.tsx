@@ -109,6 +109,8 @@ const styles = StyleSheet.create({
         }
       : { flex: 1 },
   webInnerAdmin: {
-    maxWidth: 1100,
+    maxWidth: "100%",
+    width: "100%",
+    shadowOpacity: 0,
   },
 });
