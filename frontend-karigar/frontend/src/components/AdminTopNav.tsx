@@ -39,8 +39,8 @@ export default function AdminTopNav() {
               style={[styles.link, active && styles.linkActive]}
               testID={`admin-nav-${link.href.split("/").pop()}`}
             >
-              <Ionicons name={link.icon} size={16} color={active ? COLORS.brandPrimary : COLORS.muted} />
-              <AppText size="sm" weight={active ? "semibold" : "regular"} color={active ? COLORS.brandPrimary : COLORS.muted} style={{ marginLeft: 6 }}>
+              <Ionicons name={link.icon} size={16} color={active ? COLORS.brandPrimary : COLORS.onSurface} />
+              <AppText size="sm" weight={active ? "semibold" : "medium"} color={active ? COLORS.brandPrimary : COLORS.onSurface} style={{ marginLeft: 6 }}>
                 {t(link.labelKey)}
               </AppText>
             </Pressable>
@@ -48,9 +48,16 @@ export default function AdminTopNav() {
         })}
       </View>
 
-      <Pressable onPress={() => logout()} style={styles.logout} testID="admin-nav-logout">
-        <Ionicons name="log-out-outline" size={16} color={COLORS.muted} />
-        <AppText size="sm" color={COLORS.muted} style={{ marginLeft: 6 }}>Log out</AppText>
+      <Pressable
+        onPress={async () => {
+          await logout();
+          router.replace("/admin/login");
+        }}
+        style={styles.logout}
+        testID="admin-nav-logout"
+      >
+        <Ionicons name="log-out-outline" size={16} color={COLORS.error} />
+        <AppText size="sm" weight="medium" color={COLORS.error} style={{ marginLeft: 6 }}>Log out</AppText>
       </Pressable>
     </View>
   );
