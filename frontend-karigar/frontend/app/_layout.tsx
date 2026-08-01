@@ -1,7 +1,7 @@
 import { Stack, usePathname, useGlobalSearchParams } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect } from "react";
-import { Platform, View, StyleSheet } from "react-native";
+import { Platform, View, StyleSheet, useWindowDimensions } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
@@ -15,9 +15,21 @@ import { storage } from "@/src/utils/storage";
 import "@/src/i18n";
 import { loadSavedLanguage } from "@/src/i18n";
 SplashScreen.preventAutoHideAsync();
+
+// Comfortable, centered form width per screen size — full width on a phone
+// browser, a bit more breathing room on tablet, capped at a readable width
+// on desktop (matches how Google/Gmail/most sign-in pages behave; a login
+// box stretched to a 24" monitor would just look broken, not "responsive").
+function formWidthFor(windowWidth: number): number | "100%" {
+  if (windowWidth < 480) return "100%"; // phone browser
+  if (windowWidth < 900) return 620; // tablet
+  return 680; // laptop / desktop
+}
+
 export default function RootLayout() {
   const [loaded, error] = useIconFonts();
   const pathname = usePathname();
+  const { width: windowWidth } = useWindowDimensions();
   const { ref } = useGlobalSearchParams<{ ref?: string }>();
   useEffect(() => {
     if (!ref) return;
@@ -76,7 +88,16 @@ export default function RootLayout() {
               <OfflineHandler exempt={pathname === "/profile-form"}>
                 <StatusBar style="dark" />
                 <View style={styles.webOuter}>
-                  <View style={[styles.webInner, Platform.OS === "web" && pathname?.startsWith("/admin") && styles.webInnerAdmin]}>
+                  <View
+                    style={[
+                      styles.webInner,
+                      Platform.OS === "web" && pathname?.startsWith("/admin") && pathname !== "/admin/login"
+                        ? styles.webInnerAdmin
+                        : Platform.OS === "web"
+                        ? { maxWidth: formWidthFor(windowWidth) }
+                        : null,
+                    ]}
+                  >
                     <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: "#FCFAF8" } }} />
                   </View>
                 </View>
