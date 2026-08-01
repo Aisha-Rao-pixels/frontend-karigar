@@ -121,7 +121,7 @@ const styles = StyleSheet.create({
       ? {
           flex: 1,
           width: "100%",
-          maxWidth: "100%",
+          maxWidth: 560 ,
           backgroundColor: "#FCFAF8",
           shadowColor: "#1A1817",
           shadowOffset: { width: 0, height: 0 },
