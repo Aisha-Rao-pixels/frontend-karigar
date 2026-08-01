@@ -108,4 +108,7 @@ const styles = StyleSheet.create({
           shadowRadius: 40,
         }
       : { flex: 1 },
+  webInnerAdmin: {
+    maxWidth: 1100,
+  },
 });
