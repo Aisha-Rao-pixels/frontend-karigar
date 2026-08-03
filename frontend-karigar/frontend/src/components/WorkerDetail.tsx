@@ -644,7 +644,9 @@ function DiffImageStrip({
         <View style={{ flex: 1 }}>
           <AppText size="sm" color={COLORS.success} style={{ marginBottom: 4 }}>After</AppText>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: SPACING.xs }}>
-            {newImages.map((img, i) => (
+            {newImages.filter(img => !!img).length === 0 ? (
+              <AppText size="sm" color={COLORS.muted} style={{ paddingVertical: 4 }}>—</AppText>
+            ) : newImages.filter(img => !!img).map((img, i) => (
               <Pressable key={i} onPress={() => onImagePress(img)}>
                 <Image source={{ uri: img }} style={styles.histThumbSmall} contentFit="cover" />
               </Pressable>
