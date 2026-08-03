@@ -1871,7 +1871,7 @@ async def admin_worker_detail(worker_id: str, user: dict = Depends(require_roles
                         if pair.get("old"):
                             pair["old"] = await gridfs_images.hydrate_images(image_bucket, pair["old"])
                         if pair.get("new"):
-                            pair["new"] = await gridfs_images.hydrate_images(image_bucket, pair["new"])
+                            pair["new"] = [u for u in await gridfs_images.hydrate_images(image_bucket, pair["new"]) if u]
                         changed[field] = pair
                 snap["changed_fields"] = changed
             else:
