@@ -350,6 +350,7 @@ function ImageViewer({
     setHasRotated(false);
     setNaturalSize(null);
     resetTransform();
+    if (uri) loadNaturalSize(uri);
   };
 
   const handleSave = async () => {
