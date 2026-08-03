@@ -1987,9 +1987,11 @@ async def admin_replace_worker_image(
     new_images = list(old_images)
     new_images[payload.index] = payload.image
     synced = await gridfs_images.sync_images(image_bucket, old_images, new_images)
+    update = {payload.field: synced, "updated_at": now_iso()}
+    snapshot = _make_snapshot(worker, edited_by="admin", update=update)
     await db.workers.update_one(
         {"id": worker_id},
-        {"$set": {payload.field: synced, "updated_at": now_iso()}},
+        {"$set": update, "$push": {"history": snapshot}},
     )
     updated = await db.workers.find_one({"id": worker_id})
     return await gridfs_images.hydrate_worker(image_bucket, clean(updated))
