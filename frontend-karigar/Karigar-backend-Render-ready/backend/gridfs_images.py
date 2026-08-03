@@ -189,9 +189,7 @@ async def hydrate_images(
             content_type = stream.metadata.get("content_type", "image/jpeg") if stream.metadata else "image/jpeg"
             out.append(_to_data_url(raw, content_type))
         except Exception as exc:
-            logger.error("GridFS download failed for ref %s: %s", entry, exc)
-            # Return an empty string so the caller still gets a slot — the
-            # PDF/XLSX renderer will skip falsy entries gracefully.
+            logger.error("GridFS download failed for ref %s: %s | type: %s", entry, exc, type(exc).__name__)
             out.append("")
     return out
 
