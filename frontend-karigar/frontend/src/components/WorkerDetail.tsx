@@ -377,7 +377,16 @@ function ImageViewer({
         >
           {!!displaySource && (
             <GestureDetector gesture={composedGesture}>
-              <AnimatedImage source={{ uri: displaySource }} style={[styles.viewerImage, animatedStyle]} contentFit="contain" />
+              <AnimatedImage
+                source={{ uri: displaySource }}
+                style={[styles.viewerImage, animatedStyle]}
+                contentFit="contain"
+                onLoad={(e: any) => {
+                  const w = e?.source?.width;
+                  const h = e?.source?.height;
+                  if (w && h) setNaturalSize({ width: w, height: h });
+                }}
+              />
             </GestureDetector>
           )}
           {busy && (
