@@ -234,7 +234,7 @@ function ImageViewer({
     setHasRotated(false);
     setNaturalSize(null);
     resetTransform();
-    // naturalSize is now captured from the <AnimatedImage onLoad> handler below.
+    if (uri) loadNaturalSize(uri);
   }, [uri]);
 
   const pinchGesture = Gesture.Pinch()
