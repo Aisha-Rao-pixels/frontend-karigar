@@ -225,7 +225,13 @@ async def purge_history_images(
         for entry in worker.get(field) or []:
             if _is_ref(entry):
                 live_refs.add(entry)
-
+    # Also protect refs stored inside changed_fields diffs
+    for snap in worker.get("history") or []:
+        for field in IMAGE_FIELDS:
+            cf = (snap.get("changed_fields") or {}).get(field, {})
+            for entry in (cf.get("old") or []) + (cf.get("new") or []):
+                if _is_ref(entry):
+                    live_refs.add(entry)
     cleaned_history = []
     for snap in worker.get("history") or []:
         snap = dict(snap)
