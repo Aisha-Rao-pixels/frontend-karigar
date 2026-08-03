@@ -1,5 +1,5 @@
 import React from "react";
-import { View, StyleSheet, ScrollView, Pressable, Modal, Image as RNImage, ActivityIndicator } from "react-native";
+import { View, StyleSheet, ScrollView, Pressable, Modal, ActivityIndicator } from "react-native";
 import { Image } from "expo-image";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
