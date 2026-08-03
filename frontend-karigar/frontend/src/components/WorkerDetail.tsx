@@ -333,9 +333,6 @@ function ImageViewer({
     setHasRotated(false);
     setNaturalSize(null);
     resetTransform();
-    if (uri) {
-      RNImage.getSize(uri, (w, h) => setNaturalSize({ width: w, height: h }), () => setNaturalSize(null));
-    }
   };
 
   const handleSave = async () => {
