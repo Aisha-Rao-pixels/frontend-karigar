@@ -575,16 +575,19 @@ function VersionHistory({ history, worker, onImagePress }: { history: ProfileVer
                       }))}
                     />
                   ) : null}
-                  {imageEntries.map(([field, pair]) => (
+                  {imageEntries.map(([field, pair]) => {
+                    const newImgs = (pair.new || []).filter((img: string) => !!img);
+                    const fallbackImgs = newImgs.length > 0 ? newImgs : ((worker as any)[field] || []);
+                    return (
                     <DiffImageStrip
                       key={field}
                       label={labelFor(field)}
                       oldImages={pair.old || []}
-                      newImages={pair.new || []}
+                      newImages={fallbackImgs}
                       onImagePress={onImagePress}
                     />
-                  ))}
-                </>
+                    );
+                  })}
               ) : (
                 <LegacyVersionRows h={h} t={t} onImagePress={onImagePress} />
               )}
