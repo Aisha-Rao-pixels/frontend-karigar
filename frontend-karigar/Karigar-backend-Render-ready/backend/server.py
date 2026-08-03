@@ -1986,7 +1986,11 @@ async def admin_replace_worker_image(
 
     new_images = list(old_images)
     new_images[payload.index] = payload.image
-    synced = await gridfs_images.sync_images(image_bucket, old_images, new_images)
+    # store_images() only uploads — it does NOT delete the replaced file like
+    # sync_images() does. We need the old file to survive so Version History
+    # can still render the "Before" image. It gets cleaned up safely later by
+    # purge_history_images() once the profile is approved.
+    synced = await gridfs_images.store_images(image_bucket, new_images)
     update = {payload.field: synced, "updated_at": now_iso()}
     snapshot = _make_snapshot(worker, edited_by="admin", update=update)
     await db.workers.update_one(
@@ -1995,7 +1999,6 @@ async def admin_replace_worker_image(
     )
     updated = await db.workers.find_one({"id": worker_id})
     return await gridfs_images.hydrate_worker(image_bucket, clean(updated))
-
 
 class DeleteWorkerBody(BaseModel):
     reason: str
