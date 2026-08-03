@@ -271,7 +271,10 @@ function ImageViewer({
   };
 
   const handleCrop = async () => {
-    if (!uri || !naturalSize || !containerSize.width || !containerSize.height) return;
+    if (!uri || !naturalSize || !containerSize.width || !containerSize.height) {
+      show("Image is still loading — wait a moment and try again", "error");
+      return;
+    }
     setBusy(true);
     try {
       const s = scale.value;
