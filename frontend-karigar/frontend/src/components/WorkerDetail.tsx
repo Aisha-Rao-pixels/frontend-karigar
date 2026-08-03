@@ -296,7 +296,10 @@ function ImageViewer({
       const cropY = visTop / effScale;
       const cropW = (visRight - visLeft) / effScale;
       const cropH = (visBottom - visTop) / effScale;
-      if (cropW <= 4 || cropH <= 4) return;
+      if (cropW <= 4 || cropH <= 4) {
+        show("Zoom in a little before cropping so there's something to cut", "error");
+        return;
+      }
 
       const actions: any[] = [];
       if (rotation.value % 360 !== 0) actions.push({ rotate: rotation.value });
