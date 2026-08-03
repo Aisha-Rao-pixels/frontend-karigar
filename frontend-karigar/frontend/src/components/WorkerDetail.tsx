@@ -2,12 +2,7 @@ import React from "react";
 import { View, StyleSheet, ScrollView, Pressable, Modal, Image as RNImage, ActivityIndicator, Platform } from "react-native";
 import { Image } from "expo-image";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withTiming,
-  runOnJS,
-} from "react-native-reanimated";
+import Animated, { useSharedValue, useAnimatedStyle } from "react-native-reanimated";
 import * as ImageManipulator from "expo-image-manipulator";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
@@ -16,8 +11,6 @@ import { AppText, Avatar, StatusBadge, Card } from "@/src/components/ui";
 import { Worker, ProfileVersion, availabilityColor, verificationColor, calcAge, formatDate } from "@/src/utils/profile";
 import { apiFetch } from "@/src/api/client";
 import { useToast } from "@/src/components/Toast";
-
-const AnimatedImage = Animated.createAnimatedComponent(Image);
 
 function aKey(s: string) { return s === "available_now" ? "avail_now" : s === "available_from" ? "avail_from" : "avail_no"; }
 function vKey(s: string) { return s === "approved" ? "verified" : s === "pending" ? "pending" : "rejected"; }
@@ -168,6 +161,9 @@ export default function WorkerDetail({
   );
 }
 
+const MIN_CROP_SIZE = 40;
+const HANDLE_RADIUS = 14;
+
 function ImageViewer({
   target,
   workerId,
@@ -183,20 +179,14 @@ function ImageViewer({
   const uri = target?.uri || null;
   const canSave = !!(target?.field && target.index != null && workerId);
 
-  const scale = useSharedValue(1);
-  const savedScale = useSharedValue(1);
-  const translateX = useSharedValue(0);
-  const translateY = useSharedValue(0);
-  const savedTranslateX = useSharedValue(0);
-  const savedTranslateY = useSharedValue(0);
-  const rotation = useSharedValue(0);
-
   const [containerSize, setContainerSize] = React.useState({ width: 0, height: 0 });
   const [naturalSize, setNaturalSize] = React.useState<{ width: number; height: number } | null>(null);
-  const [editedUri, setEditedUri] = React.useState<string | null>(null); // display uri (may be local file://)
-  const [editedDataUrl, setEditedDataUrl] = React.useState<string | null>(null); // base64 data-url, ready to save
-  const [hasRotated, setHasRotated] = React.useState(false);
+  const [editedUri, setEditedUri] = React.useState<string | null>(null);
+  const [editedDataUrl, setEditedDataUrl] = React.useState<string | null>(null);
   const [busy, setBusy] = React.useState(false);
+
+  const displaySource = editedUri || uri;
+  const hasEdits = !!editedUri;
 
   // expo-image's onLoad doesn't reliably report width/height on web, so measure
   // directly: a plain DOM <img> on web, RNImage.getSize on native.
@@ -215,128 +205,158 @@ function ImageViewer({
     }
   }, []);
 
-  const displaySource = editedUri || uri;
-  const hasEdits = !!editedUri || hasRotated;
-
-  const resetTransform = React.useCallback(() => {
-    scale.value = withTiming(1);
-    translateX.value = withTiming(0);
-    translateY.value = withTiming(0);
-    rotation.value = withTiming(0);
-    savedScale.value = 1;
-    savedTranslateX.value = 0;
-    savedTranslateY.value = 0;
-  }, []);
-
   React.useEffect(() => {
     setEditedUri(null);
     setEditedDataUrl(null);
-    setHasRotated(false);
     setNaturalSize(null);
-    resetTransform();
     if (uri) loadNaturalSize(uri);
   }, [uri]);
 
-  const pinchGesture = Gesture.Pinch()
-    .onUpdate((e) => {
-      scale.value = Math.max(1, savedScale.value * e.scale);
+  // Bounds of the image as actually displayed (letterboxed) inside the container.
+  const imgBounds = React.useMemo(() => {
+    if (!naturalSize || !containerSize.width || !containerSize.height) return null;
+    const fitScale = Math.min(containerSize.width / naturalSize.width, containerSize.height / naturalSize.height);
+    const width = naturalSize.width * fitScale;
+    const height = naturalSize.height * fitScale;
+    return {
+      left: (containerSize.width - width) / 2,
+      top: (containerSize.height - height) / 2,
+      width,
+      height,
+      scale: fitScale,
+    };
+  }, [naturalSize, containerSize]);
+
+  // Crop-box rectangle, in container coordinates. Defaults to the full image.
+  const boxX = useSharedValue(0);
+  const boxY = useSharedValue(0);
+  const boxW = useSharedValue(0);
+  const boxH = useSharedValue(0);
+
+  const resetCropBox = React.useCallback(() => {
+    if (!imgBounds) return;
+    boxX.value = imgBounds.left;
+    boxY.value = imgBounds.top;
+    boxW.value = imgBounds.width;
+    boxH.value = imgBounds.height;
+  }, [imgBounds]);
+
+  React.useEffect(() => {
+    resetCropBox();
+  }, [imgBounds, resetCropBox]);
+
+  const startL = useSharedValue(0);
+  const startT = useSharedValue(0);
+  const startR = useSharedValue(0);
+  const startB = useSharedValue(0);
+
+  const moveGesture = Gesture.Pan()
+    .onStart(() => {
+      startL.value = boxX.value;
+      startT.value = boxY.value;
     })
-    .onEnd(() => {
-      savedScale.value = scale.value;
-    });
-
-  const panGesture = Gesture.Pan()
     .onUpdate((e) => {
-      translateX.value = savedTranslateX.value + e.translationX;
-      translateY.value = savedTranslateY.value + e.translationY;
-    })
-    .onEnd(() => {
-      savedTranslateX.value = translateX.value;
-      savedTranslateY.value = translateY.value;
+      if (!imgBounds) return;
+      const maxX = imgBounds.left + imgBounds.width - boxW.value;
+      const maxY = imgBounds.top + imgBounds.height - boxH.value;
+      boxX.value = Math.min(Math.max(startL.value + e.translationX, imgBounds.left), Math.max(imgBounds.left, maxX));
+      boxY.value = Math.min(Math.max(startT.value + e.translationY, imgBounds.top), Math.max(imgBounds.top, maxY));
     });
 
-  const doubleTap = Gesture.Tap()
-    .numberOfTaps(2)
-    .onEnd(() => {
-      if (scale.value > 1) {
-        scale.value = withTiming(1);
-        translateX.value = withTiming(0);
-        translateY.value = withTiming(0);
-        savedScale.value = 1;
-        savedTranslateX.value = 0;
-        savedTranslateY.value = 0;
-      } else {
-        scale.value = withTiming(2.5);
-        savedScale.value = 2.5;
-      }
-    });
+  const makeCornerGesture = (corner: "tl" | "tr" | "bl" | "br") =>
+    Gesture.Pan()
+      .onStart(() => {
+        startL.value = boxX.value;
+        startT.value = boxY.value;
+        startR.value = boxX.value + boxW.value;
+        startB.value = boxY.value + boxH.value;
+      })
+      .onUpdate((e) => {
+        if (!imgBounds) return;
+        const minX = imgBounds.left;
+        const minY = imgBounds.top;
+        const maxX = imgBounds.left + imgBounds.width;
+        const maxY = imgBounds.top + imgBounds.height;
+        let left = startL.value;
+        let top = startT.value;
+        let right = startR.value;
+        let bottom = startB.value;
+        if (corner === "tl" || corner === "bl") {
+          left = Math.min(Math.max(startL.value + e.translationX, minX), startR.value - MIN_CROP_SIZE);
+        }
+        if (corner === "tr" || corner === "br") {
+          right = Math.max(Math.min(startR.value + e.translationX, maxX), startL.value + MIN_CROP_SIZE);
+        }
+        if (corner === "tl" || corner === "tr") {
+          top = Math.min(Math.max(startT.value + e.translationY, minY), startB.value - MIN_CROP_SIZE);
+        }
+        if (corner === "bl" || corner === "br") {
+          bottom = Math.max(Math.min(startB.value + e.translationY, maxY), startT.value + MIN_CROP_SIZE);
+        }
+        boxX.value = left;
+        boxY.value = top;
+        boxW.value = right - left;
+        boxH.value = bottom - top;
+      });
 
-  const composedGesture = Gesture.Race(doubleTap, Gesture.Simultaneous(pinchGesture, panGesture));
+  const tlGesture = makeCornerGesture("tl");
+  const trGesture = makeCornerGesture("tr");
+  const blGesture = makeCornerGesture("bl");
+  const brGesture = makeCornerGesture("br");
 
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [
-      { translateX: translateX.value },
-      { translateY: translateY.value },
-      { scale: scale.value },
-      { rotate: `${rotation.value}deg` },
-    ],
+  const boxStyle = useAnimatedStyle(() => ({
+    left: boxX.value,
+    top: boxY.value,
+    width: boxW.value,
+    height: boxH.value,
   }));
+  const tlStyle = useAnimatedStyle(() => ({ left: boxX.value - HANDLE_RADIUS, top: boxY.value - HANDLE_RADIUS }));
+  const trStyle = useAnimatedStyle(() => ({ left: boxX.value + boxW.value - HANDLE_RADIUS, top: boxY.value - HANDLE_RADIUS }));
+  const blStyle = useAnimatedStyle(() => ({ left: boxX.value - HANDLE_RADIUS, top: boxY.value + boxH.value - HANDLE_RADIUS }));
+  const brStyle = useAnimatedStyle(() => ({ left: boxX.value + boxW.value - HANDLE_RADIUS, top: boxY.value + boxH.value - HANDLE_RADIUS }));
 
-  const rotate = () => {
-    rotation.value = withTiming((((rotation.value + 90) % 360) + 360) % 360);
-    setHasRotated(true);
-  };
-
-  const handleCrop = async () => {
-    if (!uri || !naturalSize || !containerSize.width || !containerSize.height) {
-      show("Image is still loading — wait a moment and try again", "error");
-      return;
-    }
+  const rotate = async () => {
+    if (!displaySource) return;
     setBusy(true);
     try {
-      const s = scale.value;
-      const tx = translateX.value;
-      const ty = translateY.value;
-      const fitScale = Math.min(containerSize.width / naturalSize.width, containerSize.height / naturalSize.height);
-      const displayedWidth = naturalSize.width * fitScale * s;
-      const displayedHeight = naturalSize.height * fitScale * s;
-      const imgLeft = containerSize.width / 2 - displayedWidth / 2 + tx;
-      const imgTop = containerSize.height / 2 - displayedHeight / 2 + ty;
-
-      const visLeft = Math.max(0, -imgLeft);
-      const visTop = Math.max(0, -imgTop);
-      const visRight = Math.min(displayedWidth, containerSize.width - imgLeft);
-      const visBottom = Math.min(displayedHeight, containerSize.height - imgTop);
-
-      const effScale = fitScale * s;
-      const cropX = visLeft / effScale;
-      const cropY = visTop / effScale;
-      const cropW = (visRight - visLeft) / effScale;
-      const cropH = (visBottom - visTop) / effScale;
-      if (cropW <= 4 || cropH <= 4) {
-        show("Zoom in a little before cropping so there's something to cut", "error");
-        return;
-      }
-
-      const actions: any[] = [];
-      if (rotation.value % 360 !== 0) actions.push({ rotate: rotation.value });
-      actions.push({
-        crop: {
-          originX: Math.round(cropX),
-          originY: Math.round(cropY),
-          width: Math.round(cropW),
-          height: Math.round(cropH),
-        },
-      });
-      const result = await ImageManipulator.manipulateAsync(uri, actions, {
+      const result = await ImageManipulator.manipulateAsync(displaySource, [{ rotate: 90 }], {
         compress: 1,
         format: ImageManipulator.SaveFormat.JPEG,
         base64: true,
       });
       setEditedUri(result.uri);
       setEditedDataUrl(`data:image/jpeg;base64,${result.base64}`);
-      setHasRotated(false);
-      resetTransform();
+      loadNaturalSize(result.uri);
+    } catch {
+      show("Could not rotate that image — try again", "error");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleCrop = async () => {
+    if (!displaySource || !imgBounds) {
+      show("Image is still loading — wait a moment and try again", "error");
+      return;
+    }
+    setBusy(true);
+    try {
+      const cropX = (boxX.value - imgBounds.left) / imgBounds.scale;
+      const cropY = (boxY.value - imgBounds.top) / imgBounds.scale;
+      const cropW = boxW.value / imgBounds.scale;
+      const cropH = boxH.value / imgBounds.scale;
+      if (cropW <= 4 || cropH <= 4) {
+        show("Adjust the crop box before applying", "error");
+        return;
+      }
+      const result = await ImageManipulator.manipulateAsync(
+        displaySource,
+        [{ crop: { originX: Math.round(cropX), originY: Math.round(cropY), width: Math.round(cropW), height: Math.round(cropH) } }],
+        { compress: 1, format: ImageManipulator.SaveFormat.JPEG, base64: true }
+      );
+      setEditedUri(result.uri);
+      setEditedDataUrl(`data:image/jpeg;base64,${result.base64}`);
+      loadNaturalSize(result.uri);
     } catch {
       show("Could not crop that image — try again", "error");
     } finally {
@@ -347,30 +367,17 @@ function ImageViewer({
   const restoreOriginal = () => {
     setEditedUri(null);
     setEditedDataUrl(null);
-    setHasRotated(false);
     setNaturalSize(null);
-    resetTransform();
     if (uri) loadNaturalSize(uri);
   };
 
   const handleSave = async () => {
-    if (!canSave || !target?.field || target.index == null || !workerId || !uri) return;
+    if (!canSave || !target?.field || target.index == null || !workerId || !editedDataUrl) return;
     setBusy(true);
     try {
-      let finalDataUrl = editedDataUrl;
-      if (!finalDataUrl && hasRotated) {
-        // Rotated but never tapped "Crop to view" — bake the rotation in now.
-        const result = await ImageManipulator.manipulateAsync(uri, [{ rotate: rotation.value }], {
-          compress: 1,
-          format: ImageManipulator.SaveFormat.JPEG,
-          base64: true,
-        });
-        finalDataUrl = `data:image/jpeg;base64,${result.base64}`;
-      }
-      if (!finalDataUrl) return;
       const updated = await apiFetch<Worker>(`/admin/workers/${workerId}/replace-image`, {
         method: "PATCH",
-        body: { field: target.field, index: target.index, image: finalDataUrl },
+        body: { field: target.field, index: target.index, image: editedDataUrl },
       });
       onSaved?.(updated);
       show("Image updated", "success");
@@ -393,19 +400,25 @@ function ImageViewer({
           style={styles.viewerGestureArea}
           onLayout={(e) => setContainerSize({ width: e.nativeEvent.layout.width, height: e.nativeEvent.layout.height })}
         >
-          {!!displaySource && (
-            <GestureDetector gesture={composedGesture}>
-              <AnimatedImage
-                source={{ uri: displaySource }}
-                style={[styles.viewerImage, animatedStyle]}
-                contentFit="contain"
-                onLoad={(e: any) => {
-                  const w = e?.source?.width;
-                  const h = e?.source?.height;
-                  if (w && h) setNaturalSize({ width: w, height: h });
-                }}
-              />
-            </GestureDetector>
+          {!!displaySource && <Image source={{ uri: displaySource }} style={styles.viewerImage} contentFit="contain" />}
+          {!!imgBounds && (
+            <>
+              <GestureDetector gesture={moveGesture}>
+                <Animated.View style={[styles.cropBox, boxStyle]} />
+              </GestureDetector>
+              <GestureDetector gesture={tlGesture}>
+                <Animated.View style={[styles.cropHandle, tlStyle]} testID="crop-handle-tl" />
+              </GestureDetector>
+              <GestureDetector gesture={trGesture}>
+                <Animated.View style={[styles.cropHandle, trStyle]} testID="crop-handle-tr" />
+              </GestureDetector>
+              <GestureDetector gesture={blGesture}>
+                <Animated.View style={[styles.cropHandle, blStyle]} testID="crop-handle-bl" />
+              </GestureDetector>
+              <GestureDetector gesture={brGesture}>
+                <Animated.View style={[styles.cropHandle, brStyle]} testID="crop-handle-br" />
+              </GestureDetector>
+            </>
           )}
           {busy && (
             <View style={styles.viewerBusyOverlay}>
@@ -415,11 +428,11 @@ function ImageViewer({
         </View>
 
         <AppText size="sm" color="rgba(255,255,255,0.6)" style={{ textAlign: "center", marginBottom: SPACING.sm }}>
-          Pinch or double-tap to zoom · drag to pan
+          Drag the box or its corners to choose the crop area
         </AppText>
 
         <View style={styles.viewerToolbar}>
-          <Pressable style={styles.viewerToolBtn} onPress={resetTransform} testID="image-viewer-reset" disabled={busy}>
+          <Pressable style={styles.viewerToolBtn} onPress={resetCropBox} testID="image-viewer-reset" disabled={busy}>
             <Ionicons name="scan-outline" size={20} color="#fff" />
             <AppText size="sm" color="#fff">Reset</AppText>
           </Pressable>
@@ -429,7 +442,7 @@ function ImageViewer({
           </Pressable>
           <Pressable style={styles.viewerToolBtn} onPress={handleCrop} testID="image-viewer-crop" disabled={busy}>
             <Ionicons name="crop-outline" size={20} color="#fff" />
-            <AppText size="sm" color="#fff">Crop to view</AppText>
+            <AppText size="sm" color="#fff">Apply Crop</AppText>
           </Pressable>
           {editedUri && (
             <Pressable style={styles.viewerToolBtn} onPress={restoreOriginal} testID="image-viewer-restore" disabled={busy}>
@@ -747,8 +760,10 @@ const styles = StyleSheet.create({
   refRow: { flexDirection: "row", alignItems: "center", gap: SPACING.md },
   viewerBackdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.92)", alignItems: "center", justifyContent: "center", padding: SPACING.lg },
   viewerClose: { position: "absolute", top: 48, right: SPACING.lg, width: 44, height: 44, borderRadius: 22, backgroundColor: "rgba(255,255,255,0.15)", alignItems: "center", justifyContent: "center", zIndex: 2 },
-  viewerGestureArea: { width: "100%", height: "72%", alignItems: "center", justifyContent: "center", overflow: "hidden" },
+  viewerGestureArea: { width: "100%", height: "72%", alignItems: "center", justifyContent: "center", overflow: "visible" },
   viewerImage: { width: "100%", height: "100%" },
+  cropBox: { position: "absolute", borderWidth: 2, borderColor: "#fff", backgroundColor: "rgba(255,255,255,0.12)" },
+  cropHandle: { position: "absolute", width: 28, height: 28, borderRadius: 14, backgroundColor: "#fff", borderWidth: 2, borderColor: COLORS.brandPrimary },
   viewerBusyOverlay: { ...StyleSheet.absoluteFillObject, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(0,0,0,0.4)" },
   viewerToolbar: { flexDirection: "row", gap: SPACING.lg, justifyContent: "center", flexWrap: "wrap" },
   viewerToolBtn: { alignItems: "center", gap: 4, paddingHorizontal: SPACING.sm, paddingVertical: SPACING.xs },
