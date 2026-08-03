@@ -198,6 +198,23 @@ function ImageViewer({
   const [hasRotated, setHasRotated] = React.useState(false);
   const [busy, setBusy] = React.useState(false);
 
+  // expo-image's onLoad doesn't reliably report width/height on web, so measure
+  // directly: a plain DOM <img> on web, RNImage.getSize on native.
+  const loadNaturalSize = React.useCallback((imgUri: string) => {
+    if (Platform.OS === "web") {
+      const domImg = new (globalThis as any).Image();
+      domImg.onload = () => setNaturalSize({ width: domImg.naturalWidth, height: domImg.naturalHeight });
+      domImg.onerror = () => setNaturalSize(null);
+      domImg.src = imgUri;
+    } else {
+      RNImage.getSize(
+        imgUri,
+        (w, h) => setNaturalSize({ width: w, height: h }),
+        () => setNaturalSize(null)
+      );
+    }
+  }, []);
+
   const displaySource = editedUri || uri;
   const hasEdits = !!editedUri || hasRotated;
 
