@@ -154,7 +154,7 @@ export default function WorkerDetail({
         </View>
       )}
 
-      {worker.history && worker.history.length > 0 && <VersionHistory history={worker.history} onImagePress={(uri) => setViewer({ uri })} />}
+      {worker.history && worker.history.length > 0 && <VersionHistory history={worker.history} worker={worker} onImagePress={(uri) => setViewer({ uri })} />}
 
       <ImageViewer target={viewer} workerId={worker.id} onClose={() => setViewer(null)} onSaved={onWorkerUpdated} />
     </ScrollView>
