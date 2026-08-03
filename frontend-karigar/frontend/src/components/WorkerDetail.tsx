@@ -472,7 +472,7 @@ function ImageViewer({
 
 const IMAGE_FIELDS = new Set(["portfolio_images", "aadhar_images", "employment_proof_images"]);
 
-function VersionHistory({ history, onImagePress }: { history: ProfileVersion[]; onImagePress: (uri: string) => void }) {
+function VersionHistory({ history, worker, onImagePress }: { history: ProfileVersion[]; worker: Worker; onImagePress: (uri: string) => void }) {
   const { t } = useTranslation();
   const [open, setOpen] = React.useState(false);
   const ordered = [...history].reverse(); // newest archived first
