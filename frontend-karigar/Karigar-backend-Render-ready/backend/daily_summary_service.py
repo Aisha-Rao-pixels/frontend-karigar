@@ -488,8 +488,8 @@ async def send_daily_summary(db, image_bucket) -> bool:
         backup_bytes = await _build_full_backup_excel(db)
         backup_filename = f"Karigar_FULL_BACKUP_{today_ist.strftime('%d%b%Y')}.xlsx"
 
-        # Combined PDF — all worker profiles with photos, one per page
-        pdf_bytes = await build_combined_pdf(workers, image_bucket) if workers else None
+        # Combined PDF — all worker profiles, text only, fast
+        pdf_bytes = build_combined_pdf(workers) if workers else None
         pdf_filename = f"Karigar_Profiles_{today_ist.strftime('%d%b%Y')}.pdf"
 
         attachments = [
