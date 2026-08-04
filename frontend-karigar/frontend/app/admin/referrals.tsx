@@ -188,6 +188,7 @@ export default function AdminReferrals() {
     },
     {
       key: "notRegistered", label: "Not Registered", width: 130,
+      sortable: true, sortValue: (r) => r.not_registered_count ?? 0,
       render: (r) => <AppText size="sm" color={COLORS.error} weight="semibold">{r.not_registered_count}</AppText>,
     },
     {
