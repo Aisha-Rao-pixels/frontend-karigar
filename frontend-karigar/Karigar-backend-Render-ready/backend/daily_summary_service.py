@@ -325,31 +325,71 @@ async def _build_full_backup_excel(db) -> bytes:
     return buffer.read()
 
 
-async def build_combined_pdf(workers: list[dict], image_bucket) -> bytes:
-    """One PDF with all workers — each worker's profile on its own page.
-    Hydrates GridFS image refs to base64 data-URLs before generating PDF.
-    Limits to 1 photo per category to keep PDF size small and fast.
+def build_combined_pdf(workers: list[dict]) -> bytes:
+    """One PDF with all workers — clean text only, no photos.
+    Fast and lightweight — safe for Render free tier.
     """
     from io import BytesIO
-    import gridfs_images
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.units import mm
+    from reportlab.lib import colors
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
 
-    merger = pypdf.PdfWriter()
-    for worker in workers:
-        try:
-            hydrated = await gridfs_images.hydrate_worker(image_bucket, worker)
-            # Limit to 1 image per category to keep PDF size manageable
-            for field in ("portfolio_images", "aadhar_images", "employment_proof_images"):
-                if hydrated.get(field):
-                    hydrated[field] = hydrated[field][:1]
-            pdf_bytes = generate_profile_pdf(hydrated)
-            merger.append(pypdf.PdfReader(BytesIO(pdf_bytes)))
-        except Exception as e:
-            logger.warning("Skipping worker %s in combined PDF: %s", worker.get("id"), e)
-            continue
-    out = BytesIO()
-    merger.write(out)
-    out.seek(0)
-    result = out.read()
+    buf = BytesIO()
+    doc = SimpleDocTemplate(buf, pagesize=A4, topMargin=15*mm, bottomMargin=15*mm,
+                            leftMargin=15*mm, rightMargin=15*mm)
+    styles = getSampleStyleSheet()
+    BRAND = colors.HexColor("#7A2E1D")
+    MUTED = colors.HexColor("#6B6B6B")
+
+    title_style = ParagraphStyle("t", parent=styles["Title"], textColor=BRAND, fontSize=16, spaceAfter=4)
+    sub_style   = ParagraphStyle("s", parent=styles["Normal"], textColor=MUTED, fontSize=9, spaceAfter=10)
+    body_style  = ParagraphStyle("b", parent=styles["Normal"], fontSize=9, leading=13)
+
+    story = [
+        Paragraph("Karigar — Worker Profiles Summary", title_style),
+        Paragraph(f"Total workers: {len(workers)}", sub_style),
+    ]
+
+    for i, w in enumerate(workers, start=1):
+        skills = ", ".join(w.get("skills") or []) or "—"
+        langs  = ", ".join(w.get("languages") or []) or "—"
+        avail  = {"available_now": "Available Now", "available_from": "Available From Date",
+                  "not_available": "Not Available"}.get(w.get("availability_status",""), "—")
+        status = {"approved": "✓ Approved", "pending": "⏳ Pending",
+                  "rejected": "✗ Rejected"}.get(w.get("verification_status",""), "—")
+
+        data = [
+            [Paragraph(f"<b>{i}. {w.get('full_name','—')}</b>", body_style), ""],
+            ["Phone",    f"+91 {w.get('phone','—')}"],
+            ["Gender",   (w.get("gender") or "—").title()],
+            ["City",     f"{w.get('area','')}, {w.get('city','')}"],
+            ["Skills",   skills],
+            ["Languages",langs],
+            ["Experience", f"{w.get('years_experience',0)} yrs"],
+            ["Employer", w.get("current_employer") or "—"],
+            ["Wage",     f"₹{w.get('wage_expectation','—')}"],
+            ["Availability", avail],
+            ["Status",   status],
+        ]
+        t = Table(data, colWidths=[40*mm, 135*mm])
+        t.setStyle(TableStyle([
+            ("SPAN",        (0,0), (1,0)),
+            ("BACKGROUND",  (0,0), (1,0), colors.HexColor("#FAF0EE")),
+            ("TEXTCOLOR",   (0,1), (0,-1), MUTED),
+            ("FONTSIZE",    (0,0), (-1,-1), 9),
+            ("LINEBELOW",   (0,-1), (-1,-1), 0.5, colors.HexColor("#E5E0DC")),
+            ("TOPPADDING",  (0,0), (-1,-1), 3),
+            ("BOTTOMPADDING",(0,0), (-1,-1), 3),
+            ("VALIGN",      (0,0), (-1,-1), "TOP"),
+        ]))
+        story.append(t)
+        story.append(Spacer(1, 4*mm))
+
+    doc.build(story)
+    buf.seek(0)
+    result = buf.read()
     logger.info("Combined PDF built: %d bytes for %d workers", len(result), len(workers))
     return result
 
