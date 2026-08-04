@@ -2404,7 +2404,7 @@ async def _daily_summary_loop():
                 or (now_ist.hour == 17 and now_ist.minute >= 30)
             ) and _last_summary_date != today_str:
                 logger.info("Daily summary: triggering scheduled send for %s", today_str)
-                success = await daily_summary_service.send_daily_summary(db, image_bucket)
+                success = await daily_summary_service.send_daily_summary(db)
                 if success:
                     _last_summary_date = today_str
                     logger.info("Daily summary: sent successfully for %s", today_str)
