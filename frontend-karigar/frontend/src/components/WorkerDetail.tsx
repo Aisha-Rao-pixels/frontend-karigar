@@ -429,7 +429,13 @@ function ImageViewer({
           style={styles.viewerGestureArea}
           onLayout={(e) => setContainerSize({ width: e.nativeEvent.layout.width, height: e.nativeEvent.layout.height })}
         >
-          {!!displaySource && <Image source={{ uri: displaySource }} style={styles.viewerImage} contentFit="contain" />}
+          {!!displaySource && (
+            <GestureDetector gesture={Gesture.Simultaneous(pinchGesture, doubleTapGesture)}>
+              <Animated.View style={[styles.viewerImage, zoomImageStyle]}>
+                <Image source={{ uri: displaySource }} style={styles.viewerImage} contentFit="contain" />
+              </Animated.View>
+            </GestureDetector>
+          )}
           {!!imgBounds && (
             <>
               <GestureDetector gesture={moveGesture}>
