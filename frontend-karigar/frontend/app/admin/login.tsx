@@ -61,9 +61,6 @@ export default function AdminLogin() {
           show(t("notStaffAccount"), "error");
           return;
         }
-        await storage.setItem("admin_saved_phone", phone.trim());
-        await storage.secureSet("admin_saved_password", password);
-
         // Explicitly tell Chrome/Edge's own password manager to save this
         // login. This is what makes the saved-credentials dropdown appear
         // when you click the mobile number field next time — same as any
