@@ -1897,7 +1897,7 @@ async def admin_update_worker(worker_id: str, payload: WorkerProfilePayload, use
     duplicate_flags = await _run_duplicate_checks(payload, worker["phone"], exclude_worker_id=worker_id)
     update = await _profile_update_fields(payload, worker)
     update["duplicate_flags"] = duplicate_flags
-    snapshot = _make_snapshot(worker, edited_by="admin", update=update)
+    snapshot = _make_snapshot(worker, edited_by=(user.get("name") or user.get("phone") or "admin"), update=update)
     await db.workers.update_one(
         {"id": worker_id},
         {"$set": update, "$push": {"history": snapshot}},
