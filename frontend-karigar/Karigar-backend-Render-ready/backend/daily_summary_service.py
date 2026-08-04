@@ -326,25 +326,23 @@ async def _build_full_backup_excel(db) -> bytes:
 
 def build_combined_pdf(workers: list[dict]) -> bytes:
     """One PDF with all workers — each worker's profile on its own page."""
-    from io import BytesIO
-    from reportlab.platypus import PageBreak
-
-    all_pages = []
-    for i, worker in enumerate(workers):
-        # generate_profile_pdf returns bytes for one worker
-        # We rebuild the story for each worker and merge
-        pass
-
-    # Simpler approach: generate each PDF and merge using pypdf
     import pypdf
+    from io import BytesIO
+
     merger = pypdf.PdfWriter()
     for worker in workers:
-        pdf_bytes = generate_profile_pdf(worker)
-        merger.append(pypdf.PdfReader(BytesIO(pdf_bytes)))
+        try:
+            pdf_bytes = generate_profile_pdf(worker)
+            merger.append(pypdf.PdfReader(BytesIO(pdf_bytes)))
+        except Exception as e:
+            logger.warning("Skipping worker %s in combined PDF: %s", worker.get("id"), e)
+            continue
     out = BytesIO()
     merger.write(out)
     out.seek(0)
-    return out.read()
+    result = out.read()
+    logger.info("Combined PDF built: %d bytes for %d workers", len(result), len(workers))
+    return result
 
 
 async def send_daily_summary(db) -> bool:
