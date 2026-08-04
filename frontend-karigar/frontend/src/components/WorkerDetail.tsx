@@ -8,7 +8,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { COLORS, SPACING, RADIUS } from "@/src/theme";
 import { AppText, Avatar, StatusBadge, Card } from "@/src/components/ui";
-import { Worker, ProfileVersion, availabilityColor, verificationColor, calcAge, formatDate } from "@/src/utils/profile";
+import { Worker, ProfileVersion, availabilityColor, verificationColor, calcAge, formatDate, formatDateTime } from "@/src/utils/profile";
 import { apiFetch } from "@/src/api/client";
 import { useToast } from "@/src/components/Toast";
 
