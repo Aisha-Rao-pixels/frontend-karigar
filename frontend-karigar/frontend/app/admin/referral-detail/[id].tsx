@@ -24,6 +24,7 @@ interface ReferredPerson {
   reward_amount_rs: number;
   manually_marked_paid: boolean;
   created_at: string;
+  worker_registered_at?: string | null;
 }
 
 interface DetailResponse {
