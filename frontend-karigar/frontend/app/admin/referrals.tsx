@@ -204,6 +204,7 @@ export default function AdminReferrals() {
     },
     {
       key: "pending", label: "Pending (₹)", width: 110,
+      sortable: true, sortValue: (r) => r.pending_amount_rs ?? 0,
       render: (r) => <AppText size="sm" color={r.pending_amount_rs > 0 ? COLORS.warning : COLORS.muted}>₹{r.pending_amount_rs}</AppText>,
     },
   ];
