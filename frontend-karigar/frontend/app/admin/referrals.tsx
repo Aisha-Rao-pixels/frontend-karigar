@@ -93,7 +93,6 @@ export default function AdminReferrals() {
   const load = useCallback(async () => {
     try {
       const data = await apiFetch<{ rows: ReferralRow[] }>("/admin/referrals/overview");
-      console.log("REFERRAL OVERVIEW ROW 0:", data.rows[0]);
       setRows(data.rows);
     } catch {
     } finally {
