@@ -70,6 +70,24 @@ export default function AdminLogin() {
         }
         await storage.setItem("admin_saved_phone", phone.trim());
         await storage.secureSet("admin_saved_password", password);
+
+        // Explicitly tell Chrome/Edge's own password manager to save this
+        // login. This is what makes the saved-credentials dropdown appear
+        // when you click the mobile number field next time — same as any
+        // other website's "remember password" behavior.
+        if (Platform.OS === "web" && typeof window !== "undefined" && "PasswordCredential" in window) {
+          try {
+            const cred = new (window as any).PasswordCredential({
+              id: phone.trim(),
+              password,
+              name: "Karigar Admin",
+            });
+            await (navigator as any).credentials.store(cred);
+          } catch {
+            // Some browsers block this if it's not triggered by a direct click — not fatal.
+          }
+        }
+
         router.replace("/admin/dashboard");
       }
     } catch (e: any) {
