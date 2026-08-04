@@ -155,6 +155,8 @@ export default function AdminReferrals() {
     },
     {
       key: "code", label: "Referral Code", width: 130,
+      sortable: true, sortValue: (r) => r.referral_code ?? "",
+      filterable: true, filterMatch: (r, f) => (r.referral_code ?? "").toLowerCase().includes(f.toLowerCase()),
       render: (r) => <AppText size="sm" weight="semibold" color={COLORS.brandPrimary}>{r.referral_code}</AppText>,
     },
     {
