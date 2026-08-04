@@ -1185,6 +1185,7 @@ async def admin_referral_detail(worker_id: str, user: dict = Depends(require_rol
             "reward_amount_rs": r.get("payout_amount_rs", 50),
             "manually_marked_paid": r.get("status") == "paid",
             "created_at": r.get("created_at"),
+            "worker_registered_at": worker_registered_at,
         })
     code = referrer.get("referral_code")
     total_clicks = await db.referral_clicks.count_documents({"referral_code": code}) if code else 0
