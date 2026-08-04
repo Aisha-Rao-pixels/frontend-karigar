@@ -133,6 +133,8 @@ export default function AdminReferrals() {
     },
     {
       key: "emp_id", label: "EMP_ID", width: 80, resizable: false,
+      sortable: true, sortValue: (r) => r.emp_id ?? "",
+      filterable: true, filterMatch: (r, f) => (r.emp_id ?? "").toLowerCase().includes(f.toLowerCase()),
       render: (r) => <AppText size="sm">{r.emp_id}</AppText>,
     },
     {
