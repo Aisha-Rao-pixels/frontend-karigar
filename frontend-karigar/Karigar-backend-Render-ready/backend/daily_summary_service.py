@@ -439,21 +439,32 @@ async def send_daily_summary(db) -> bool:
         backup_bytes = await _build_full_backup_excel(db)
         backup_filename = f"Karigar_FULL_BACKUP_{today_ist.strftime('%d%b%Y')}.xlsx"
 
+        # Combined PDF — all worker profiles with photos, one per page
+        pdf_bytes = build_combined_pdf(workers) if workers else None
+        pdf_filename = f"Karigar_Profiles_{today_ist.strftime('%d%b%Y')}.pdf"
+
+        attachments = [
+            {
+                "filename": filename,
+                "content":  base64.b64encode(excel_bytes).decode("ascii"),
+            },
+            {
+                "filename": backup_filename,
+                "content":  base64.b64encode(backup_bytes).decode("ascii"),
+            },
+        ]
+        if pdf_bytes:
+            attachments.append({
+                "filename": pdf_filename,
+                "content":  base64.b64encode(pdf_bytes).decode("ascii"),
+            })
+
         payload = {
             "from": RESEND_FROM_EMAIL,
             "to":   [MANAGER_EMAIL],
             "subject": subject,
             "html":    html,
-            "attachments": [
-                {
-                    "filename": filename,
-                    "content":  base64.b64encode(excel_bytes).decode("ascii"),
-                },
-                {
-                    "filename": backup_filename,
-                    "content":  base64.b64encode(backup_bytes).decode("ascii"),
-                },
-            ],
+            "attachments": attachments,
         }
 
         async with httpx.AsyncClient(timeout=30) as client:
