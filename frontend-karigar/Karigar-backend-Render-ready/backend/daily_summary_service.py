@@ -349,7 +349,7 @@ async def build_combined_pdf(workers: list[dict], image_bucket) -> bytes:
     return result
 
 
-async def send_daily_summary(db) -> bool:
+async def send_daily_summary(db, image_bucket) -> bool:
     """
     Build the weekly-rolling Excel report and email it to the manager.
     Called by the scheduler every day at 5:30 PM IST, and also available
