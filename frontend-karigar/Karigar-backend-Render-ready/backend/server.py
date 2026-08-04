@@ -2384,9 +2384,14 @@ _last_summary_date: str = ""          # "YYYY-MM-DD" of last successful send
 
 async def _daily_summary_loop():
     global _last_summary_date
+    first_run = True
     while True:
         try:
-            await asyncio.sleep(30 * 60)          # check every 30 minutes
+            if first_run:
+                first_run = False
+                await asyncio.sleep(60)            # short delay on startup, then check immediately
+            else:
+                await asyncio.sleep(30 * 60)       # check every 30 minutes after that
             now_ist  = datetime.now(_IST)
             today_str = now_ist.strftime("%Y-%m-%d")
 
