@@ -325,14 +325,18 @@ async def _build_full_backup_excel(db) -> bytes:
     return buffer.read()
 
 
-def build_combined_pdf(workers: list[dict]) -> bytes:
-    """One PDF with all workers — each worker's profile on its own page."""
+async def build_combined_pdf(workers: list[dict], image_bucket) -> bytes:
+    """One PDF with all workers — each worker's profile on its own page.
+    Hydrates GridFS image refs to base64 data-URLs before generating PDF.
+    """
     from io import BytesIO
-  
+    import gridfs_images
+
     merger = pypdf.PdfWriter()
     for worker in workers:
         try:
-            pdf_bytes = generate_profile_pdf(worker)
+            hydrated = await gridfs_images.hydrate_worker(image_bucket, worker)
+            pdf_bytes = generate_profile_pdf(hydrated)
             merger.append(pypdf.PdfReader(BytesIO(pdf_bytes)))
         except Exception as e:
             logger.warning("Skipping worker %s in combined PDF: %s", worker.get("id"), e)
