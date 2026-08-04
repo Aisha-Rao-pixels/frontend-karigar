@@ -427,7 +427,12 @@ async def send_daily_summary(db) -> bool:
         )
 
         # Fetch workers registered Mon–today
-        workers = await db.workers.find({}).sort("created_at", 1).to_list(10000)
+        workers = await db.workers.find({
+            "created_at": {
+                "$gte": monday_start_utc,
+                "$lte": today_end_utc,
+            }
+        }).sort("created_at", 1).to_list(10000)
 
         logger.info(
             "Daily summary: found %d workers from %s to %s",
