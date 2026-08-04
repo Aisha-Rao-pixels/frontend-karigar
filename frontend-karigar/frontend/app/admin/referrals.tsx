@@ -161,6 +161,7 @@ export default function AdminReferrals() {
     },
     {
       key: "referred", label: "Referred", width: 90,
+      sortable: true, sortValue: (r) => r.total_referred ?? 0,
       render: (r) => (
         <Pressable onPress={() => router.push(`/admin/referral-detail/${r.worker_id}`)}>
           <AppText size="sm">{r.total_referred}</AppText>
