@@ -186,6 +186,7 @@ export default function AdminReferrals() {
     {
       key: "joined", label: "Joined On", width: 160,
       sortable: true, sortValue: (r) => r.created_at ?? "",
+      filterable: true, filterMatch: (r, f) => formatDateTime(r.created_at).toLowerCase().includes(f.toLowerCase()),
       render: (item) => <AppText size="sm" color={COLORS.muted}>{item.created_at ? formatDateTime(item.created_at) : "—"}</AppText>,
     },
     {
