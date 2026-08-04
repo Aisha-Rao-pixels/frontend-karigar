@@ -479,6 +479,11 @@ export default function WorkerSearch() {
       editable: true, getEditValue: (w) => String(w.years_experience || 0), editKeyboardType: "numeric",
       render: (item) => <AppText size="sm">{item.years_experience || 0} yrs</AppText>,
     },
+    {
+      key: "registered", label: "Registered", width: 160,
+      sortable: true, sortValue: (w) => w.created_at ?? "",
+      render: (item) => <AppText size="sm" numberOfLines={1} color={COLORS.muted}>{formatDateTime(item.created_at)}</AppText>,
+    },
   ];
 
   const GalleryModal = () => (
