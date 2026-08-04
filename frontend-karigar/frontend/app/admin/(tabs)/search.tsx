@@ -14,7 +14,7 @@ import { AppText, Avatar, Chip, EmptyState, Loader, Button, Tooltip } from "@/sr
 import { ResizableTable, ResizableTableColumn } from "@/src/components/ResizableTable";
 import { apiFetch, getToken, BASE } from "@/src/api/client";
 import { storage } from "@/src/utils/storage";
-import { Worker, availabilityColor, verificationColor } from "@/src/utils/profile";
+import { Worker, availabilityColor, verificationColor, formatDateTime } from "@/src/utils/profile";
 import { AVAILABILITY_OPTIONS } from "@/src/constants/app";
 import { SKILL_CATEGORIES, ALL_SKILLS } from "@/src/constants/skills";
 import { useToast } from "@/src/components/Toast";
