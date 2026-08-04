@@ -608,7 +608,11 @@ function VersionHistory({ history, worker, onImagePress }: { history: ProfileVer
                 </AppText>
                 <View style={styles.editedByPill}>
                   <AppText size="sm" weight="semibold" color={COLORS.brandPrimary}>
-                    {h.edited_by === "admin" ? t("byAdmin") : t("byWorker")}
+                    {h.edited_by === "worker"
+                      ? t("byWorker")
+                      : h.edited_by === "admin"
+                      ? t("byAdmin")
+                      : `${t("byAdmin")}: ${h.edited_by}`}
                   </AppText>
                 </View>
                 <AppText size="sm" color={COLORS.muted} style={{ marginLeft: "auto" }}>
