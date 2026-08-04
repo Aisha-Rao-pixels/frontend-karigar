@@ -9,6 +9,7 @@ import { COLORS, SPACING, RADIUS } from "@/src/theme";
 import { ScreenHeader, AppText, Loader } from "@/src/components/ui";
 import { apiFetch } from "@/src/api/client";
 import { useToast } from "@/src/components/Toast";
+import { formatDateTime } from "@/src/utils/profile";
 
 interface ReferredPerson {
   referral_id: string;
