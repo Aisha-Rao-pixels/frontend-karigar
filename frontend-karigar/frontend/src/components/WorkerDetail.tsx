@@ -82,7 +82,8 @@ export default function WorkerDetail({
         {worker.wage_expectation ? <Row label={t("wage")} value={`₹${worker.wage_expectation} ${t("perMonth")}`} /> : null}
         {worker.current_employer ? <Row label={t("currentEmployer")} value={worker.current_employer} /> : null}
         {worker.previous_employer ? <Row label={t("prevEmployer")} value={worker.previous_employer} /> : null}
-        <Row label={t("languagesSpoken")} value={worker.languages.join(", ")} last />
+        <Row label={t("languagesSpoken")} value={worker.languages.join(", ")} />
+        <Row label="Registered On" value={formatDateTime(worker.created_at)} last />
       </Card>
 
       {worker.referred_by && (
