@@ -184,6 +184,12 @@ export default function AdminReferrals() {
       render: (r) => <AppText size="sm" color={COLORS.success}>₹{r.paid_amount_rs}</AppText>,
     },
     {
+      {
+      key: "joined", label: "Joined On", width: 160,
+      sortable: true, sortValue: (r) => r.created_at ?? "",
+      render: (item) => <AppText size="sm" color={COLORS.muted}>{item.created_at ? formatDateTime(item.created_at) : "—"}</AppText>,
+    },
+    {
       key: "pending", label: "Pending (₹)", width: 110,
       render: (r) => <AppText size="sm" color={r.pending_amount_rs > 0 ? COLORS.warning : COLORS.muted}>₹{r.pending_amount_rs}</AppText>,
     },
