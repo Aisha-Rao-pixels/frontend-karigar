@@ -115,6 +115,18 @@ export function formatDate(iso?: string | null): string {
   return `${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}`;
 }
 
+export function formatDateTime(iso?: string | null): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return iso;
+  const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const h = d.getHours();
+  const hh = h % 12 === 0 ? 12 : h % 12;
+  const mm = String(d.getMinutes()).padStart(2, "0");
+  const ampm = h < 12 ? "AM" : "PM";
+  return `${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}, ${hh}:${mm} ${ampm}`;
+}
+
 export function verificationColor(status: string): string {
   return status === "approved" ? COLORS.success : status === "pending" ? COLORS.warning : COLORS.error;
 }
