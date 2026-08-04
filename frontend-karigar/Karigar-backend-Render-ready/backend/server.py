@@ -1108,6 +1108,7 @@ async def admin_referrals_overview(user: dict = Depends(require_roles(*ADMIN_ROL
             "not_registered_count": not_registered,
             "paid_amount_rs": paid_amount,
             "pending_amount_rs": pending_amount,
+            "created_at": w.get("created_at"),
         })
 
     rows.sort(key=lambda r: r["total_referred"], reverse=True)
