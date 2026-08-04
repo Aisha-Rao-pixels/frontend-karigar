@@ -481,6 +481,14 @@ function ImageViewer({
         </AppText>
 
         <View style={styles.viewerToolbar}>
+          <Pressable style={styles.viewerToolBtn} onPress={zoomOut} testID="image-viewer-zoom-out" disabled={busy}>
+            <Ionicons name="remove-circle-outline" size={20} color="#fff" />
+            <AppText size="sm" color="#fff">Zoom Out</AppText>
+          </Pressable>
+          <Pressable style={styles.viewerToolBtn} onPress={zoomIn} testID="image-viewer-zoom-in" disabled={busy}>
+            <Ionicons name="add-circle-outline" size={20} color="#fff" />
+            <AppText size="sm" color="#fff">Zoom In</AppText>
+          </Pressable>
           <Pressable style={styles.viewerToolBtn} onPress={resetCropBox} testID="image-viewer-reset" disabled={busy}>
             <Ionicons name="scan-outline" size={20} color="#fff" />
             <AppText size="sm" color="#fff">Reset</AppText>
