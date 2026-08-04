@@ -212,6 +212,20 @@ function ImageViewer({
     transform: [{ scale: zoomScale.value }],
   }));
 
+  // Explicit buttons — pinch/double-tap only fire on real touch input
+  // (phone/tablet). On desktop web (mouse/trackpad) there's no pinch
+  // gesture at all, so buttons are the reliable way to zoom there.
+  const zoomIn = () => {
+    const next = Math.min(zoomScale.value + 0.5, 5);
+    zoomScale.value = next;
+    zoomSavedScale.value = next;
+  };
+  const zoomOut = () => {
+    const next = Math.max(zoomScale.value - 0.5, 1);
+    zoomScale.value = next;
+    zoomSavedScale.value = next;
+  };
+
   const displaySource = editedUri || uri;
   const hasEdits = !!editedUri;
 
