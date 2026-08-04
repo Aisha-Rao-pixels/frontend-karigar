@@ -193,6 +193,7 @@ export default function AdminReferrals() {
     },
     {
       key: "paid", label: "Paid (₹)", width: 100,
+      sortable: true, sortValue: (r) => r.paid_amount_rs ?? 0,
       render: (r) => <AppText size="sm" color={COLORS.success}>₹{r.paid_amount_rs}</AppText>,
     },
     {
