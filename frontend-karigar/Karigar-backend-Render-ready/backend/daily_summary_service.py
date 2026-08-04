@@ -326,9 +326,8 @@ async def _build_full_backup_excel(db) -> bytes:
 
 def build_combined_pdf(workers: list[dict]) -> bytes:
     """One PDF with all workers — each worker's profile on its own page."""
-    import pypdf
     from io import BytesIO
-
+  
     merger = pypdf.PdfWriter()
     for worker in workers:
         try:
