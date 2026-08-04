@@ -285,8 +285,11 @@ export default function AdminReferralDetail() {
                       )}
                     </Cell>
                     <Cell width={COLS[8].width}>
+                      <AppText size="sm" color={COLORS.muted}>{formatDateTime(p.created_at)}</AppText>
+                    </Cell>
+                    <Cell width={COLS[9].width}>
                       <AppText size="sm" color={COLORS.muted}>
-                        {new Date(p.created_at).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
+                        {p.worker_registered_at ? formatDateTime(p.worker_registered_at) : "—"}
                       </AppText>
                     </Cell>
                   </View>
