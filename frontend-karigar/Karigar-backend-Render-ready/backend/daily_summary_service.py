@@ -369,7 +369,7 @@ def build_combined_pdf(workers: list[dict]) -> bytes:
             ["Languages",langs],
             ["Experience", f"{w.get('years_experience',0)} yrs"],
             ["Employer", w.get("current_employer") or "—"],
-            ["Wage",     f"₹{w.get('wage_expectation','—')}"],
+            ["Wage",     f"₹{w.get('wage_expectation')}" if w.get('wage_expectation') else "—"],
             ["Availability", avail],
             ["Status",   status],
         ]
