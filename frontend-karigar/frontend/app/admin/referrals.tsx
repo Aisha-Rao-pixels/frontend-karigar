@@ -139,6 +139,8 @@ export default function AdminReferrals() {
     },
     {
       key: "name", label: "Name", width: 160,
+      sortable: true, sortValue: (r) => r.full_name?.toLowerCase() ?? "",
+      filterable: true, filterMatch: (r, f) => (r.full_name ?? "").toLowerCase().includes(f.toLowerCase()),
       render: (r) => (
         <Pressable onPress={() => router.push(`/admin/worker/${r.worker_id}?from=referral`)}>
           <AppText size="sm" weight="semibold" numberOfLines={1}>{r.full_name}</AppText>
