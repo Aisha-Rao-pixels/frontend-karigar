@@ -328,6 +328,7 @@ async def _build_full_backup_excel(db) -> bytes:
 async def build_combined_pdf(workers: list[dict], image_bucket) -> bytes:
     """One PDF with all workers — each worker's profile on its own page.
     Hydrates GridFS image refs to base64 data-URLs before generating PDF.
+    Limits to 1 photo per category to keep PDF size small and fast.
     """
     from io import BytesIO
     import gridfs_images
@@ -336,6 +337,10 @@ async def build_combined_pdf(workers: list[dict], image_bucket) -> bytes:
     for worker in workers:
         try:
             hydrated = await gridfs_images.hydrate_worker(image_bucket, worker)
+            # Limit to 1 image per category to keep PDF size manageable
+            for field in ("portfolio_images", "aadhar_images", "employment_proof_images"):
+                if hydrated.get(field):
+                    hydrated[field] = hydrated[field][:1]
             pdf_bytes = generate_profile_pdf(hydrated)
             merger.append(pypdf.PdfReader(BytesIO(pdf_bytes)))
         except Exception as e:
