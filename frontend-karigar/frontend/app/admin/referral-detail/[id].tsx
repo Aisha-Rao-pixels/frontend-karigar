@@ -56,7 +56,8 @@ const COLS = [
   { key: "verified", label: "Verified", width: 100 },
   { key: "paid",     label: "Paid (₹)", width: 100 },
   { key: "markpaid", label: "Mark Paid",width: 110 },
-  { key: "date",     label: "Date",     width: 110 },
+  { key: "date",     label: "Referred On",  width: 150 },
+  { key: "regdate",  label: "Registered On",width: 150 },
 ];
 const TABLE_WIDTH = COLS.reduce((s, c) => s + c.width, 0);
 
