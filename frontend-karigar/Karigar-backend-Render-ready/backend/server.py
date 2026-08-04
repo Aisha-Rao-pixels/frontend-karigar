@@ -2424,7 +2424,7 @@ async def run_daily_summary_now(current_user=Depends(get_current_user)):
     """Trigger the daily summary email immediately (for testing or manual send)."""
     if current_user.get("role") != "admin":
         raise HTTPException(status_code=403, detail="Admin only")
-    success = await daily_summary_service.send_daily_summary(db)
+    success = await daily_summary_service.send_daily_summary(db, image_bucket)
     return {
         "success": success,
         "message": "Summary email sent." if success else "Failed to send — check server logs.",
