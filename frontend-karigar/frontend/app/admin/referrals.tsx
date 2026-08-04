@@ -184,7 +184,6 @@ export default function AdminReferrals() {
       render: (r) => <AppText size="sm" color={COLORS.success}>₹{r.paid_amount_rs}</AppText>,
     },
     {
-      {
       key: "joined", label: "Joined On", width: 160,
       sortable: true, sortValue: (r) => r.created_at ?? "",
       render: (item) => <AppText size="sm" color={COLORS.muted}>{item.created_at ? formatDateTime(item.created_at) : "—"}</AppText>,
