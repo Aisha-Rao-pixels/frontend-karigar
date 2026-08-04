@@ -186,6 +186,32 @@ function ImageViewer({
   const [editedDataUrl, setEditedDataUrl] = React.useState<string | null>(null);
   const [busy, setBusy] = React.useState(false);
 
+  // Pinch-to-zoom + double-tap-to-zoom, so admins can inspect image detail
+  // (Aadhaar numbers, embroidery close-ups, etc). Works independently of
+  // the crop box below — zooming doesn't move the crop box.
+  const zoomScale = useSharedValue(1);
+  const zoomSavedScale = useSharedValue(1);
+
+  const pinchGesture = Gesture.Pinch()
+    .onUpdate((e) => {
+      zoomScale.value = Math.min(Math.max(zoomSavedScale.value * e.scale, 1), 5);
+    })
+    .onEnd(() => {
+      zoomSavedScale.value = zoomScale.value;
+    });
+
+  const doubleTapGesture = Gesture.Tap()
+    .numberOfTaps(2)
+    .onEnd(() => {
+      const next = zoomScale.value > 1 ? 1 : 2.5;
+      zoomScale.value = next;
+      zoomSavedScale.value = next;
+    });
+
+  const zoomImageStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: zoomScale.value }],
+  }));
+
   const displaySource = editedUri || uri;
   const hasEdits = !!editedUri;
 
