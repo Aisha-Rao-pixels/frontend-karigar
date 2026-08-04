@@ -68,6 +68,8 @@ export default function AdminLogin() {
           show(t("notStaffAccount"), "error");
           return;
         }
+        await storage.setItem("admin_saved_phone", phone.trim());
+        await storage.secureSet("admin_saved_password", password);
         router.replace("/admin/dashboard");
       }
     } catch (e: any) {
