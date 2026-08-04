@@ -27,6 +27,7 @@ from datetime import datetime, timezone, timedelta
 
 import httpx
 import openpyxl
+from email_service import generate_profile_pdf
 from openpyxl.styles import (
     Font, PatternFill, Alignment, Border, Side, GradientFill
 )
