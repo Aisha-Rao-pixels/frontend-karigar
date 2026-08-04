@@ -170,6 +170,7 @@ export default function AdminReferrals() {
     },
     {
       key: "registered", label: "Registered", width: 100,
+      sortable: true, sortValue: (r) => r.registered_count ?? 0,
       render: (r) => (
         <Pressable onPress={() => router.push(`/admin/referral-detail/${r.worker_id}`)}>
           <AppText size="sm" color={COLORS.success} weight="semibold">{r.registered_count}</AppText>
