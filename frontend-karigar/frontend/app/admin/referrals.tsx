@@ -149,6 +149,8 @@ export default function AdminReferrals() {
     },
     {
       key: "phone", label: "Phone", width: 110,
+      sortable: true, sortValue: (r) => r.phone ?? "",
+      filterable: true, filterMatch: (r, f) => (r.phone ?? "").includes(f),
       render: (r) => <AppText size="sm" color={COLORS.muted}>{r.phone}</AppText>,
     },
     {
