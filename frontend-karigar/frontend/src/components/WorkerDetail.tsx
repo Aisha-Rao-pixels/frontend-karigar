@@ -236,6 +236,8 @@ function ImageViewer({
     setEditedUri(null);
     setEditedDataUrl(null);
     setNaturalSize(null);
+    zoomScale.value = 1;
+    zoomSavedScale.value = 1;
     if (uri) loadNaturalSize(uri);
   }, [uri]);
 
