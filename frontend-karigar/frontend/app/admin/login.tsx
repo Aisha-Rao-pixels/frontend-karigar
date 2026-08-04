@@ -25,6 +25,13 @@ export default function AdminLogin() {
   const [showPwd, setShowPwd] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  // Remember the last-used admin login, so repeat testing doesn't require
+  // retyping the mobile number + password every time.
+  useEffect(() => {
+    storage.getItem<string>("admin_saved_phone", "").then((v) => v && setPhone(v));
+    storage.secureGet<string>("admin_saved_password", "").then((v) => v && setPassword(v));
+  }, []);
+
   useEffect(() => {
     apiFetch<{ exists: boolean }>("/auth/admin/exists", { auth: false })
       .then((r) => {
