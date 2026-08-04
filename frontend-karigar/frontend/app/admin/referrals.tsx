@@ -30,8 +30,8 @@ interface ReferralRow {
   not_registered_count: number;
   paid_amount_rs: number;
   pending_amount_rs: number;
+  created_at?: string;
 }
-
 export default function AdminReferrals() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
