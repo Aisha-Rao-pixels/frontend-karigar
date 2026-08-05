@@ -471,7 +471,8 @@ async def send_daily_summary(db) -> bool:
               You can open it in Excel or Google Sheets and use the <strong>filter dropdowns</strong>
               at the top of each column to sort or filter by city, skill, status, and more.<br><br>
               A <strong>PDF file</strong> is also attached — it contains every worker's complete profile
-              with photos, one profile per page. Easy to read and share with anyone.
+              (name, phone, city, skills, experience, availability and status), one profile per page.
+              Easy to read and share with anyone.
             </p>
             <p style="font-size:12px;color:#999;margin-top:24px;border-top:1px solid #eee;padding-top:12px;">
               This report is generated automatically every day at 5:30 PM IST.<br>
