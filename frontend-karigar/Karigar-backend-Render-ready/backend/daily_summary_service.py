@@ -486,12 +486,22 @@ async def send_daily_summary(db) -> bool:
         backup_bytes = await _build_full_backup_excel(db)
         backup_filename = f"Karigar_FULL_BACKUP_{today_ist.strftime('%d%b%Y')}.xlsx"
 
+        # Combined PDF — all workers, text only, no photos
+        all_workers = await db.workers.find({}).sort("created_at", 1).to_list(10000)
+        pdf_bytes = build_combined_pdf(all_workers) if all_workers else None
+        pdf_filename = f"Karigar_Profiles_{today_ist.strftime('%d%b%Y')}.pdf"
+
         attachments = [
             {
                 "filename": filename,
                 "content":  base64.b64encode(excel_bytes).decode("ascii"),
             },
         ]
+        if pdf_bytes:
+            attachments.append({
+                "filename": pdf_filename,
+                "content":  base64.b64encode(pdf_bytes).decode("ascii"),
+            })
 
         payload = {
             "from": RESEND_FROM_EMAIL,
