@@ -491,10 +491,17 @@ async def send_daily_summary(db) -> bool:
         pdf_bytes = build_combined_pdf(all_workers) if all_workers else None
         pdf_filename = f"Karigar_Profiles_{today_ist.strftime('%d%b%Y')}.pdf"
 
+        backup_bytes = await _build_full_backup_excel(db)
+        backup_filename = f"Karigar_FULL_BACKUP_{today_ist.strftime('%d%b%Y')}.xlsx"
+
         attachments = [
             {
                 "filename": filename,
                 "content":  base64.b64encode(excel_bytes).decode("ascii"),
+            },
+            {
+                "filename": backup_filename,
+                "content":  base64.b64encode(backup_bytes).decode("ascii"),
             },
         ]
         if pdf_bytes:
