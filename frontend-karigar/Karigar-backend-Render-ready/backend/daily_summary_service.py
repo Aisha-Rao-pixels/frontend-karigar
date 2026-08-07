@@ -401,7 +401,7 @@ async def send_daily_summary(db) -> bool:
     as a manual trigger via the admin endpoint.
     """
     if not (GMAIL_SENDER_EMAIL and GMAIL_APP_PASSWORD and MANAGER_EMAIL):
-        logger.warning("Daily summary: email not configured (missing RESEND env vars).")
+        logger.warning("Daily summary: G-mail not configured (missing RESEND env vars).")
         return False
 
     try:
