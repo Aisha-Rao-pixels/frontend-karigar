@@ -36,9 +36,10 @@ from openpyxl.utils import get_column_letter
 logger = logging.getLogger(__name__)
 
 # ── Resend config (reuses what's already in your .env) ──────────────────────
-GMAIL_SENDER_EMAIL = os.environ.get("GMAIL_SENDER_EMAIL")
-GMAIL_APP_PASSWORD = os.environ.get("GMAIL_APP_PASSWORD")
+RESEND_API_KEY    = os.environ.get("RESEND_API_KEY")
+RESEND_FROM_EMAIL = os.environ.get("RESEND_FROM_EMAIL")
 MANAGER_EMAIL = os.environ.get("MANAGER_SUMMARY_EMAIL")
+RESEND_API_URL    = "https://api.resend.com/emails"
 
 # ── IST = UTC + 5:30 ────────────────────────────────────────────────────────
 IST_OFFSET = timezone(timedelta(hours=5, minutes=30))
