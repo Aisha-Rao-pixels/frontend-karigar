@@ -513,26 +513,26 @@ async def send_daily_summary(db) -> bool:
                 "content":  base64.b64encode(pdf_bytes).decode("ascii"),
             })
 
-        payload = {
-            "from": RESEND_FROM_EMAIL,
-            "to":   [MANAGER_EMAIL],
-            "subject": subject,
-            "html":    html,
-            "attachments": attachments,
-        }
+        msg = MIMEMultipart()
+        msg["From"] = GMAIL_SENDER_EMAIL
+        msg["To"] = MANAGER_EMAIL
+        msg["Subject"] = subject
+        msg.attach(MIMEText(html, "html"))
 
-        async with httpx.AsyncClient(timeout=30) as client:
-            resp = await client.post(
-                RESEND_API_URL,
-                headers={
-                    "Authorization": f"Bearer {RESEND_API_KEY}",
-                    "Content-Type":  "application/json",
-                },
-                json=payload,
-            )
+        for att in attachments:
+            part = MIMEApplication(base64.b64decode(att["content"]), Name=att["filename"])
+            part["Content-Disposition"] = f'attachment; filename="{att["filename"]}"'
+            msg.attach(part)
 
-        if resp.status_code >= 400:
-            logger.error("Resend error: %s %s", resp.status_code, resp.text)
+        try:
+            def _send():
+                with smtplib.SMTP("smtp.gmail.com", 587) as server:
+                    server.starttls()
+                    server.login(GMAIL_SENDER_EMAIL, GMAIL_APP_PASSWORD)
+                    server.send_message(msg)
+            await asyncio.to_thread(_send)
+        except Exception as exc:
+            logger.error("Gmail SMTP error: %s", exc)
             return False
 
         logger.info(
