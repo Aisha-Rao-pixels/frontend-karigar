@@ -119,7 +119,7 @@ export default function ReviewScreen() {
         }
       />
       {worker ? (
-      <WorkerDetail worker={worker} contentBottom={120} />
+      <WorkerDetail worker={worker} contentBottom={120} onWorkerUpdated={setWorker} />
       ) : notFound ? (
       <View style={{ padding: 20 }}>
       <AppText>This profile could not be found. It may have already been reviewed.</AppText>
