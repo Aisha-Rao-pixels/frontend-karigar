@@ -1996,7 +1996,7 @@ async def admin_replace_worker_image(
     # purge_history_images() once the profile is approved.
     synced = await gridfs_images.store_images(image_bucket, new_images)
     update = {payload.field: synced, "updated_at": now_iso()}
-    snapshot = _make_snapshot(worker, edited_by="admin", update=update)
+    snapshot = _make_snapshot(worker, edited_by=(user.get("name") or user.get("phone") or "admin"), update=update)
     await db.workers.update_one(
         {"id": worker_id},
         {"$set": update, "$push": {"history": snapshot}},
