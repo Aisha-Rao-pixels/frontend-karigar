@@ -106,7 +106,7 @@ export default function AdminWorkerDetail() {
           ) : undefined
         }
       />
-      {worker ? <WorkerDetail worker={worker} /> : <Loader />}
+      {worker ? <WorkerDetail worker={worker} onWorkerUpdated={setWorker} /> : <Loader />}
 
       <BottomSheet ref={sheetRef} index={-1} snapPoints={["38%"]} enablePanDownToClose keyboardBehavior="interactive" backgroundStyle={{ backgroundColor: COLORS.surfaceSecondary }}>
         <BottomSheetView style={{ padding: SPACING.lg }}>
