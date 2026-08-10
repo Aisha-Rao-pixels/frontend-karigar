@@ -115,7 +115,7 @@ export default function RejectedProfileDetail() {
         </AppText>
       </View>
 
-      <WorkerDetail worker={profile} contentBottom={100} />
+      <WorkerDetail worker={profile} contentBottom={100} onWorkerUpdated={setProfile} />
 
       <View style={[styles.footer, { paddingBottom: insets.bottom + SPACING.md }]}>
         <Button
