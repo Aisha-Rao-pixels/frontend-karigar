@@ -55,7 +55,9 @@ db = client[os.environ['DB_NAME']]
 
 image_bucket = AsyncIOMotorGridFSBucket(db, bucket_name="worker_images")
 
-JWT_SECRET = os.environ.get('JWT_SECRET', 'dev_secret')
+JWT_SECRET = os.environ.get('JWT_SECRET')
+if not JWT_SECRET:
+    raise RuntimeError("JWT_SECRET environment variable is not set. The app cannot start without it.")
 JWT_ALGORITHM = os.environ.get('JWT_ALGORITHM', 'HS256')
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.environ.get('ACCESS_TOKEN_EXPIRE_MINUTES', '43200'))
 USE_DEV_OTP = os.environ.get('USE_DEV_OTP', 'true').lower() == 'true'
