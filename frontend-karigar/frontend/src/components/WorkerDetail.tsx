@@ -616,7 +616,7 @@ function VersionHistory({ history, worker, onImagePress }: { history: ProfileVer
                   </AppText>
                 </View>
                 <AppText size="sm" color={COLORS.muted} style={{ marginLeft: "auto" }}>
-                  {formatDate(h.archived_at)}
+                  {formatDateTime(h.archived_at)}
                 </AppText>
               </View>
 
