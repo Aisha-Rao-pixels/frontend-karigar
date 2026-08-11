@@ -567,6 +567,21 @@ export default function WorkerForm({
     return true;
   };
 
+  const checklistItems: { label: string; done: boolean }[] = [
+    { label: "Name", done: !!v.full_name.trim() },
+    { label: "Gender", done: !!v.gender },
+    { label: "Languages", done: v.languages.length > 0 },
+    { label: "Area", done: !!v.area.trim() },
+    { label: "Skills", done: v.skills.length > 0 },
+    { label: "Years of Experience", done: !!v.years_experience && parseInt(v.years_experience, 10) > 0 },
+    { label: "Previous Employer", done: !!v.previous_employer.trim() },
+    { label: "Aadhaar Photo", done: v.aadhar_images.length > 0 },
+    { label: "Employment Proof Type", done: !!v.employment_proof_type },
+    { label: "Employment Proof Photo", done: v.employment_proof_images.length > 0 },
+    { label: "Portfolio Photo", done: v.portfolio_images.length > 0 },
+  ];
+  const checklistDoneCount = checklistItems.filter((c) => c.done).length;
+
   const handleSubmit = () => {
     if (validate()) {
       storage.removeItem("form_draft");
