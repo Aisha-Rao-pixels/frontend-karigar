@@ -612,6 +612,8 @@ function VersionHistory({ history, worker, onImagePress }: { history: ProfileVer
                       ? t("byWorker")
                       : h.edited_by === "admin"
                       ? t("byAdmin")
+                      : h.edited_by === worker.full_name
+                      ? `${t("byWorker")}: ${h.edited_by}`
                       : `${t("byAdmin")}: ${h.edited_by}`}
                   </AppText>
                 </View>
