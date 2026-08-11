@@ -958,24 +958,6 @@ export default function WorkerForm({
       </ScrollView>
 
       <View style={[styles.footer, { paddingBottom: insets.bottom + SPACING.md }]}>
-        <View style={{ marginBottom: SPACING.md }}>
-          <AppText size="sm" weight="semibold" style={{ marginBottom: 6 }}>
-            {`Profile Checklist (${checklistDoneCount}/${checklistItems.length})`}
-          </AppText>
-          {checklistItems.map((item) => (
-            <View key={item.label} style={{ flexDirection: "row", alignItems: "center", marginBottom: 2 }}>
-              <Ionicons
-                name={item.done ? "checkmark-circle" : "close-circle-outline"}
-                size={16}
-                color={item.done ? COLORS.success : COLORS.error}
-                style={{ marginRight: 6 }}
-              />
-              <AppText size="sm" color={item.done ? COLORS.success : COLORS.error}>
-                {item.label}
-              </AppText>
-            </View>
-          ))}
-        </View>
         <Button title={submitLabel} onPress={handleSubmit} loading={submitting} testID="form-submit-btn" />
       </View>
     </KeyboardAvoidingView>
