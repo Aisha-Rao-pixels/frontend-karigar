@@ -970,7 +970,7 @@ async def update_my_profile(payload: WorkerProfilePayload, user: dict = Depends(
     update["verified_at"] = None
     update["rejection_reason"] = None
     update["edit_count"] = edit_count + 1
-    snapshot = _make_snapshot(worker, edited_by="worker", update=update)
+    snapshot = _make_snapshot(worker, edited_by=(worker.get("full_name") or user.get("phone") or "worker"), update=update)
     await db.workers.update_one(
         {"id": worker["id"]},
         {"$set": update, "$push": {"history": snapshot}},
