@@ -19,7 +19,7 @@ export default function Root({ children }: PropsWithChildren) {
         */}
         <ScrollViewStyleReset />
         <meta property="og:title" content="Karigar" />
-        <meta property="og:image" content="https://frontend-karigar-swart.vercel.app//og-image-1.jpg" />
+        <meta property="og:image" content="https://frontend-karigar-swart.vercel.app/og-image-1.jpg" />
         <meta property="og:image:width" content="1200" />
         <meta property="og:image:height" content="630" />
         <meta name="twitter:card" content="summary_large_image" />
