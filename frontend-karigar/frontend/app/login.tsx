@@ -231,10 +231,6 @@ const styles = StyleSheet.create({
   logoBadge: {
     width: 64,
     height: 64,
-    borderRadius: RADIUS.lg,
-    backgroundColor: COLORS.brandPrimary,
-    alignItems: "center",
-    justifyContent: "center",
   },
   phoneRow: { flexDirection: "row", gap: SPACING.sm },
   cc: {
