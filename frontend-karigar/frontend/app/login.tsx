@@ -7,7 +7,6 @@ import {
   KeyboardAvoidingView,
   ScrollView,
   Platform,
-  Image,
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useTranslation } from "react-i18next";
