@@ -130,11 +130,9 @@ export default function LoginScreen() {
           <Ionicons name="arrow-back" size={22} color={COLORS.onSurface} />
         </Pressable>
 
-        <Image
-          source={require("@/assets/images/icon.png")}
-          style={styles.logoBadge}
-          resizeMode="contain"
-        />
+        <View style={styles.logoBadge}>
+          <Ionicons name="cut" size={32} color={COLORS.onBrandPrimary} />
+        </View>
         <AppText weight="bold" size="2xl" style={{ marginTop: SPACING.lg }}>
           {t("loginTitle")}
         </AppText>
