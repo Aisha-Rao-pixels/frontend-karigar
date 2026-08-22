@@ -38,6 +38,21 @@ export default function RootLayout() {
   useEffect(() => {
     loadSavedLanguage();
   }, []);
+    // Microsoft Clarity — inject script dynamically for web
+  useEffect(() => {
+    if (Platform.OS !== "web" || typeof window === "undefined") return;
+    if (document.getElementById("ms-clarity-script")) return;
+    const script = document.createElement("script");
+    script.id = "ms-clarity-script";
+    script.innerHTML = `
+      (function(c,l,a,r,i,t,y){
+        c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+        t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+        y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+      })(window, document, "clarity", "script", "xpca6hfkaf");
+    `;
+    document.head.appendChild(script);
+  }, []);
   useEffect(() => {
     if (Platform.OS !== "web" || typeof document === "undefined") return;
     if (document.getElementById("karigar-font-inter")) return;
