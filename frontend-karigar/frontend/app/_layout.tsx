@@ -53,6 +53,25 @@ export default function RootLayout() {
     `;
     document.head.appendChild(script);
   }, []);
+
+  // Google Analytics 4
+useEffect(() => {
+  if (Platform.OS !== "web" || typeof window === "undefined") return;
+  if (document.getElementById("ga4-script")) return;
+  const script1 = document.createElement("script");
+  script1.id = "ga4-script";
+  script1.async = true;
+  script1.src = "https://www.googletagmanager.com/gtag/js?id=G-V6K5NG3LK2";
+  document.head.appendChild(script1);
+  const script2 = document.createElement("script");
+  script2.innerHTML = `
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-V6K5NG3LK2');
+  `;
+  document.head.appendChild(script2);
+}, []);
   useEffect(() => {
     if (Platform.OS !== "web" || typeof document === "undefined") return;
     if (document.getElementById("karigar-font-inter")) return;
